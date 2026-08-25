@@ -1,39 +1,78 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const diagnostics: Record<string, unknown> = {
-    timestamp: new Date().toISOString(),
-    nodeVersion: process.version,
-    env: {
-      DATABASE_URL: process.env.DATABASE_URL ? `SET (${process.env.DATABASE_URL.substring(0, 20)}...)` : "MISSING",
-      DIRECT_DATABASE_URL: process.env.DIRECT_DATABASE_URL ? `SET (${process.env.DIRECT_DATABASE_URL.substring(0, 20)}...)` : "MISSING",
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL || "MISSING",
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? "SET" : "MISSING",
-      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? "SET" : "MISSING",
-      NODE_ENV: process.env.NODE_ENV,
-    },
-  };
+  const result: Record<string, unknown> = {};
 
-  // Test 1: Session
   try {
+    // Step 1: Exact same session call as dashboard page.tsx line 49
     const session = await getServerSession(authOptions);
-    diagnostics.session = session ? { email: session.user?.email, name: session.user?.name } : null;
+    result.step1_session = session ? { email: session.user?.email } : "NO_SESSION";
+
+    if (!session?.user?.email) {
+      return NextResponse.json({ ...result, stopped: "no session email" });
+    }
+
+    // Step 2: Exact same prisma query as dashboard page.tsx lines 54-68
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: {
+        projectsOwned: {
+          include: { roles: true },
+          orderBy: { createdAt: "desc" },
+          take: 3,
+        },
+        applications: {
+          include: { role: { include: { project: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 3,
+        },
+      },
+    });
+    result.step2_user = user ? {
+      id: user.id,
+      name: user.name,
+      skillsCount: user.skills?.length,
+      projectsOwnedCount: user.projectsOwned?.length,
+      applicationsCount: user.applications?.length,
+      reputationScore: user.reputationScore,
+      reputationScoreType: typeof user.reputationScore,
+    } : "USER_NOT_FOUND";
+
+    // Step 3: Same computations as dashboard page.tsx lines 70-85
+    if (user) {
+      const hasProfile = user.skills.length > 0 && user.experienceLevel;
+      result.step3_hasProfile = hasProfile;
+
+      const profileCompletion = Math.round(
+        ([
+          user.name,
+          user.skills.length > 0,
+          user.interests.length > 0,
+          user.availabilityHours,
+          user.experienceLevel,
+          user.portfolioLinks.length > 0,
+        ].filter(Boolean).length / 6) * 100
+      );
+      result.step3_profileCompletion = profileCompletion;
+
+      // Test the toFixed call that might crash
+      try {
+        const val = user.reputationScore.toFixed(1);
+        result.step3_toFixed = val;
+      } catch (e: unknown) {
+        result.step3_toFixedError = e instanceof Error ? e.message : String(e);
+      }
+    }
+
+    result.allStepsPassed = true;
   } catch (e: unknown) {
-    diagnostics.sessionError = e instanceof Error ? e.message : String(e);
+    result.error = e instanceof Error ? { message: e.message, stack: e.stack?.split("\n").slice(0, 8) } : String(e);
   }
 
-  // Test 2: Prisma connection
-  try {
-    const { prisma } = await import("@/lib/prisma");
-    const userCount = await prisma.user.count();
-    diagnostics.prisma = { connected: true, userCount };
-  } catch (e: unknown) {
-    diagnostics.prismaError = e instanceof Error ? { message: e.message, stack: e.stack?.split("\n").slice(0, 5) } : String(e);
-  }
-
-  return NextResponse.json(diagnostics, { status: 200 });
+  return NextResponse.json(result);
 }
