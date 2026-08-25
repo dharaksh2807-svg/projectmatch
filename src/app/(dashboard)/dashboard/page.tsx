@@ -21,7 +21,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 const quickActions = [
   {
     href: "/profile",
-    icon: Star,
+    icon: <Star className="w-5 h-5 text-white" />,
     label: "Complete Profile",
     description: "Add skills & availability to get matched",
     accent: "from-violet-500/20 to-primary/20",
@@ -29,7 +29,7 @@ const quickActions = [
   },
   {
     href: "/projects/new",
-    icon: Plus,
+    icon: <Plus className="w-5 h-5 text-white" />,
     label: "Post a Project",
     description: "Define roles and find your team",
     accent: "from-emerald-500/20 to-teal-500/20",
@@ -37,7 +37,7 @@ const quickActions = [
   },
   {
     href: "/discover",
-    icon: Search,
+    icon: <Search className="w-5 h-5 text-white" />,
     label: "Discover Projects",
     description: "Explore open roles matched to your skills",
     accent: "from-orange-500/20 to-yellow-500/20",
@@ -46,7 +46,6 @@ const quickActions = [
 ];
 
 export default async function DashboardPage() {
-  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     redirect("/login");
@@ -134,34 +133,30 @@ export default async function DashboardPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
+        [
           {
-            icon: Users,
+            icon: <Users className="w-5 h-5 text-primary mb-3" />,
             label: "Projects Owned",
             value: user?.projectsOwned.length ?? 0,
-            color: "text-primary",
           },
           {
-            icon: TrendingUp,
+            icon: <TrendingUp className="w-5 h-5 text-emerald-400 mb-3" />,
             label: "Applications",
             value: user?.applications.length ?? 0,
-            color: "text-emerald-400",
           },
           {
-            icon: Star,
+            icon: <Star className="w-5 h-5 text-yellow-400 mb-3" />,
             label: "Reputation",
             value: user?.reputationScore.toFixed(1) ?? "—",
-            color: "text-yellow-400",
           },
           {
-            icon: Clock,
+            icon: <Clock className="w-5 h-5 text-blue-400 mb-3" />,
             label: "Availability",
             value: user?.availabilityHours ? `${user.availabilityHours}h/wk` : "Not set",
-            color: "text-blue-400",
           },
-        ].map(({ icon: Icon, label, value, color }) => (
+        ].map(({ icon, label, value }) => (
           <div key={label} className="glass-card rounded-2xl p-5 border border-border/50">
-            <Icon className={`w-5 h-5 ${color} mb-3`} />
+            {icon}
             <p className="text-2xl font-bold">{value}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
           </div>
@@ -172,7 +167,7 @@ export default async function DashboardPage() {
       <div className="mb-10">
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <div className="grid sm:grid-cols-3 gap-4">
-          {quickActions.map(({ href, icon: Icon, label, description, accent, iconBg }) => (
+          {quickActions.map(({ href, icon, label, description, accent, iconBg }) => (
             <Link
               key={href}
               href={href}
@@ -181,7 +176,7 @@ export default async function DashboardPage() {
               <div
                 className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}
               >
-                <Icon className="w-5 h-5 text-white" />
+                {icon}
               </div>
               <p className="font-semibold text-sm">{label}</p>
               <p className="text-xs text-muted-foreground mt-1">{description}</p>
@@ -308,23 +303,5 @@ export default async function DashboardPage() {
       </div>
     </div>
   );
-  } catch (err: unknown) {
-    // Re-throw redirect errors (Next.js uses thrown errors for redirects)
-    if (err && typeof err === "object" && "digest" in err) {
-      throw err;
-    }
-    const message = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : undefined;
-    return (
-      <div className="p-8 max-w-3xl mx-auto">
-        <h1 className="text-xl font-bold text-red-500 mb-4">DEBUG: Server Component Error</h1>
-        <pre className="bg-red-950/50 text-red-200 p-4 rounded-xl text-xs overflow-auto whitespace-pre-wrap">
-          {message}
-          {"\n\n"}
-          {stack}
-        </pre>
-      </div>
-    );
-  }
 }
 

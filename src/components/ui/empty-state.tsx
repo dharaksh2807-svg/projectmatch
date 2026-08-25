@@ -1,11 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
-  icon: LucideIcon;
+  icon: React.ReactNode;
   title: string;
   description: string;
   actionLabel?: string;
@@ -16,7 +15,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon: Icon,
+  icon,
   title,
   description,
   actionLabel,
@@ -33,7 +32,7 @@ export function EmptyState({
       )}
     >
       <div className="w-14 h-14 rounded-2xl bg-secondary/80 border border-border/60 flex items-center justify-center mb-4 text-muted-foreground shadow-sm">
-        <Icon className="w-7 h-7 text-primary/80" />
+        {icon}
       </div>
       <h3 className="text-lg font-bold text-foreground mb-1.5">{title}</h3>
       <p className="text-sm text-muted-foreground max-w-sm mb-6 leading-relaxed">

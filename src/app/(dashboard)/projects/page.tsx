@@ -26,7 +26,6 @@ const PROJECT_TYPE_COLORS: Record<string, string> = {
 };
 
 export default async function ProjectsPage() {
-  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/login");
 
@@ -73,7 +72,7 @@ export default async function ProjectsPage() {
 
       {projects.length === 0 ? (
         <EmptyState
-          icon={Sparkles}
+          icon={<Sparkles className="w-7 h-7 text-primary/80" />}
           title="No projects yet"
           description="Create your first project and start finding the perfect teammates using our AI-powered matching engine."
           actionLabel="Create Your First Project"
@@ -150,19 +149,4 @@ export default async function ProjectsPage() {
       )}
     </div>
   );
-  } catch (err: unknown) {
-    if (err && typeof err === "object" && "digest" in err) throw err;
-    const message = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : undefined;
-    return (
-      <div className="p-8 max-w-3xl mx-auto">
-        <h1 className="text-xl font-bold text-red-500 mb-4">DEBUG: Projects Page Error</h1>
-        <pre className="bg-red-950/50 text-red-200 p-4 rounded-xl text-xs overflow-auto whitespace-pre-wrap">
-          {message}
-          {"\n\n"}
-          {stack}
-        </pre>
-      </div>
-    );
-  }
 }
