@@ -2,8 +2,6 @@
 
 import { useState, KeyboardEvent } from "react";
 import { X, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 
 interface TagInputProps {
   value: string[];

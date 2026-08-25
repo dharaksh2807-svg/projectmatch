@@ -9,7 +9,6 @@ import {
   Users,
   Clock,
   ArrowRight,
-  ExternalLink,
   CheckCircle2,
 } from "lucide-react";
 import type { Metadata } from "next";

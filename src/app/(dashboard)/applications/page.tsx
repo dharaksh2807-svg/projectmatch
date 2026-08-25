@@ -13,7 +13,6 @@ import {
   Send,
   Loader2,
   ChevronRight,
-  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +68,7 @@ const STATUS_CONFIG = {
 };
 
 export default function ApplicationsPage() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { status: sessionStatus } = useSession();
   const { toast } = useToast();
 
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
@@ -93,6 +92,7 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     if (sessionStatus !== "loading") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadApplications();
     }
   }, [sessionStatus]);

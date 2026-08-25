@@ -5,9 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   Users,
-  Briefcase,
   Clock,
-  Sparkles,
   ArrowRight,
   Shield,
   Layers,

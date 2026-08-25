@@ -186,7 +186,7 @@ export default function HomePage() {
                     Ready to find your team?
                   </h2>
                   <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-                    Join thousands of builders who've found their dream collaborators on
+                    Join thousands of builders who&apos;ve found their dream collaborators on
                     ProjectMatch.
                   </p>
                   <Link

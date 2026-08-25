@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema, type ProfileInput } from "@/lib/validations";
@@ -47,7 +47,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
     defaultValues: {

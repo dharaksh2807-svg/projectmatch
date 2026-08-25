@@ -4,7 +4,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Sparkles, GitBranch, Globe, Loader2, ArrowLeft, UserCheck, Shield } from "lucide-react";
+import { Sparkles, GitBranch, Globe, Loader2, ArrowLeft } from "lucide-react";
 
 const DEMO_USERS = [
   {

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProfileForm } from "@/components/profile/profile-form";
-import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { ReputationBadge } from "@/components/ratings/reputation-badge";
 

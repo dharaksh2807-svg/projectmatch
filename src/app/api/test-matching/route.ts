@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import {
   computeCompatibility,
-  scoreSkillOverlap,
-  scoreAvailabilityFit,
-  scoreInterestAlignment,
-  scoreExperienceFit,
-  scoreReputation,
   type RoleWithProject,
   type UserProfile,
 } from "@/lib/matching";

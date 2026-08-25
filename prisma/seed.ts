@@ -158,11 +158,11 @@ async function main() {
     }),
   ]);
 
-  const [alice, bob, carol, dan, eve] = users;
+  const [alice, bob, carol, , eve] = users;
   console.log(`✅ Created/updated ${users.length} seed users`);
 
   // -- ACTIVE PROJECTS + ROLES --
-  const project1 = await prisma.project.create({
+  await prisma.project.create({
     data: {
       ownerId: eve.id,
       title: "AI-Powered Study Companion",
@@ -200,7 +200,7 @@ async function main() {
     include: { roles: true },
   });
 
-  const project2 = await prisma.project.create({
+  await prisma.project.create({
     data: {
       ownerId: alice.id,
       title: "Open Source Contribution Tracker",

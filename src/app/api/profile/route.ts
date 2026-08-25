@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { profileSchema } from "@/lib/validations";
-import { z } from "zod";
 
 export const runtime = "nodejs";
 

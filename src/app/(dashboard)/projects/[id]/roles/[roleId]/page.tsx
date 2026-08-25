@@ -3,12 +3,10 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Sparkles,
   Zap,
-  Star,
   CheckCircle2,
   Clock,
   Briefcase,
@@ -16,11 +14,8 @@ import {
   UserCheck,
   Send,
   Filter,
-  ShieldCheck,
   ChevronRight,
-  TrendingUp,
   AlertCircle,
-  HelpCircle,
   FolderOpen,
   Users,
   Loader2,
@@ -28,10 +23,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -88,8 +79,7 @@ export default function RoleCandidatesPage({
   const resolvedParams = use(params);
   const { id: projectId, roleId } = resolvedParams;
 
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useSession();
   const { toast } = useToast();
 
   const [role, setRole] = useState<RoleDetails | null>(null);
@@ -113,8 +103,9 @@ export default function RoleCandidatesPage({
         const data = await res.json();
         setRole(data.role);
         setCandidates(data.results || []);
-      } catch (err: any) {
-        setError(err.message || "An error occurred while fetching candidates.");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "An error occurred while fetching candidates.";
+        setError(message);
       } finally {
         setLoading(false);
       }
