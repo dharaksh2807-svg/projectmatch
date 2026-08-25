@@ -64,9 +64,10 @@ export function TagInput({
             <button
               type="button"
               onClick={() => removeTag(tag)}
+              aria-label={`Remove tag: ${tag}`}
               className="hover:text-destructive transition-colors ml-0.5"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3 h-3" aria-hidden="true" />
             </button>
           </span>
         ))}
@@ -95,9 +96,10 @@ export function TagInput({
               key={s}
               type="button"
               onMouseDown={() => addTag(s)}
+              aria-label={`Add tag: ${s}`}
               className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2"
             >
-              <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+              <Plus className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
               {s}
             </button>
           ))}

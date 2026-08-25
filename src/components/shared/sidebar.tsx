@@ -29,19 +29,19 @@ export function Sidebar() {
   const { data: session } = useSession();
 
   return (
-    <aside className="w-64 flex-shrink-0 flex flex-col border-r border-border/50 bg-sidebar min-h-screen">
+    <aside className="w-64 flex-shrink-0 flex flex-col border-r border-border/50 bg-sidebar min-h-screen" aria-label="Main navigation">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-border/50">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg brand-gradient flex items-center justify-center glow-sm">
-            <Sparkles className="w-4 h-4 text-white" />
+            <Sparkles className="w-4 h-4 text-white" aria-hidden="true" />
           </div>
           <span className="font-bold text-base tracking-tight">ProjectMatch</span>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1" aria-label="Site navigation">
         {navItems.map(({ href, icon: Icon, label }) => {
           const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
@@ -101,9 +101,10 @@ export function Sidebar() {
 
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
+          aria-label="Sign out of ProjectMatch"
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4" aria-hidden="true" />
           <span>Sign Out</span>
         </button>
       </div>

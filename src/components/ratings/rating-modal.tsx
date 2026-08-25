@@ -197,6 +197,7 @@ function PeerRatingCard({
               <button
                 onClick={handleSubmit}
                 disabled={submitting || score === 0}
+                aria-label={`Submit rating for ${peer.name || "teammate"}`}
                 className={cn(
                   "w-full py-2 px-4 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all",
                   score === 0
@@ -206,12 +207,12 @@ function PeerRatingCard({
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                     Submitting…
                   </>
                 ) : (
                   <>
-                    <Star className="w-3.5 h-3.5" />
+                    <Star className="w-3.5 h-3.5" aria-hidden="true" />
                     Submit Rating
                   </>
                 )}
@@ -265,9 +266,12 @@ export function RatingModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      aria-modal="true"
+      role="dialog"
+      aria-labelledby="rating-modal-title"
     >
       {/* Blurred overlay */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
 
       {/* Dialog */}
       <div className="relative z-10 w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-[#16161f] border border-border/60 shadow-2xl overflow-hidden animate-slide-up">
@@ -278,7 +282,7 @@ export function RatingModal({
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
                 <Star className="w-3.5 h-3.5 text-white fill-white" />
               </div>
-              <h2 className="text-base font-bold">Rate Your Teammates</h2>
+              <h2 id="rating-modal-title" className="text-base font-bold">Rate Your Teammates</h2>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
               <span className="font-medium text-foreground">{projectTitle}</span> is complete!
@@ -287,9 +291,10 @@ export function RatingModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close rating modal"
             className="flex-shrink-0 mt-0.5 p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -335,6 +340,7 @@ export function RatingModal({
           </p>
           <button
             onClick={onClose}
+            aria-label={allDone ? "Close rating modal" : "Skip rating for now"}
             className="text-xs px-4 py-2 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
           >
             {allDone ? "Close" : "Skip for now"}
