@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /projects/
+Disallow: /teams/
+Disallow: /notifications/
+Disallow: /applications/
+
+Sitemap: https://projectmatch-phi.vercel.app/sitemap.xml
