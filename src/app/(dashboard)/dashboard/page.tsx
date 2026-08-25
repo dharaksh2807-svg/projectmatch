@@ -46,6 +46,7 @@ const quickActions = [
 ];
 
 export default async function DashboardPage() {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     redirect("/login");
@@ -307,4 +308,23 @@ export default async function DashboardPage() {
       </div>
     </div>
   );
+  } catch (err: unknown) {
+    // Re-throw redirect errors (Next.js uses thrown errors for redirects)
+    if (err && typeof err === "object" && "digest" in err) {
+      throw err;
+    }
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    return (
+      <div className="p-8 max-w-3xl mx-auto">
+        <h1 className="text-xl font-bold text-red-500 mb-4">DEBUG: Server Component Error</h1>
+        <pre className="bg-red-950/50 text-red-200 p-4 rounded-xl text-xs overflow-auto whitespace-pre-wrap">
+          {message}
+          {"\n\n"}
+          {stack}
+        </pre>
+      </div>
+    );
+  }
 }
+
