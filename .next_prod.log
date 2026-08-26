@@ -1,0 +1,44 @@
+
+> project-match@0.1.0 start
+> next start
+
+▲ Next.js 16.3.2
+- Local:         http://localhost:3001
+- Network:       http://127.0.2.2:3001
+✓ Ready in 105ms
+⚠ Warning: Next.js ignored package-lock.json in /Users/dharaksh because it is outside the current Git repository (/Users/dharaksh/Desktop/prompt wars/project-match).
+ To use this directory, set `outputFileTracingRoot` in your Next.js config.
+
+✓ Running next.config.ts took 23ms
+[next-auth][error][NO_SECRET] 
+https://next-auth.js.org/errors#no_secret Please define a `secret` in production. Error [MissingSecretError]: Please define a `secret` in production.
+    at c.assertConfig (.next/server/chunks/ssr/_1flqvti._.js:182:11891)
+    at q (.next/server/chunks/ssr/_1flqvti._.js:182:17763)
+    at async h (.next/server/chunks/ssr/_1flqvti._.js:149:23281)
+    at async t (.next/server/chunks/ssr/_1j8_u9y._.js:1:3347) {
+  code: 'NO_SECRET'
+}
+[next-auth][error][NO_SECRET] 
+https://next-auth.js.org/errors#no_secret Please define a `secret` in production. Error [MissingSecretError]: Please define a `secret` in production.
+    at c.assertConfig (.next/server/chunks/ssr/_1flqvti._.js:182:11891)
+    at q (.next/server/chunks/ssr/_1flqvti._.js:182:17763)
+    at async h (.next/server/chunks/ssr/_1flqvti._.js:149:23281)
+    at async j (.next/server/chunks/ssr/[root-of-the-server]__0oesvty._.js:1:1392) {
+  code: 'NO_SECRET'
+}
+[next-auth][error][NO_SECRET] 
+https://next-auth.js.org/errors#no_secret Please define a `secret` in production. Error [MissingSecretError]: Please define a `secret` in production.
+    at c.assertConfig (.next/server/chunks/ssr/_1flqvti._.js:182:11891)
+    at q (.next/server/chunks/ssr/_1flqvti._.js:182:17763)
+    at async h (.next/server/chunks/ssr/_1flqvti._.js:149:23281)
+    at async r (.next/server/chunks/ssr/[root-of-the-server]__0zqnoj1._.js:1:6555) {
+  code: 'NO_SECRET'
+}
+[next-auth][error][NO_SECRET] 
+https://next-auth.js.org/errors#no_secret Please define a `secret` in production. Error [MissingSecretError]: Please define a `secret` in production.
+    at c.assertConfig (.next/server/chunks/ssr/_1flqvti._.js:182:11891)
+    at q (.next/server/chunks/ssr/_1flqvti._.js:182:17763)
+    at async h (.next/server/chunks/ssr/_1flqvti._.js:149:23281)
+    at async j (.next/server/chunks/ssr/[root-of-the-server]__0oesvty._.js:1:1392) {
+  code: 'NO_SECRET'
+}
