@@ -265,7 +265,7 @@ export default function ApplicationsPage() {
 
         {myApplications.length === 0 ? (
           <EmptyState
-            icon={Send}
+            icon={<Send />}
             title="No applications yet"
             description="You haven't submitted any applications yet. Explore open project roles and apply to start collaborating!"
             actionLabel="Discover Roles"

@@ -95,7 +95,7 @@ export default async function TeamsPage() {
       {/* Teams Grid or Empty State */}
       {teams.length === 0 ? (
         <EmptyState
-          icon={Users}
+          icon={<Users />}
           title="You're not on any team yet"
           description="Join project teams by applying to open roles on the discovery page, or create your own project to assemble a dream team."
           actionLabel="Explore Open Roles"

@@ -435,7 +435,7 @@ export default function DiscoverPage() {
 
           {!loading && roles.length === 0 && (
             <EmptyState
-              icon={Layers}
+              icon={<Layers />}
               title="No Open Roles Found"
               description="There are currently no open project roles in the database. Be the first to create one and start matching!"
               actionLabel="Post a New Project"
@@ -445,7 +445,7 @@ export default function DiscoverPage() {
 
           {!loading && roles.length > 0 && recommendedRoles.length === 0 && otherRoles.length === 0 && (
             <EmptyState
-              icon={Search}
+              icon={<Search />}
               title="No Matching Roles"
               description="No open roles matched your search query and filter criteria. Try adjusting or resetting your filters."
               actionLabel="Reset All Filters"
