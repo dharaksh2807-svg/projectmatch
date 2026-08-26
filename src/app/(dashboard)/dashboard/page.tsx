@@ -51,7 +51,7 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
+  const rawUser = await prisma.user.findUnique({
     where: { email: session.user.email },
     include: {
       projectsOwned: {
@@ -66,6 +66,42 @@ export default async function DashboardPage() {
       },
     },
   });
+
+  // Phase 2: Sanitize Prisma result into a plain serializable object.
+  // Prisma returns objects with hidden prototype getters and Date instances
+  // that crash the Vercel RSC minifier (Error 441) during serialization.
+  const user = rawUser
+    ? {
+        id: rawUser.id,
+        name: rawUser.name,
+        email: rawUser.email,
+        skills: rawUser.skills,
+        interests: rawUser.interests,
+        experienceLevel: rawUser.experienceLevel,
+        availabilityHours: rawUser.availabilityHours,
+        portfolioLinks: rawUser.portfolioLinks,
+        reputationScore: rawUser.reputationScore,
+        projectsOwned: rawUser.projectsOwned.map((p) => ({
+          id: p.id,
+          title: p.title,
+          createdAt: p.createdAt.toISOString(),
+          roles: p.roles.map((r) => ({ id: r.id, title: r.title })),
+        })),
+        applications: rawUser.applications.map((a) => ({
+          id: a.id,
+          status: a.status,
+          role: {
+            id: a.role.id,
+            title: a.role.title,
+            projectId: a.role.projectId,
+            project: {
+              id: a.role.project.id,
+              title: a.role.project.title,
+            },
+          },
+        })),
+      }
+    : null;
 
   const hasProfile =
     user && user.skills.length > 0 && user.experienceLevel;
@@ -133,7 +169,7 @@ export default async function DashboardPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        [
+        {[
           {
             icon: <Users className="w-5 h-5 text-primary mb-3" />,
             label: "Projects Owned",
