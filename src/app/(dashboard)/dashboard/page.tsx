@@ -173,17 +173,17 @@ export default async function DashboardPage() {
           {
             icon: <Users className="w-5 h-5 text-primary mb-3" />,
             label: "Projects Owned",
-            value: user?.projectsOwned.length ?? 0,
+            value: user?.projectsOwned?.length ?? 0,
           },
           {
             icon: <TrendingUp className="w-5 h-5 text-emerald-400 mb-3" />,
             label: "Applications",
-            value: user?.applications.length ?? 0,
+            value: user?.applications?.length ?? 0,
           },
           {
             icon: <Star className="w-5 h-5 text-yellow-400 mb-3" />,
             label: "Reputation",
-            value: user?.reputationScore.toFixed(1) ?? "—",
+            value: user?.reputationScore?.toFixed(1) ?? "—",
           },
           {
             icon: <Clock className="w-5 h-5 text-blue-400 mb-3" />,
