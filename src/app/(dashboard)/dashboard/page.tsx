@@ -46,6 +46,7 @@ const quickActions = [
 ];
 
 export default async function DashboardPage() {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     redirect("/login");
@@ -339,5 +340,8 @@ export default async function DashboardPage() {
       </div>
     </div>
   );
-}
 
+  } catch (err: any) {
+    return <div className="p-8 bg-red-950/20 text-red-500 font-mono text-sm whitespace-pre-wrap border border-red-500/50 m-4 rounded-xl"><b>PRODUCTION ERROR:</b><br/>{err.stack || err.message || String(err)}</div>;
+  }
+}

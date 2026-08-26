@@ -1,0 +1,18 @@
+
+> project-match@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://127.0.2.2:3000
+- Environments: .env
+✓ Ready in 275ms
+⚠ Warning: Next.js ignored package-lock.json in /Users/dharaksh because it is outside the current Git repository (/Users/dharaksh/Desktop/prompt wars/project-match).
+ To use this directory, set `turbopack.root` in your Next.js config.
+
+✓ Running next.config.ts took 23ms
+
+[next-auth][warn][NO_SECRET] 
+https://next-auth.js.org/warnings#no_secret
+ GET /projects 200 in 528ms (next.js: 222ms, application-code: 306ms)
+ GET /dashboard 200 in 564ms (next.js: 462ms, application-code: 102ms)
