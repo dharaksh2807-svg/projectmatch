@@ -18,3 +18,5 @@ https://next-auth.js.org/warnings#no_secret
  GET /dashboard 200 in 564ms (next.js: 462ms, application-code: 102ms)
   Reload env: .env
   Reload env: .env
+ GET /dashboard 200 in 313ms (next.js: 169ms, application-code: 144ms)
+[?25h

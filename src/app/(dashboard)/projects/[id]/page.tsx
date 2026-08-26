@@ -91,9 +91,12 @@ export default async function ProjectDetailPage({ params }: Props) {
 
   if (!project) notFound();
 
-  const isOwner = project.owner.email === session.user.email;
+  // Force-serialize to strip Prisma Date objects / prototypes (Error #441)
+  const safeProject = JSON.parse(JSON.stringify(project));
+
+  const isOwner = safeProject.owner.email === session.user.email;
   const colorClass =
-    PROJECT_TYPE_COLORS[project.projectType] ||
+    PROJECT_TYPE_COLORS[safeProject.projectType] ||
     "bg-secondary text-secondary-foreground border-border";
 
   return (
@@ -115,12 +118,12 @@ export default async function ProjectDetailPage({ params }: Props) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{safeProject.title}</h1>
               <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${colorClass}`}>
-                {project.projectType}
+                {safeProject.projectType}
               </span>
               {/* Status badge */}
-              {project.status === "COMPLETED" ? (
+              {safeProject.status === "COMPLETED" ? (
                 <span className="text-xs px-2.5 py-0.5 rounded-full border font-medium bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
                   ✓ Completed
                 </span>
@@ -133,32 +136,32 @@ export default async function ProjectDetailPage({ params }: Props) {
             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
               <span className="flex items-center gap-1.5">
                 <Clock className="w-4 h-4" />
-                {project.duration}
+                {safeProject.duration}
               </span>
               <span className="flex items-center gap-1.5">
                 <Users className="w-4 h-4" />
-                {project.roles.length} role{project.roles.length !== 1 ? "s" : ""}
+                {safeProject.roles.length} role{safeProject.roles.length !== 1 ? "s" : ""}
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {project.description}
+              {safeProject.description}
             </p>
             {/* Owner actions */}
             {isOwner && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <MarkCompleteButton
-                  projectId={project.id}
-                  currentStatus={project.status}
+                  projectId={safeProject.id}
+                  currentStatus={safeProject.status}
                   onCompleted={() => {}}
                 />
               </div>
             )}
             {/* Rate teammates prompt (for completed projects) */}
-            {project.status === "COMPLETED" && (
+            {safeProject.status === "COMPLETED" && (
               <div className="mt-3">
                 <RateTeammatesSection
-                  projectId={project.id}
-                  projectTitle={project.title}
+                  projectId={safeProject.id}
+                  projectTitle={safeProject.title}
                 />
               </div>
             )}
@@ -167,28 +170,28 @@ export default async function ProjectDetailPage({ params }: Props) {
 
         {/* Owner info */}
         <div className="mt-5 pt-5 border-t border-border/50 flex items-center gap-3">
-          {project.owner.image ? (
+          {safeProject.owner.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={project.owner.image}
-              alt={project.owner.name || "Owner"}
+              src={safeProject.owner.image}
+              alt={safeProject.owner.name || "Owner"}
               className="w-9 h-9 rounded-full ring-2 ring-border"
             />
           ) : (
             <div className="w-9 h-9 rounded-full brand-gradient flex items-center justify-center text-white text-sm font-bold">
-              {(project.owner.name || "?")[0].toUpperCase()}
+              {(safeProject.owner.name || "?")[0].toUpperCase()}
             </div>
           )}
           <div>
-            <p className="text-sm font-medium">{project.owner.name}</p>
+            <p className="text-sm font-medium">{safeProject.owner.name}</p>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <ReputationBadge score={project.owner.reputationScore} showLabel />
+              <ReputationBadge score={safeProject.owner.reputationScore} showLabel />
               {isOwner && <span className="ml-1 text-primary">(You)</span>}
             </div>
           </div>
-          {project.owner.portfolioLinks.length > 0 && (
+          {safeProject.owner.portfolioLinks.length > 0 && (
             <div className="ml-auto flex gap-2">
-              {project.owner.portfolioLinks.slice(0, 3).map((link) => (
+              {safeProject.owner.portfolioLinks.slice(0, 3).map((link: string) => (
                 <a
                   key={link}
                   href={link}
@@ -207,7 +210,7 @@ export default async function ProjectDetailPage({ params }: Props) {
       {/* Roles */}
       <div className="space-y-4 mb-6">
         <h2 className="text-lg font-semibold">Open Roles</h2>
-        {project.roles.map((role) => {
+        {safeProject.roles.map((role: Record<string, unknown> & { id: string; title: string; filledCount: number; headcount: number; requiredExperienceLevel: string; timeCommitment: string; requiredSkills: string[]; applications: Array<{ id: string; status: string; user: { id: string; name: string | null; image: string | null; skills: string[]; experienceLevel: string | null; reputationScore: number } }> }) => {
           const isFilled = role.filledCount >= role.headcount;
           const pendingApps = role.applications.filter((a) => a.status === "PENDING");
 
@@ -261,7 +264,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                 </div>
 
                 {isOwner && !isFilled && (
-                  <Link href={`/projects/${project.id}/roles/${role.id}`}>
+                  <Link href={`/projects/${safeProject.id}/roles/${role.id}`}>
                     <button className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl brand-gradient text-white hover:opacity-90 shadow-sm transition-all">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Find Matching Candidates</span>
@@ -331,11 +334,11 @@ export default async function ProjectDetailPage({ params }: Props) {
       </div>
 
       {/* Team Members (if team exists) */}
-      {project.team && project.team.members.length > 0 && (
+      {safeProject.team && safeProject.team.members.length > 0 && (
         <div className="glass-card rounded-2xl border border-border/50 p-5">
           <h2 className="font-semibold mb-4">Team</h2>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {project.team.members.map((member) => (
+            {safeProject.team.members.map((member: { id: string; name: string | null; image: string | null; skills: string[]; experienceLevel: string | null; reputationScore: number }) => (
               <div
                 key={member.id}
                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors"

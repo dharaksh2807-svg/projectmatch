@@ -67,40 +67,11 @@ export default async function DashboardPage() {
     },
   });
 
-  // Phase 2: Sanitize Prisma result into a plain serializable object.
-  // Prisma returns objects with hidden prototype getters and Date instances
-  // that crash the Vercel RSC minifier (Error 441) during serialization.
+  // Force-serialize Prisma result to strip Date objects, hidden prototype
+  // getters, and other non-plain properties that crash Vercel's RSC
+  // minifier with "Minified React error #441".
   const user = rawUser
-    ? {
-        id: rawUser.id,
-        name: rawUser.name,
-        email: rawUser.email,
-        skills: rawUser.skills,
-        interests: rawUser.interests,
-        experienceLevel: rawUser.experienceLevel,
-        availabilityHours: rawUser.availabilityHours,
-        portfolioLinks: rawUser.portfolioLinks,
-        reputationScore: rawUser.reputationScore,
-        projectsOwned: rawUser.projectsOwned.map((p) => ({
-          id: p.id,
-          title: p.title,
-          createdAt: p.createdAt.toISOString(),
-          roles: p.roles.map((r) => ({ id: r.id, title: r.title })),
-        })),
-        applications: rawUser.applications.map((a) => ({
-          id: a.id,
-          status: a.status,
-          role: {
-            id: a.role.id,
-            title: a.role.title,
-            projectId: a.role.projectId,
-            project: {
-              id: a.role.project.id,
-              title: a.role.project.title,
-            },
-          },
-        })),
-      }
+    ? JSON.parse(JSON.stringify(rawUser))
     : null;
 
   const hasProfile =

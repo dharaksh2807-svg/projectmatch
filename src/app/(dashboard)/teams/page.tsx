@@ -72,6 +72,9 @@ export default async function TeamsPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  // Force-serialize to strip Prisma Date objects / prototypes (Error #441)
+  const serializedTeams = JSON.parse(JSON.stringify(teams));
+
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto animate-fade-in space-y-8">
       {/* Header */}
@@ -93,7 +96,7 @@ export default async function TeamsPage() {
       </div>
 
       {/* Teams Grid or Empty State */}
-      {teams.length === 0 ? (
+      {serializedTeams.length === 0 ? (
         <EmptyState
           icon={<Users />}
           title="You're not on any team yet"
@@ -103,7 +106,7 @@ export default async function TeamsPage() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {teams.map((team) => {
+          {serializedTeams.map((team: Record<string, unknown> & { id: string; project: { id: string; title: string; description: string; projectType: string; duration: string; status: string; ownerId: string; owner: { id: string; name: string | null; image: string | null; reputationScore: number }; roles: Array<{ id: string; title: string; filledCount: number; headcount: number }> }; members: Array<{ id: string; name: string | null; image: string | null; skills: string[]; experienceLevel: string | null; reputationScore: number }> }) => {
             const isOwner = team.project.ownerId === currentUser.id;
             const isCompleted = team.project.status === "COMPLETED";
 

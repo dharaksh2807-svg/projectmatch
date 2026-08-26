@@ -51,26 +51,8 @@ export default async function ProjectsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  // Phase 2: Sanitize Prisma result into a plain serializable object.
-  // Prisma returns objects with hidden prototype getters and Date instances
-  // that crash the Vercel RSC minifier (Error 441) during serialization.
-  const projects = rawProjects.map((p) => ({
-    id: p.id,
-    title: p.title,
-    description: p.description,
-    projectType: p.projectType,
-    duration: p.duration,
-    createdAt: p.createdAt.toISOString(),
-    roles: p.roles.map((r) => ({
-      id: r.id,
-      filledCount: r.filledCount,
-      headcount: r.headcount,
-      _count: { applications: r._count.applications },
-    })),
-    team: p.team
-      ? { members: p.team.members.map((m) => ({ id: m.id })) }
-      : null,
-  }));
+  // Force-serialize to strip Prisma Date objects / prototypes (Error #441)
+  const projects = JSON.parse(JSON.stringify(rawProjects));
 
   return (
     <div className="p-8 max-w-5xl mx-auto animate-fade-in">

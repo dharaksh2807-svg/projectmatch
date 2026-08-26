@@ -18,38 +18,41 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
+  // Force-serialize to strip Prisma Date objects / prototypes (Error #441)
+  const safeUser = JSON.parse(JSON.stringify(user));
+
   return (
     <div className="p-8 max-w-3xl mx-auto animate-fade-in">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
-          {user.image ? (
+          {safeUser.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={user.image}
-              alt={user.name || "Avatar"}
+              src={safeUser.image}
+              alt={safeUser.name || "Avatar"}
               className="w-16 h-16 rounded-2xl ring-2 ring-primary/20"
             />
           ) : (
             <div className="w-16 h-16 rounded-2xl brand-gradient flex items-center justify-center text-white text-2xl font-bold">
-              {(user.name || user.email || "U")[0].toUpperCase()}
+              {(safeUser.name || safeUser.email || "U")[0].toUpperCase()}
             </div>
           )}
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              {user.name || "Complete Your Profile"}
+              {safeUser.name || "Complete Your Profile"}
             </h1>
-            <p className="text-muted-foreground text-sm">{user.email}</p>
+            <p className="text-muted-foreground text-sm">{safeUser.email}</p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <ReputationBadge score={user.reputationScore} showLabel size="md" />
+              <ReputationBadge score={safeUser.reputationScore} showLabel size="md" />
               <span className="text-xs text-muted-foreground">
-                {user.reputationScore >= 90
+                {safeUser.reputationScore >= 90
                   ? "— Top Rated across all projects"
-                  : user.reputationScore >= 75
+                  : safeUser.reputationScore >= 75
                   ? "— Highly Rated by teammates"
-                  : user.reputationScore >= 60
+                  : safeUser.reputationScore >= 60
                   ? "— Well Rated by teammates"
-                  : user.reputationScore === 50
+                  : safeUser.reputationScore === 50
                   ? "— No ratings yet (neutral)"
                   : "— Rated by teammates"}
               </span>
@@ -69,14 +72,14 @@ export default async function ProfilePage() {
       {/* Form */}
       <ProfileForm
         initialData={{
-          name: user.name || "",
-          skills: user.skills,
-          interests: user.interests,
-          availabilityHours: user.availabilityHours || undefined,
-          availabilityDuration: (user.availabilityDuration as ProfileInput["availabilityDuration"]) || undefined,
-          timezone: user.timezone || undefined,
-          experienceLevel: (user.experienceLevel as ProfileInput["experienceLevel"]) || undefined,
-          portfolioLinks: user.portfolioLinks,
+          name: safeUser.name || "",
+          skills: safeUser.skills,
+          interests: safeUser.interests,
+          availabilityHours: safeUser.availabilityHours || undefined,
+          availabilityDuration: (safeUser.availabilityDuration as ProfileInput["availabilityDuration"]) || undefined,
+          timezone: safeUser.timezone || undefined,
+          experienceLevel: (safeUser.experienceLevel as ProfileInput["experienceLevel"]) || undefined,
+          portfolioLinks: safeUser.portfolioLinks,
         }}
       />
     </div>
