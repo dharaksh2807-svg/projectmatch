@@ -208,7 +208,7 @@ export default async function DashboardPage() {
           <div className="p-4">
             {user?.projectsOwned && user.projectsOwned.length > 0 ? (
               <div className="space-y-3">
-                {user.projectsOwned.map((project) => (
+                {user.projectsOwned.map((project: { id: string; title: string; roles: any[] }) => (
                   <Link
                     key={project.id}
                     href={`/projects/${project.id}`}
@@ -260,7 +260,7 @@ export default async function DashboardPage() {
           <div className="p-4">
             {user?.applications && user.applications.length > 0 ? (
               <div className="space-y-3">
-                {user.applications.map((app) => (
+                {user.applications.map((app: { id: string; status: string; role: { projectId: string; title: string; project: { title: string } } }) => (
                   <Link
                     key={app.id}
                     href={`/projects/${app.role.projectId}`}

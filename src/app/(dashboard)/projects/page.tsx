@@ -83,10 +83,10 @@ export default async function ProjectsPage() {
         />
       ) : (
         <div className="space-y-4">
-          {projects.map((project) => {
-            const openRoles = project.roles.filter((r) => r.filledCount < r.headcount);
+          {projects.map((project: { id: string; title: string; projectType: string; description: string; duration: string; createdAt: string; team: { members: any[] } | null; roles: Array<{ id: string; filledCount: number; headcount: number; _count: { applications: number } }> }) => {
+            const openRoles = project.roles.filter((r: { filledCount: number; headcount: number }) => r.filledCount < r.headcount);
             const totalApplications = project.roles.reduce(
-              (sum, r) => sum + r._count.applications,
+              (sum: number, r: { _count: { applications: number } }) => sum + r._count.applications,
               0
             );
             const colorClass =
