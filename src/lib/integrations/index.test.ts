@@ -5,12 +5,13 @@ describe('buildContextString', () => {
   it('compresses metadata efficiently into a string', () => {
     const data: Record<string, CompressedMetadata> = {
       leetcode: {
-        ranking: 1000,
-        solved: { total: 100, easy: 50, medium: 40, hard: 10 },
+        rank: '1000',
+        solved: 100,
+        syncedAt: '2023-01-01T00:00:00Z',
       },
     };
     const result = buildContextString(data);
-    expect(result).toContain('leetcode: {"ranking":1000,"solved":{"total":100,"easy":50,"medium":40,"hard":10}}');
+    expect(result).toBe('UserCtx:LE[solved=100,rank=1000]');
   });
 
   it('handles empty data gracefully', () => {

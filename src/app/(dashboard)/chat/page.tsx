@@ -128,11 +128,11 @@ export default function ChatPage() {
           {/* Mobile Hamburger Menu */}
           <div className="md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
+              <SheetTrigger render={
                 <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-400 hover:text-white">
                   <Menu className="w-5 h-5" />
                 </Button>
-              </SheetTrigger>
+              } />
               <SheetContent side="left" className="w-72 p-0 bg-zinc-950 border-white/10 text-white flex flex-col">
                 <div className="p-4 border-b border-white/10 flex items-center justify-between">
                   <span className="text-sm font-semibold text-zinc-300">Chat History</span>
