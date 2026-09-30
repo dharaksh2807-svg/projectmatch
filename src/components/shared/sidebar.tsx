@@ -12,6 +12,7 @@ import {
   Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const navItems = [
   { href: "/discover", icon: Sparkles, label: "Discover" },
@@ -68,14 +69,17 @@ export function Sidebar() {
 
       {/* User section */}
       <div className="p-4 border-t border-border/50 space-y-2">
-        <Link
-          href="/notifications"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-accent transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          aria-label="View Notifications"
-        >
-          <Bell className="w-4 h-4" aria-hidden="true" />
-          <span>Notifications</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/notifications"
+            className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-accent transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            aria-label="View Notifications"
+          >
+            <Bell className="w-4 h-4" aria-hidden="true" />
+            <span>Notifications</span>
+          </Link>
+          <ModeToggle />
+        </div>
 
         {/* Session-aware user section — renders skeleton while status is loading
             to prevent hydration flash (Sign In flicker before user data arrives) */}

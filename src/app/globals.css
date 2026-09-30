@@ -52,8 +52,8 @@
   --color-brand-muted: var(--brand-muted);
 }
 
-/* Dark theme by default */
-:root {
+/* Dark theme */
+.dark {
   color-scheme: dark;
   --background: oklch(0.1 0.01 265);
   --foreground: oklch(0.95 0.01 265);
@@ -93,7 +93,7 @@
   --brand-muted: oklch(0.65 0.22 280 / 15%);
 }
 
-.light {
+:root {
   color-scheme: light;
   --background: oklch(0.99 0.005 265);
   --foreground: oklch(0.10 0.02 265);
