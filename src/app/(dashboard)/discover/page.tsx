@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Search,
@@ -111,8 +112,12 @@ export default function DiscoverPage() {
   const [minScoreFilter, setMinScoreFilter] = useState<number>(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Fetch roles from the Phase 3 matching API
+  // Fetch roles — public for guests, personalized for authenticated users
   useEffect(() => {
+    // Wait until NextAuth has resolved the session before fetching
+    // to avoid a redundant double-fetch (loading → unauthenticated → fetch).
+    if (status === "loading") return;
+
     async function fetchMatches() {
       setLoading(true);
       try {
@@ -128,9 +133,7 @@ export default function DiscoverPage() {
       }
     }
 
-    if (status !== "loading") {
-      fetchMatches();
-    }
+    fetchMatches();
   }, [status]);
 
   // Extract all unique skills across all available roles for quick filtering
@@ -217,6 +220,27 @@ export default function DiscoverPage() {
     return `${percent}% Match`;
   };
 
+  // Show a full-page skeleton while NextAuth resolves session
+  // This eliminates the flash of content before we know auth state
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-8 space-y-8 animate-pulse">
+        <div className="border-b border-border/50 pb-6 space-y-3">
+          <Skeleton className="h-5 w-40 rounded-full" />
+          <Skeleton className="h-9 w-72 rounded-xl" />
+          <Skeleton className="h-4 w-96 rounded" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-48 rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const isGuest = status === "unauthenticated";
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 space-y-8 animate-fade-in">
       {/* Header */}
@@ -228,7 +252,9 @@ export default function DiscoverPage() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Discover Opportunities</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Browse open team roles scored and matched against your skills, interests, and availability.
+            {isGuest
+              ? "Browse open team roles. Sign in to see your personalised match scores."
+              : "Browse open team roles scored and matched against your skills, interests, and availability."}
           </p>
         </div>
 
@@ -238,15 +264,25 @@ export default function DiscoverPage() {
             size="sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="md:hidden flex items-center gap-2"
+            aria-label="Toggle filter sidebar"
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
           </Button>
-          <Link href="/projects/new">
-            <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm">
-              Post a Project
-            </Button>
-          </Link>
+          {/* Guard: redirect guests to login instead of /projects/new */}
+          {isGuest ? (
+            <Link href="/login" tabIndex={-1}>
+              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2">
+                Sign In to Post
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/projects/new" tabIndex={-1}>
+              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2">
+                Post a Project
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -266,9 +302,10 @@ export default function DiscoverPage() {
             </div>
             <button
               onClick={resetFilters}
-              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              aria-label="Reset all filters"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded px-1"
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="w-3 h-3" aria-hidden="true" />
               Reset
             </button>
           </div>
@@ -279,12 +316,13 @@ export default function DiscoverPage() {
               Search Roles & Projects
             </label>
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
                 placeholder="React, AI/ML, Fintech..."
                 value={searchQuery}
+                aria-label="Search roles and projects"
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-background/50 text-sm h-9"
+                className="pl-9 bg-background/50 text-sm h-9 focus-visible:ring-primary/50"
               />
             </div>
           </div>
@@ -299,8 +337,9 @@ export default function DiscoverPage() {
                 <button
                   key={type}
                   onClick={() => setSelectedType(type)}
+                  aria-pressed={selectedType === type}
                   className={cn(
-                    "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium",
+                    "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     selectedType === type
                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
                       : "bg-secondary/40 text-muted-foreground border-border/40 hover:bg-accent hover:text-foreground"
@@ -322,8 +361,9 @@ export default function DiscoverPage() {
                 <button
                   key={dur}
                   onClick={() => setSelectedDuration(dur)}
+                  aria-pressed={selectedDuration === dur}
                   className={cn(
-                    "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium",
+                    "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     selectedDuration === dur
                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
                       : "bg-secondary/40 text-muted-foreground border-border/40 hover:bg-accent hover:text-foreground"
@@ -345,8 +385,9 @@ export default function DiscoverPage() {
                 <button
                   key={exp}
                   onClick={() => setSelectedExp(exp)}
+                  aria-pressed={selectedExp === exp}
                   className={cn(
-                    "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium",
+                    "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     selectedExp === exp
                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
                       : "bg-secondary/40 text-muted-foreground border-border/40 hover:bg-accent hover:text-foreground"
@@ -369,8 +410,9 @@ export default function DiscoverPage() {
                   <button
                     key={skill}
                     onClick={() => setSelectedSkill(selectedSkill === skill ? "" : skill)}
+                    aria-pressed={selectedSkill === skill}
                     className={cn(
-                      "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium",
+                      "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                       selectedSkill === skill
                         ? "bg-primary/20 text-primary border-primary/50 shadow-sm"
                         : "bg-secondary/30 text-muted-foreground border-border/30 hover:bg-accent hover:text-foreground"
@@ -397,9 +439,10 @@ export default function DiscoverPage() {
                 min="0"
                 max="90"
                 step="5"
+                aria-label="Minimum Match Score"
                 value={minScoreFilter}
                 onChange={(e) => setMinScoreFilter(parseInt(e.target.value))}
-                className="w-full accent-primary h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer"
+                className="w-full accent-primary h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               />
             </div>
           )}
@@ -455,8 +498,9 @@ export default function DiscoverPage() {
 
           {!loading && roles.length > 0 && (
             <>
-              {/* SECTION 1: "Recommended for You" (Pinned at top) */}
-              {recommendedRoles.length > 0 && (
+              {/* SECTION 1: "Recommended for You" — only shown to authenticated users.
+                  Guests see a banner prompting them to sign in instead. */}
+              {!isGuest && recommendedRoles.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -488,6 +532,26 @@ export default function DiscoverPage() {
                       />
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Guest sign-in prompt banner */}
+              {isGuest && (
+                <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl brand-gradient flex items-center justify-center text-white flex-shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">See your personalised match scores</p>
+                      <p className="text-xs text-muted-foreground">Sign in to unlock AI-powered role recommendations.</p>
+                    </div>
+                  </div>
+                  <Link href="/login">
+                    <Button size="sm" className="brand-gradient text-white shadow-sm flex-shrink-0">
+                      Sign In
+                    </Button>
+                  </Link>
                 </div>
               )}
 
@@ -568,9 +632,18 @@ function ProjectRoleCard({
   const isOwner = currentUserId === role.project.ownerId;
   const openSpots = role.headcount - role.filledCount;
 
+  const router = useRouter(); // We need to import this at the top of the file
+
   async function handleApply() {
+    if (!currentUserId) {
+      toast("Please sign in to apply for projects.", "info");
+      router.push("/login");
+      return;
+    }
+    
     setApplying(true);
     try {
+      // BUGFIX: was missing method: "POST", defaulting to GET and always failing
       const res = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -606,11 +679,11 @@ function ProjectRoleCard({
         <div className="flex items-start justify-between gap-2">
           {/* Project Type & Duration badges */}
           <div className="flex flex-wrap gap-1.5">
-            <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-semibold py-0.5 px-2 bg-secondary/40">
+            <Badge variant="outline" className="text-xs uppercase tracking-wider font-semibold py-0.5 px-2 bg-secondary/40">
               {role.project.projectType}
             </Badge>
-            <Badge variant="outline" className="text-[10px] text-muted-foreground py-0.5 px-2 bg-secondary/20">
-              <Clock className="w-3 h-3 mr-1 inline" />
+            <Badge variant="outline" className="text-xs text-muted-foreground py-0.5 px-2 bg-secondary/20">
+              <Clock className="w-3 h-3 mr-1 inline" aria-hidden="true" />
               {role.project.duration}
             </Badge>
           </div>
@@ -651,7 +724,7 @@ function ProjectRoleCard({
       <CardContent className="p-5 pt-0 space-y-4 flex-1">
         {/* Required Skills Row */}
         <div className="space-y-1.5">
-          <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Required Skills
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -683,7 +756,7 @@ function ProjectRoleCard({
 
         {/* Granular Sub-score breakdown preview on hover (if recommended) */}
         {role.compatibility && isRecommended && (
-          <div className="bg-primary/5 rounded-xl p-2.5 border border-primary/10 text-[11px] space-y-1.5">
+          <div className="bg-primary/5 rounded-xl p-2.5 border border-primary/10 text-xs space-y-1.5">
             <div className="flex justify-between text-muted-foreground">
               <span>Skills Overlap</span>
               <span className="font-semibold text-foreground">
@@ -727,10 +800,10 @@ function ProjectRoleCard({
 
         {/* Action Button */}
         <div className="pt-3 flex items-center gap-2">
-          <Link href={`/projects/${role.project.id}`}>
-            <Button size="sm" variant="ghost" className="h-8 text-xs gap-1">
+          <Link href={`/projects/${role.project.id}`} tabIndex={-1}>
+            <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 focus-visible:ring-2 focus-visible:ring-primary/50" aria-label={`View details for ${role.project.title}`}>
               <span>Details</span>
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-3 h-3" aria-hidden="true" />
             </Button>
           </Link>
 
@@ -740,6 +813,7 @@ function ProjectRoleCard({
               size="sm"
               disabled={applying || applied}
               onClick={handleApply}
+              aria-label={`Apply for ${role.title} on ${role.project.title}`}
               className={cn(
                 "h-8 text-xs font-semibold gap-1.5 transition-all",
                 applied

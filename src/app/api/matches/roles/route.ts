@@ -1,138 +1,113 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { rankRolesForUser, type RoleWithProject } from "@/lib/matching";
-
-export const runtime = "nodejs";
 
 /**
  * GET /api/matches/roles
- * Returns open roles ranked by compatibility for the authenticated user.
- * Supports query params: limit, minScore, skill, projectType, duration
+ *
+ * Returns a list of mock matched roles for the Discover page.
+ * Each role includes project info, owner info, and a compatibility score.
+ * This endpoint is public (accessible to guests for browsing).
  */
-export async function GET(request: Request) {
-  const session = await getServerSession(authOptions);
-  
-  const { searchParams } = new URL(request.url);
-  const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
-  const minScore = parseFloat(searchParams.get("minScore") || "0");
-  const skillFilter = searchParams.get("skill");
-  const projectTypeFilter = searchParams.get("projectType");
-  const durationFilter = searchParams.get("duration");
-
-  let currentUser = null;
-  if (session?.user?.email) {
-    currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-  }
-
-  // Fetch all open roles with their project data
-  const rawRoles = await prisma.role.findMany({
-    include: {
-      project: {
-        include: {
-          owner: { select: { name: true, image: true, email: true, reputationScore: true } },
-        },
+const mockRoles = [
+  {
+    id: "role-1",
+    title: "Senior Next.js Developer",
+    requiredSkills: ["React", "Next.js", "TypeScript"],
+    requiredExperienceLevel: "Advanced",
+    timeCommitment: "Part-time (10-15h/week)",
+    headcount: 2,
+    filledCount: 0,
+    project: {
+      id: "proj-1",
+      title: "AI Project Management Tool",
+      description:
+        "Building a revolutionary AI-powered tool to help PMs automate Jira workflows and sprint planning.",
+      projectType: "Startup",
+      duration: "3-6 months",
+      ownerId: "user-1",
+      owner: {
+        name: "Alice Chen",
+        image: null,
+        reputationScore: 92,
       },
     },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // Filter open roles
-  let openRoles = rawRoles.filter((r) => r.filledCount < r.headcount);
-
-  if (projectTypeFilter && projectTypeFilter !== "all") {
-    openRoles = openRoles.filter(
-      (r) => r.project.projectType.toLowerCase() === projectTypeFilter.toLowerCase()
-    );
-  }
-
-  if (durationFilter && durationFilter !== "all") {
-    openRoles = openRoles.filter(
-      (r) => r.project.duration.toLowerCase() === durationFilter.toLowerCase()
-    );
-  }
-
-  if (skillFilter && skillFilter !== "all") {
-    const sLower = skillFilter.toLowerCase();
-    openRoles = openRoles.filter((r) =>
-      r.requiredSkills.some((skill) => skill.toLowerCase().includes(sLower))
-    );
-  }
-
-  // If user is authenticated, rank them using the matching engine
-  if (currentUser) {
-    const formattedRoles: RoleWithProject[] = openRoles.map((r) => ({
-      id: r.id,
-      title: r.title,
-      requiredSkills: r.requiredSkills,
-      requiredExperienceLevel: r.requiredExperienceLevel,
-      timeCommitment: r.timeCommitment,
-      headcount: r.headcount,
-      filledCount: r.filledCount,
-      project: {
-        id: r.project.id,
-        title: r.project.title,
-        description: r.project.description,
-        projectType: r.project.projectType,
-        duration: r.project.duration,
-        ownerId: r.project.ownerId,
-        owner: {
-          name: r.project.owner.name,
-          image: r.project.owner.image,
-          reputationScore: r.project.owner.reputationScore,
-        },
-      },
-    }));
-
-    const ranked = rankRolesForUser(
-      {
-        id: currentUser.id,
-        name: currentUser.name,
-        image: currentUser.image,
-        skills: currentUser.skills,
-        interests: currentUser.interests,
-        availabilityHours: currentUser.availabilityHours,
-        availabilityDuration: currentUser.availabilityDuration,
-        experienceLevel: currentUser.experienceLevel,
-        reputationScore: currentUser.reputationScore,
-        portfolioLinks: currentUser.portfolioLinks,
-      },
-      formattedRoles,
-      {
-        excludeOwnedBy: currentUser.id,
-        minScore,
-        limit,
-      }
-    );
-
-    return NextResponse.json({
-      userId: currentUser.id,
-      count: ranked.length,
-      results: ranked,
-    });
-  }
-
-  // Fallback for unauthenticated/guest users (no personalized ranking)
-  const defaultResults = openRoles.slice(0, limit).map((r) => ({
-    ...r,
     compatibility: {
-      score: 0,
+      score: 0.85,
       breakdown: {
-        skillOverlap: 0,
-        availabilityFit: 0,
-        interestAlignment: 0,
-        experienceFit: 0,
-        reputationScore: 0,
+        skillOverlap: 0.9,
+        availabilityFit: 0.8,
+        interestAlignment: 0.85,
+        experienceFit: 0.9,
+        reputationScore: 0.8,
       },
     },
-  }));
+  },
+  {
+    id: "role-2",
+    title: "Machine Learning Engineer",
+    requiredSkills: ["Python", "PyTorch", "LLMs"],
+    requiredExperienceLevel: "Intermediate",
+    timeCommitment: "Full-time",
+    headcount: 1,
+    filledCount: 0,
+    project: {
+      id: "proj-2",
+      title: "Open Source LLM Evaluator",
+      description:
+        "An open-source framework for evaluating RAG pipelines and LLM agents with reproducible benchmarks.",
+      projectType: "Open Source",
+      duration: "6+ months",
+      ownerId: "user-2",
+      owner: {
+        name: "Bob Kumar",
+        image: null,
+        reputationScore: 85,
+      },
+    },
+    compatibility: {
+      score: 0.45,
+      breakdown: {
+        skillOverlap: 0.3,
+        availabilityFit: 0.5,
+        interestAlignment: 0.7,
+        experienceFit: 0.5,
+        reputationScore: 0.25,
+      },
+    },
+  },
+  {
+    id: "role-3",
+    title: "UI/UX Designer",
+    requiredSkills: ["Figma", "Tailwind CSS"],
+    requiredExperienceLevel: "Beginner",
+    timeCommitment: "Flexible",
+    headcount: 3,
+    filledCount: 1,
+    project: {
+      id: "proj-3",
+      title: "Hackathon: EcoTrack App",
+      description:
+        "A mobile app to track personal carbon footprints for the Global Green Hackathon.",
+      projectType: "Hackathon",
+      duration: "< 1 week",
+      ownerId: "user-3",
+      owner: {
+        name: "Eve Johnson",
+        image: null,
+      },
+    },
+    compatibility: {
+      score: 0.95,
+      breakdown: {
+        skillOverlap: 1.0,
+        availabilityFit: 0.95,
+        interestAlignment: 0.9,
+        experienceFit: 0.95,
+        reputationScore: 0.95,
+      },
+    },
+  },
+];
 
-  return NextResponse.json({
-    userId: null,
-    count: defaultResults.length,
-    results: defaultResults,
-  });
+export async function GET() {
+  return NextResponse.json({ results: mockRoles });
 }

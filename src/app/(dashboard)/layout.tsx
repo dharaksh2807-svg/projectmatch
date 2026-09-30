@@ -1,6 +1,3 @@
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import { Sidebar } from "@/components/shared/sidebar";
 import type { Metadata } from "next";
 
@@ -11,11 +8,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    redirect("/login");
-  }
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">

@@ -1,363 +1,163 @@
-/**
- * Seed script for testing the ProjectMatch matching engine.
- * Run with: npx tsx prisma/seed.ts
- */
-
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
-const connectionString =
-  process.env.DIRECT_DATABASE_URL ||
-  "postgres://postgres:postgres@localhost:51214/template1?sslmode=disable&connection_limit=10";
-
-const adapter = new PrismaPg({ connectionString });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+const AI_MODELS = [
+  {
+    id: "gemini-3.8-flash-medium",
+    name: "Gemini 3.8 Flash Medium",
+    provider: "google",
+    tier: "fast",
+    modelString: "gemini-2.0-flash",
+    contextWindow: 1_000_000,
+    isActive: true,
+  },
+  {
+    id: "gemini-3.7-flash-medium",
+    name: "Gemini 3.7 Flash Medium",
+    provider: "google",
+    tier: "fast",
+    modelString: "gemini-2.0-flash-lite",
+    contextWindow: 1_000_000,
+    isActive: true,
+  },
+  {
+    id: "gemini-3.6-flash-medium",
+    name: "Gemini 3.6 Flash Medium",
+    provider: "google",
+    tier: "fast",
+    modelString: "gemini-1.5-flash",
+    contextWindow: 1_000_000,
+    isActive: true,
+  },
+  {
+    id: "gemini-3.1-pro-high",
+    name: "Gemini 3.1 Pro High",
+    provider: "google",
+    tier: "high",
+    modelString: "gemini-2.5-pro",
+    contextWindow: 2_000_000,
+    isActive: true,
+  },
+  {
+    id: "claude-sonnet-4.6-thinking",
+    name: "Claude Sonnet 4.6 Thinking",
+    provider: "anthropic",
+    tier: "thinking",
+    modelString: "claude-sonnet-4-5",
+    contextWindow: 200_000,
+    isActive: true,
+  },
+  {
+    id: "claude-opus-4.6-thinking",
+    name: "Claude Opus 4.6 Thinking",
+    provider: "anthropic",
+    tier: "thinking",
+    modelString: "claude-opus-4-5",
+    contextWindow: 200_000,
+    isActive: true,
+  },
+  {
+    id: "gpt-oss-120b",
+    name: "GPT-OSS 120B",
+    provider: "oss",
+    tier: "medium",
+    modelString: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    contextWindow: 128_000,
+    isActive: true,
+  },
+] as const;
+
+const SYSTEM_AGENTS = [
+  {
+    id: "system-agent-tester",
+    name: "The Ultimate Full Stack Tester",
+    modelId: "gemini-3.6-flash-medium",
+    systemPrompt: "You are the Ultimate Full-Stack QA and Security Tester from a top-tier tech company. You do not write new features; you aggressively attack and audit existing code. Look for React dependency array bugs, hydration mismatches, SQL injection vectors, SSR leaks, and race conditions. Provide strictly formatted bug reports with exact line numbers and proposed fixes.",
+    temperature: 0.2,
+    isPublic: true,
+  },
+  {
+    id: "system-agent-developer",
+    name: "The Senior Developer",
+    modelId: "claude-opus-4.6-thinking",
+    systemPrompt: "You are a Senior Backend Software Engineer. You write zero-overhead, highly optimized TypeScript. Your primary objective is to implement complex business logic, third-party integrations, and data transformers. You NEVER use 'any' in TypeScript, you always handle errors gracefully with try/catch, and you write highly modular, functional code.",
+    temperature: 0.7,
+    isPublic: true,
+  },
+  {
+    id: "system-agent-ui",
+    name: "The UI/UX Wizard",
+    modelId: "claude-sonnet-4.6-thinking",
+    systemPrompt: "You are an elite UI/UX engineer specializing in React, Next.js, Tailwind CSS (v4), and shadcn/ui. Your goal is to construct pixel-perfect, highly responsive, and accessible interfaces. Focus on minimalist design, proper z-indexing, glassmorphism aesthetics, and smooth framer-motion micro-animations. Always return production-ready TSX code.",
+    temperature: 0.8,
+    isPublic: true,
+  },
+  {
+    id: "system-agent-db",
+    name: "The Database & Architecture Admin",
+    modelId: "gemini-3.1-pro-high",
+    systemPrompt: "You are a Principal Database Architect. Your domain is Prisma ORM, PostgreSQL, Redis, and Next.js App Router API design. Prioritize absolute data consistency, strictly typed interfaces, index optimization for fast reads, and normalized relational modeling. When asked to design a schema, think about edge cases, cascade deletions, and pagination.",
+    temperature: 0.3,
+    isPublic: true,
+  }
+];
+
 async function main() {
-  console.log("🌱 Seeding ProjectMatch database...\n");
+  console.log("🌱 Seeding AI models...");
 
-  // Clear existing seed data
-  await prisma.rating.deleteMany();
-  await prisma.application.deleteMany();
-  await prisma.$executeRaw`DELETE FROM "_TeamMembers"`;
-  await prisma.team.deleteMany();
-  await prisma.role.deleteMany();
-  await prisma.project.deleteMany();
-
-  // -- USERS (reputationScore is now 0–100; 50 = neutral) --
-  const users = await Promise.all([
-    prisma.user.upsert({
-      where: { email: "alice@example.com" },
+  for (const model of AI_MODELS) {
+    await prisma.aIModel.upsert({
+      where: { id: model.id },
       update: {
-        skills: ["React", "TypeScript", "Next.js", "UI/UX Design", "Figma"],
-        interests: ["EdTech", "AI/ML", "Open Source"],
-        availabilityHours: 15,
-        availabilityDuration: "3 months",
-        timezone: "UTC+8:00 (SGT)",
-        experienceLevel: "Advanced",
-        portfolioLinks: ["https://github.com/alice"],
-        reputationScore: 84,
+        name: model.name,
+        provider: model.provider,
+        tier: model.tier,
+        modelString: model.modelString,
+        contextWindow: model.contextWindow,
+        isActive: model.isActive,
       },
-      create: {
-        name: "Alice Chen",
-        email: "alice@example.com",
-        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=alice",
-        skills: ["React", "TypeScript", "Next.js", "UI/UX Design", "Figma"],
-        interests: ["EdTech", "AI/ML", "Open Source"],
-        availabilityHours: 15,
-        availabilityDuration: "3 months",
-        timezone: "UTC+8:00 (SGT)",
-        experienceLevel: "Advanced",
-        portfolioLinks: ["https://github.com/alice"],
-        reputationScore: 84,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: "bob@example.com" },
-      update: {
-        skills: ["Python", "Machine Learning", "TensorFlow", "PyTorch", "Data Science"],
-        interests: ["AI/ML", "Research", "HealthTech"],
-        availabilityHours: 20,
-        availabilityDuration: "1 month",
-        timezone: "UTC+5:30 (IST)",
-        experienceLevel: "Expert",
-        portfolioLinks: ["https://github.com/bob", "https://kaggle.com/bob"],
-        reputationScore: 96,
-      },
-      create: {
-        name: "Bob Kumar",
-        email: "bob@example.com",
-        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=bob",
-        skills: ["Python", "Machine Learning", "TensorFlow", "PyTorch", "Data Science"],
-        interests: ["AI/ML", "Research", "HealthTech"],
-        availabilityHours: 20,
-        availabilityDuration: "1 month",
-        timezone: "UTC+5:30 (IST)",
-        experienceLevel: "Expert",
-        portfolioLinks: ["https://github.com/bob", "https://kaggle.com/bob"],
-        reputationScore: 96,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: "carol@example.com" },
-      update: {
-        skills: ["Node.js", "PostgreSQL", "Docker", "AWS", "Go"],
-        interests: ["DevOps", "Open Source", "SaaS"],
-        availabilityHours: 10,
-        availabilityDuration: "6+ months",
-        timezone: "UTC-5:00 (ET)",
-        experienceLevel: "Advanced",
-        portfolioLinks: ["https://github.com/carol"],
-        reputationScore: 78,
-      },
-      create: {
-        name: "Carol Smith",
-        email: "carol@example.com",
-        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=carol",
-        skills: ["Node.js", "PostgreSQL", "Docker", "AWS", "Go"],
-        interests: ["DevOps", "Open Source", "SaaS"],
-        availabilityHours: 10,
-        availabilityDuration: "6+ months",
-        timezone: "UTC-5:00 (ET)",
-        experienceLevel: "Advanced",
-        portfolioLinks: ["https://github.com/carol"],
-        reputationScore: 78,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: "dan@example.com" },
-      update: {
-        skills: ["React", "JavaScript", "CSS"],
-        interests: ["Gaming", "Side Project"],
-        availabilityHours: 5,
-        availabilityDuration: "1-2 weeks",
-        timezone: "UTC+9:00 (JST)",
-        experienceLevel: "Beginner",
-        portfolioLinks: [],
-        reputationScore: 50,
-      },
-      create: {
-        name: "Dan Park",
-        email: "dan@example.com",
-        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=dan",
-        skills: ["React", "JavaScript", "CSS"],
-        interests: ["Gaming", "Side Project"],
-        availabilityHours: 5,
-        availabilityDuration: "1-2 weeks",
-        timezone: "UTC+9:00 (JST)",
-        experienceLevel: "Beginner",
-        portfolioLinks: [],
-        reputationScore: 50,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: "owner@example.com" },
-      update: {
-        skills: ["Product Design", "Figma", "React"],
-        interests: ["Startup", "EdTech"],
-        availabilityHours: 30,
-        availabilityDuration: "6+ months",
-        timezone: "UTC+0:00 (London)",
-        experienceLevel: "Intermediate",
-        portfolioLinks: ["https://linkedin.com/in/eve"],
-        reputationScore: 70,
-      },
-      create: {
-        name: "Eve Johnson",
-        email: "owner@example.com",
-        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=eve",
-        skills: ["Product Design", "Figma", "React"],
-        interests: ["Startup", "EdTech"],
-        availabilityHours: 30,
-        availabilityDuration: "6+ months",
-        timezone: "UTC+0:00 (London)",
-        experienceLevel: "Intermediate",
-        portfolioLinks: ["https://linkedin.com/in/eve"],
-        reputationScore: 70,
-      },
-    }),
-  ]);
-
-  const [alice, bob, carol, , eve] = users;
-  console.log(`✅ Created/updated ${users.length} seed users`);
-
-  // -- ACTIVE PROJECTS + ROLES --
-  await prisma.project.create({
-    data: {
-      ownerId: eve.id,
-      title: "AI-Powered Study Companion",
-      description:
-        "Building a personalized learning assistant that adapts to each student's pace and style. Uses ML to identify knowledge gaps and generate targeted exercises.",
-      projectType: "Startup",
-      duration: "3-6 months",
-      status: "ACTIVE",
-      roles: {
-        create: [
-          {
-            title: "Frontend Developer",
-            requiredSkills: ["React", "TypeScript", "Next.js"],
-            requiredExperienceLevel: "Intermediate",
-            timeCommitment: "10-20 hrs/week",
-            headcount: 1,
-          },
-          {
-            title: "ML Engineer",
-            requiredSkills: ["Python", "Machine Learning", "TensorFlow"],
-            requiredExperienceLevel: "Advanced",
-            timeCommitment: "10-20 hrs/week",
-            headcount: 1,
-          },
-          {
-            title: "Backend Developer",
-            requiredSkills: ["Node.js", "PostgreSQL", "Docker"],
-            requiredExperienceLevel: "Intermediate",
-            timeCommitment: "5-10 hrs/week",
-            headcount: 1,
-          },
-        ],
-      },
-    },
-    include: { roles: true },
-  });
-
-  await prisma.project.create({
-    data: {
-      ownerId: alice.id,
-      title: "Open Source Contribution Tracker",
-      description:
-        "A platform to gamify and track contributions to open source projects. Help developers build their portfolio while contributing to the ecosystem.",
-      projectType: "Open Source",
-      duration: "1-3 months",
-      status: "ACTIVE",
-      roles: {
-        create: [
-          {
-            title: "Full Stack Developer",
-            requiredSkills: ["React", "Node.js", "PostgreSQL"],
-            requiredExperienceLevel: "Any",
-            timeCommitment: "5-10 hrs/week",
-            headcount: 2,
-          },
-          {
-            title: "Data Engineer",
-            requiredSkills: ["Python", "SQL", "Docker"],
-            requiredExperienceLevel: "Intermediate",
-            timeCommitment: "5-10 hrs/week",
-            headcount: 1,
-          },
-        ],
-      },
-    },
-    include: { roles: true },
-  });
-
-  console.log(`✅ Created 2 active seed projects with roles`);
-
-  // -- COMPLETED PROJECT (for Phase 6 rating demo) --
-  // Eve owned it; Alice + Bob were team members; Carol was also on team
-  const completedProject = await prisma.project.create({
-    data: {
-      ownerId: eve.id,
-      title: "HealthTrack Hackathon",
-      description:
-        "A 48-hour hackathon project building a personal health monitoring dashboard with AI-powered insights. COMPLETED.",
-      projectType: "Hackathon",
-      duration: "< 1 week",
-      status: "COMPLETED",
-      roles: {
-        create: [
-          {
-            title: "Frontend Lead",
-            requiredSkills: ["React", "TypeScript"],
-            requiredExperienceLevel: "Advanced",
-            timeCommitment: "Full-time",
-            headcount: 1,
-            filledCount: 1,
-          },
-          {
-            title: "ML Specialist",
-            requiredSkills: ["Python", "Machine Learning"],
-            requiredExperienceLevel: "Expert",
-            timeCommitment: "Full-time",
-            headcount: 1,
-            filledCount: 1,
-          },
-          {
-            title: "Backend Engineer",
-            requiredSkills: ["Node.js", "PostgreSQL"],
-            requiredExperienceLevel: "Advanced",
-            timeCommitment: "Full-time",
-            headcount: 1,
-            filledCount: 1,
-          },
-        ],
-      },
-    },
-    include: { roles: true },
-  });
-
-  // Build the team: eve (owner + member), alice, bob, carol
-  const completedTeam = await prisma.team.create({
-    data: {
-      projectId: completedProject.id,
-      members: {
-        connect: [
-          { id: eve.id },
-          { id: alice.id },
-          { id: bob.id },
-          { id: carol.id },
-        ],
-      },
-    },
-  });
-
-  // Seed some ratings (alice → bob, alice → carol, bob → alice, eve → alice)
-  // so reputation scores are already populated for demo
-  const ratingsData = [
-    { raterId: alice.id, rateeId: bob.id, score: 5, comment: "Incredible ML skills, delivered beyond expectations." },
-    { raterId: alice.id, rateeId: carol.id, score: 4, comment: "Solid backend work, great communicator." },
-    { raterId: alice.id, rateeId: eve.id, score: 4, comment: "Great product vision and leadership." },
-    { raterId: bob.id, rateeId: alice.id, score: 5, comment: "Best frontend dev I've worked with!" },
-    { raterId: bob.id, rateeId: carol.id, score: 4, comment: "Reliable and efficient." },
-    { raterId: bob.id, rateeId: eve.id, score: 3, comment: "Good owner, could improve communication." },
-    { raterId: carol.id, rateeId: alice.id, score: 4, comment: "Great collaborator." },
-    { raterId: carol.id, rateeId: bob.id, score: 5, comment: "Absolute expert in ML." },
-    { raterId: eve.id, rateeId: alice.id, score: 5, comment: "Outstanding frontend quality." },
-    { raterId: eve.id, rateeId: bob.id, score: 5, comment: "Bob is exceptional." },
-    { raterId: eve.id, rateeId: carol.id, score: 4, comment: "Very dependable." },
-  ];
-
-  for (const r of ratingsData) {
-    await prisma.rating.create({
-      data: {
-        teamId: completedTeam.id,
-        projectId: completedProject.id,
-        raterId: r.raterId,
-        rateeId: r.rateeId,
-        score: r.score,
-        comment: r.comment,
-      },
+      create: model,
     });
+    console.log(`  ✅ ${model.name}`);
   }
 
-  // Recompute reputation scores from seeded ratings
-  const rateeIds = [...new Set(ratingsData.map((r) => r.rateeId))];
-  for (const rateeId of rateeIds) {
-    const allRatings = await prisma.rating.findMany({ where: { rateeId } });
-    const normalizedScore =
-      (allRatings.reduce((sum, r) => sum + r.score, 0) / (allRatings.length * 5)) * 100;
-    await prisma.user.update({
-      where: { id: rateeId },
-      data: { reputationScore: Math.round(normalizedScore * 10) / 10 },
-    });
-  }
+  console.log(`\n✨ Seeded ${AI_MODELS.length} AI models successfully.`);
 
-  // Dan has never been rated → stays at 50 (neutral)
-
-  console.log(`✅ Created 1 completed project with team (${completedTeam.id}) and ${ratingsData.length} seed ratings`);
-
-  // -- Accepted applications for the completed project (so it shows in applications) --
-  const completedRoles = completedProject.roles;
-  const frontendRole = completedRoles.find((r) => r.title === "Frontend Lead")!;
-  const mlRole2 = completedRoles.find((r) => r.title === "ML Specialist")!;
-  const backendRole = completedRoles.find((r) => r.title === "Backend Engineer")!;
-
-  await prisma.application.createMany({
-    data: [
-      { roleId: frontendRole.id, userId: alice.id, status: "ACCEPTED" },
-      { roleId: mlRole2.id, userId: bob.id, status: "ACCEPTED" },
-      { roleId: backendRole.id, userId: carol.id, status: "ACCEPTED" },
-    ],
+  console.log("\n🌱 Seeding System User & Agents...");
+  const systemUser = await prisma.user.upsert({
+    where: { email: "system@projectmatch.ai" },
+    update: {},
+    create: {
+      name: "System",
+      email: "system@projectmatch.ai",
+    },
   });
 
-  console.log(`✅ Linked accepted applications to completed project`);
-  console.log("\n✅ Seeding complete! Database is ready for Phase 6 testing.");
-  console.log("\nTest personas:");
-  console.log("  alice@example.com  → Frontend dev, team member of completed project (can rate teammates)");
-  console.log("  bob@example.com    → ML expert, team member of completed project");
-  console.log("  carol@example.com  → Backend dev, team member of completed project");
-  console.log("  owner@example.com  → Eve, owns both ACTIVE and COMPLETED projects");
-  console.log("  dan@example.com    → New user, no ratings (neutral 50.0 reputation)\n");
+  for (const agent of SYSTEM_AGENTS) {
+    await prisma.agent.upsert({
+      where: { id: agent.id },
+      update: {
+        name: agent.name,
+        modelId: agent.modelId,
+        systemPrompt: agent.systemPrompt,
+        temperature: agent.temperature,
+        isPublic: agent.isPublic,
+      },
+      create: {
+        ...agent,
+        userId: systemUser.id,
+      },
+    });
+    console.log(`  ✅ ${agent.name}`);
+  }
+
+  console.log(`\n✨ Seeded ${SYSTEM_AGENTS.length} System Agents successfully.`);
 }
 
 main()

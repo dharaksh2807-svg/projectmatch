@@ -5,30 +5,32 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 datasource db {
   provider = "postgresql"
 }
 
-// NextAuth Models
+// ─────────────────────────────────────────────
+// NextAuth Models — DO NOT MODIFY
+// ─────────────────────────────────────────────
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -37,6 +39,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -47,113 +51,189 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// Application Models
+// ─────────────────────────────────────────────
+// User Model
+// ─────────────────────────────────────────────
 
 model User {
-  id                   String    @id @default(cuid())
-  name                 String?
-  email                String?   @unique
-  emailVerified        DateTime?
-  image                String?
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
 
-  // Profile data
-  skills               String[]  @default([])
-  interests            String[]  @default([])
-  availabilityHours    Int?
-  availabilityDuration String?
-  timezone             String?
-  experienceLevel      String?
-  portfolioLinks       String[]  @default([])
-  reputationScore      Float     @default(50.0)  // 0–100 scale; 50 = neutral
-  
+  // Relations — NextAuth
+  accounts Account[]
+  sessions Session[]
+
+  // Relations — AI Agent Platform
+  apiKeys       UserApiKey[]
+  agents        Agent[]
+  chats         Chat[]
+  promptBattles PromptBattle[]
+  connections   UserConnection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// AI Platform Models
+// ─────────────────────────────────────────────
+
+/// Represents an available AI model in the platform (e.g. Gemini 3.1 Pro, Claude Sonnet)
+model AIModel {
+  id            String  @id @default(cuid())
+  name          String                       // e.g. "Gemini 3.1 Pro High"
+  provider      String                       // "google" | "anthropic" | "oss"
+  tier          String                       // "fast" | "high" | "thinking" | "medium"
+  modelString   String                       // actual SDK model string e.g. "gemini-2.5-pro"
+  contextWindow Int                          // max context in tokens
+  isActive      Boolean @default(true)
+
   // Relations
-  accounts             Account[]
-  sessions             Session[]
-  projectsOwned        Project[]
-  applications         Application[]
-  teams                Team[]    @relation("TeamMembers")
-  ratingsGiven         Rating[]  @relation("Rater")
-  ratingsReceived      Rating[]  @relation("Ratee")
-
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-}
-
-model Project {
-  id          String   @id @default(cuid())
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  title       String
-  description String   @db.Text
-  projectType String
-  duration    String
-  status      String   @default("ACTIVE")  // ACTIVE | COMPLETED
-  
-  roles       Role[]
-  team        Team?
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Role {
-  id                      String        @id @default(cuid())
-  projectId               String
-  project                 Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title                   String
-  requiredSkills          String[]      @default([])
-  requiredExperienceLevel String
-  timeCommitment          String
-  headcount               Int           @default(1)
-  filledCount             Int           @default(0)
-
-  applications            Application[]
-
-  createdAt               DateTime      @default(now())
-  updatedAt               DateTime      @updatedAt
-}
-
-model Application {
-  id        String   @id @default(cuid())
-  roleId    String
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status    String   @default("PENDING") // PENDING, INVITED, ACCEPTED, DECLINED
+  agents         Agent[]
+  promptBattlesA PromptBattle[] @relation("ModelA")
+  promptBattlesB PromptBattle[] @relation("ModelB")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([roleId, userId])
+  @@index([provider])
+  @@index([isActive])
 }
 
-model Team {
-  id        String    @id @default(cuid())
-  projectId String    @unique
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  members   User[]    @relation("TeamMembers")
-  ratings   Rating[]
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-model Rating {
-  id        String   @id @default(cuid())
-  teamId    String
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  projectId String   // denormalized for easy querying & unique constraint
-  raterId   String
-  rater     User     @relation("Rater", fields: [raterId], references: [id], onDelete: Cascade)
-  rateeId   String
-  ratee     User     @relation("Ratee", fields: [rateeId], references: [id], onDelete: Cascade)
-  
-  score     Int      // 1–5 integer stars
-  comment   String?  @db.Text
+/// Per-user encrypted API key storage — one key per provider per user
+model UserApiKey {
+  id           String @id @default(cuid())
+  userId       String
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String                       // "google" | "anthropic" | "oss"
+  encryptedKey String @db.Text             // AES-encrypted before storing
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([projectId, raterId, rateeId])  // one rating per rater–ratee pair per project
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+/// A user-configured AI agent with a system prompt and preferred model
+model Agent {
+  id           String  @id @default(cuid())
+  userId       String
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modelId      String
+  model        AIModel @relation(fields: [modelId], references: [id], onDelete: Restrict)
+
+  name         String
+  systemPrompt String  @db.Text
+  temperature  Float   @default(0.7)       // 0.0 – 1.0
+  isPublic     Boolean @default(false)     // public agents can be used by anyone
+
+  // Relations
+  chats Chat[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([modelId])
+  @@index([isPublic])
+}
+
+/// A conversation session between a user and an agent
+model Chat {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  title    String                           // auto-generated from first message
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([agentId])
+}
+
+/// A single message inside a Chat
+model Message {
+  id     String @id @default(cuid())
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  role         MessageRole                  // USER | ASSISTANT | SYSTEM
+  content      String      @db.Text
+  modelUsed    String?                      // snapshot of which model generated this response
+  inputTokens  Int?                         // billed input tokens for cost tracking
+  outputTokens Int?                         // billed output tokens for cost tracking
+
+  createdAt DateTime @default(now())
+
+  @@index([chatId])
+  @@index([chatId, createdAt(sort: Desc)])
+}
+
+/// Head-to-head prompt comparison — user rates which model responded better
+model PromptBattle {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  prompt    String  @db.Text
+  modelAId  String
+  modelA    AIModel @relation("ModelA", fields: [modelAId], references: [id], onDelete: Restrict)
+  modelBId  String
+  modelB    AIModel @relation("ModelB", fields: [modelBId], references: [id], onDelete: Restrict)
+  responseA String  @db.Text
+  responseB String  @db.Text
+
+  /// Stores "modelA" | "modelB" or null if not yet voted
+  winnerId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([modelAId])
+  @@index([modelBId])
+}
+
+// ─────────────────────────────────────────────
+// Multi-Platform User Connections
+// ─────────────────────────────────────────────
+
+/// Stores handle-based connections to external platforms.
+/// OAuth-based platforms (GitHub, LinkedIn) are managed by NextAuth's Account table.
+model UserConnection {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  platform     String    // "leetcode" | "codeforces" | "kaggle" | "stackoverflow" | "medium" | "hashnode" | "devto" | "hackerrank" | "gitlab" | "twitter"
+  handle       String    // Username or handle on the platform
+  profileUrl   String?   // Direct link to the user's profile
+
+  // Highly compressed metadata for economical AI context injection
+  metadata     Json?     // e.g. { rating: 1800, topLanguages: ["Python", "C++"], solved: 450 }
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([userId, platform])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
 }
