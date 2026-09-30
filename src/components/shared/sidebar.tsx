@@ -28,13 +28,14 @@ export function Sidebar() {
   return (
     <aside className="w-64 flex-shrink-0 flex flex-col border-r border-border/50 bg-sidebar min-h-screen" aria-label="Main navigation">
       {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-border/50">
+      <div className="h-16 flex items-center justify-between px-6 border-b border-border/50">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg brand-gradient flex items-center justify-center glow-sm">
             <Sparkles className="w-4 h-4 text-white" aria-hidden="true" />
           </div>
           <span className="font-bold text-base tracking-tight">ProjectMatch</span>
         </Link>
+        <ModeToggle />
       </div>
 
       {/* Navigation */}
@@ -69,17 +70,14 @@ export function Sidebar() {
 
       {/* User section */}
       <div className="p-4 border-t border-border/50 space-y-2">
-        <div className="flex items-center gap-2">
-          <Link
-            href="/notifications"
-            className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-accent transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-            aria-label="View Notifications"
-          >
-            <Bell className="w-4 h-4" aria-hidden="true" />
-            <span>Notifications</span>
-          </Link>
-          <ModeToggle />
-        </div>
+        <Link
+          href="/notifications"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-accent transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          aria-label="View Notifications"
+        >
+          <Bell className="w-4 h-4" aria-hidden="true" />
+          <span>Notifications</span>
+        </Link>
 
         {/* Session-aware user section — renders skeleton while status is loading
             to prevent hydration flash (Sign In flicker before user data arrives) */}
