@@ -26,7 +26,7 @@ export function Sidebar() {
   const { data: session, status } = useSession();
 
   return (
-    <aside className="w-64 flex-shrink-0 flex flex-col border-r border-border/50 bg-sidebar min-h-screen" aria-label="Main navigation">
+    <aside className="w-64 flex-shrink-0 flex flex-col border-r border-border/50 bg-sidebar h-full" aria-label="Main navigation">
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-6 border-b border-border/50">
         <Link href="/dashboard" className="flex items-center gap-2.5">
