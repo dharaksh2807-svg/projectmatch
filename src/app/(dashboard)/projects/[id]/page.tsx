@@ -103,14 +103,20 @@ export default function ProjectDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roleId, message: "Hi! I'm interested in this role and would love to contribute." }),
       });
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server returned a non-JSON response");
+      }
+
       const data = await res.json();
       if (res.ok) {
         toast("Application submitted successfully! 🎉", "success");
       } else {
         toast(data.error || "Failed to apply.", "error");
       }
-    } catch {
-      toast("Network error while applying.", "error");
+    } catch (err: any) {
+      toast(err.message || "Network error while applying.", "error");
     } finally {
       setApplyingTo(null);
     }
