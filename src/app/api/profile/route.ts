@@ -21,6 +21,7 @@ const profileUpdateSchema = z.object({
  * Returns the current user's full profile including skills, experience, and connections.
  */
 export async function GET() {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -70,6 +71,10 @@ export async function GET() {
     console.error("GET /api/profile failed:", err);
     return NextResponse.json({ error: "Failed to fetch profile" }, { status: 500 });
   }
+  } catch (outerErr) {
+    console.error("GET /api/profile unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 /**
@@ -78,6 +83,7 @@ export async function GET() {
  * All fields are optional — only provided fields are updated.
  */
 export async function PATCH(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -130,5 +136,9 @@ export async function PATCH(req: NextRequest) {
   } catch (err) {
     console.error("PATCH /api/profile failed:", err);
     return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("PATCH /api/profile unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

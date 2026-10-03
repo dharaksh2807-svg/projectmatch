@@ -126,6 +126,7 @@ export async function GET(req: NextRequest) {
  * Create a new hackathon.
  */
 export async function POST(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -163,5 +164,9 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("POST /api/hackathons failed:", err);
     return NextResponse.json({ error: "Failed to create hackathon" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("POST /api/hackathons unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

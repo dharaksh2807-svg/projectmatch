@@ -31,6 +31,7 @@ const projectSchema = z.object({
  * Optional query params: type, duration, skill, search
  */
 export async function GET(req: NextRequest) {
+  try {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type");
   const duration = searchParams.get("duration");
@@ -84,6 +85,10 @@ export async function GET(req: NextRequest) {
     console.error("GET /api/projects failed:", err);
     return NextResponse.json({ error: "Failed to fetch projects" }, { status: 500 });
   }
+  } catch (outerErr) {
+    console.error("GET /api/projects unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 /**
@@ -92,6 +97,7 @@ export async function GET(req: NextRequest) {
  * Requires authentication.
  */
 export async function POST(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -137,5 +143,9 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("POST /api/projects failed:", err);
     return NextResponse.json({ error: "Failed to create project" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("POST /api/projects unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -20,7 +20,7 @@ export default function NotFound() {
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Link href="/discover">
+        <Link href="/hackathons">
           <Button className="brand-gradient text-white gap-2 font-medium shadow-sm hover:opacity-90 transition-all">
             <Search className="w-4 h-4" />
             Discover Projects

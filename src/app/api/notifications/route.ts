@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
  * Query param: ?unreadOnly=true
  */
 export async function GET(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -35,6 +36,10 @@ export async function GET(req: NextRequest) {
     console.error("GET /api/notifications failed:", err);
     return NextResponse.json({ error: "Failed to fetch notifications" }, { status: 500 });
   }
+  } catch (outerErr) {
+    console.error("GET /api/notifications unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 /**
@@ -43,6 +48,7 @@ export async function GET(req: NextRequest) {
  * Body: { ids: string[] } — specific IDs, or omit to mark all as read.
  */
 export async function PATCH(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -68,5 +74,9 @@ export async function PATCH(req: NextRequest) {
   } catch (err) {
     console.error("PATCH /api/notifications failed:", err);
     return NextResponse.json({ error: "Failed to mark notifications as read" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("PATCH /api/notifications unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

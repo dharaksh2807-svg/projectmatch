@@ -117,7 +117,7 @@ export default function HomePage() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
-              href="/browse"
+              href="/hackathons"
               id="hero-cta-secondary"
               className="flex items-center gap-2 px-8 py-4 rounded-xl glass border border-border hover:border-primary/30 text-foreground font-semibold text-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
             >

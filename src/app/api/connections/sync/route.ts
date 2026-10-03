@@ -13,6 +13,7 @@ import { syncPlatformData, IntegrationError } from "@/lib/integrations";
  *   - If omitted, syncs all connected platforms (best effort — errors per-platform).
  */
 export async function POST(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -85,5 +86,9 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Sync failed:", error);
     return NextResponse.json({ error: "Failed to sync connections" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("POST /api/connections/sync unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

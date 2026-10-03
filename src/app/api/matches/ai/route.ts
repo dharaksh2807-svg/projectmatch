@@ -15,6 +15,7 @@ import { computeCompatibility } from "@/lib/matching";
  * 4. Returns the AI's top 3 matches with a personalized explanation.
  */
 export async function GET() {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -192,5 +193,9 @@ Select the top 3 most synergistic roles for this user. Output the result in the 
       { error: "AI Matchmaker failed to process request" },
       { status: 500 }
     );
+  }
+  } catch (outerErr) {
+    console.error("GET /api/matches/ai unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -25,6 +25,7 @@ async function readStreamToString(stream: ReadableStream): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -95,5 +96,9 @@ export async function POST(req: NextRequest) {
       { error: "Failed to generate responses" },
       { status: 500 }
     );
+  }
+  } catch (outerErr) {
+    console.error("POST /api/prompt-battles unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

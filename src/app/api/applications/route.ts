@@ -17,6 +17,7 @@ const applicationSchema = z.object({
  * Rate-limited to 10/min per user.
  */
 export async function POST(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -130,6 +131,10 @@ export async function POST(req: NextRequest) {
     console.error("POST /api/applications failed:", err);
     return NextResponse.json({ error: "Failed to submit application" }, { status: 500 });
   }
+  } catch (outerErr) {
+    console.error("POST /api/applications unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 /**
@@ -139,6 +144,7 @@ export async function POST(req: NextRequest) {
  * - type=sent (default): applications submitted by the current user
  */
 export async function GET(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -226,5 +232,9 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("GET /api/applications failed:", err);
     return NextResponse.json({ error: "Failed to fetch applications" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("GET /api/applications unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

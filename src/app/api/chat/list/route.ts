@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(_req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,5 +28,9 @@ export async function GET(_req: NextRequest) {
       { error: "Failed to fetch chat list" },
       { status: 500 }
     );
+  }
+  } catch (outerErr) {
+    console.error("GET /api/chat/list unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

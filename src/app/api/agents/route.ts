@@ -34,6 +34,7 @@ const agentSchema = z.object({
 
 /** POST /api/agents — create a new agent */
 export async function POST(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -88,10 +89,15 @@ export async function POST(req: NextRequest) {
     console.error("POST /api/agents failed:", err);
     return NextResponse.json({ error: "Failed to create agent" }, { status: 500 });
   }
+  } catch (outerErr) {
+    console.error("POST /api/agents unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 /** GET /api/agents — list all agents owned by the current user */
 export async function GET() {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -106,5 +112,9 @@ export async function GET() {
     return NextResponse.json(agents);
   } catch {
     return NextResponse.json({ error: "Failed to fetch agents" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("GET /api/agents unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -7,6 +7,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -41,12 +42,17 @@ export async function GET(
       { status: 500 }
     );
   }
+  } catch (outerErr) {
+    console.error("GET /api/chat/[id] unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -72,5 +78,9 @@ export async function DELETE(
       { error: "Failed to delete chat" },
       { status: 500 }
     );
+  }
+  } catch (outerErr) {
+    console.error("DELETE /api/chat/[id] unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

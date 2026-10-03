@@ -27,6 +27,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Params }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -98,6 +99,10 @@ export async function GET(
       { status: 500 }
     );
   }
+  } catch (outerErr) {
+    console.error("GET /api/conversations/[id]/messages unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 /**
@@ -110,6 +115,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Params }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -223,5 +229,9 @@ export async function POST(
       { error: "Failed to send message" },
       { status: 500 }
     );
+  }
+  } catch (outerErr) {
+    console.error("POST /api/conversations/[id]/messages unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

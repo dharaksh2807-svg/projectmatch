@@ -70,6 +70,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Params }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -110,6 +111,10 @@ export async function PUT(
     console.error("PUT /api/projects/[id] failed:", err);
     return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
   }
+  } catch (outerErr) {
+    console.error("PUT /api/projects/[id] unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 /**
@@ -121,6 +126,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Params }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -147,5 +153,9 @@ export async function DELETE(
   } catch (err) {
     console.error("DELETE /api/projects/[id] failed:", err);
     return NextResponse.json({ error: "Failed to delete project" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("DELETE /api/projects/[id] unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
  * Public endpoint — no auth required for browsing.
  */
 export async function GET() {
+  try {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string } | undefined)?.id;
 
@@ -142,5 +143,9 @@ export async function GET() {
   } catch (err) {
     console.error("GET /api/matches/roles failed:", err);
     return NextResponse.json({ error: "Failed to fetch roles" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("GET /api/matches/roles unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

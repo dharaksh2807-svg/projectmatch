@@ -91,6 +91,7 @@ interface ConnectionResponse {
 // ─────────────────────────────────────────────
 
 export async function GET() {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -159,6 +160,10 @@ export async function GET() {
       { status: 500 }
     );
   }
+  } catch (outerErr) {
+    console.error("GET /api/connections unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -168,6 +173,7 @@ export async function GET() {
 // ─────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -225,6 +231,10 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+  } catch (outerErr) {
+    console.error("POST /api/connections unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -234,6 +244,7 @@ export async function POST(req: NextRequest) {
 // ─────────────────────────────────────────────
 
 export async function DELETE(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -276,5 +287,9 @@ export async function DELETE(req: NextRequest) {
       { error: "Connection not found or already disconnected" },
       { status: 404 }
     );
+  }
+  } catch (outerErr) {
+    console.error("DELETE /api/connections unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

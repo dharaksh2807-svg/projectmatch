@@ -22,6 +22,7 @@ const chatSchema = z.object({
  * Saves a user message and creates/continues a Chat session.
  */
 export async function POST(req: NextRequest) {
+  try {
   // 1. Auth check
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -148,5 +149,9 @@ export async function POST(req: NextRequest) {
     });
   } catch {
     return NextResponse.json({ error: "Failed to process chat" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("POST /api/chat unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

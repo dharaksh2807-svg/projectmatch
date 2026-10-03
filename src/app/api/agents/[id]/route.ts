@@ -9,6 +9,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -38,6 +39,10 @@ export async function DELETE(
       { status: 500 }
     );
   }
+  } catch (outerErr) {
+    console.error("DELETE /api/agents/[id] unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 // Zod schema for strict input validation on agent updates
@@ -52,6 +57,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -120,5 +126,9 @@ export async function PUT(
       { error: "Failed to update agent" },
       { status: 500 }
     );
+  }
+  } catch (outerErr) {
+    console.error("PUT /api/agents/[id] unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

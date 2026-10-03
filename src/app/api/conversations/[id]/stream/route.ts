@@ -21,9 +21,13 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Params }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const { id: conversationId } = await params;
@@ -116,4 +120,11 @@ export async function GET(
       "X-Accel-Buffering": "no",
     },
   });
+  } catch (outerErr) {
+    console.error("GET /api/conversations/[id]/stream unhandled error:", outerErr);
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 }

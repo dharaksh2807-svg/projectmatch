@@ -15,6 +15,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Params }
 ) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -132,5 +133,9 @@ export async function PATCH(
   } catch (err) {
     console.error("PATCH /api/applications/[id] failed:", err);
     return NextResponse.json({ error: "Failed to update application" }, { status: 500 });
+  }
+  } catch (outerErr) {
+    console.error("PATCH /api/applications/[id] unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -9,6 +9,7 @@ const voteSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -39,5 +40,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       { error: "Failed to save vote or battle not found" },
       { status: 404 }
     );
+  }
+  } catch (outerErr) {
+    console.error("PATCH /api/prompt-battles/[id] unhandled error:", outerErr);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
