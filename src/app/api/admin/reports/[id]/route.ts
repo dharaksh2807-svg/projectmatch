@@ -8,13 +8,14 @@ const updateSchema = z.object({
   status: z.enum(["PENDING", "RESOLVED", "DISMISSED"]),
 });
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    const resolvedParams = await params;
     const body = await req.json();
     const result = updateSchema.safeParse(body);
 
@@ -23,7 +24,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 
     const report = await prisma.report.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: { status: result.data.status },
     });
 

@@ -290,7 +290,7 @@ export default function ProjectDetailPage() {
               </div>
             )}
 
-            {loggedInUserId && !isOwner && (
+            {session?.user?.id && !isOwner && (
               <div className="pt-4 flex justify-end">
                 <ReportModal projectId={project.id} targetName={project.title} />
               </div>

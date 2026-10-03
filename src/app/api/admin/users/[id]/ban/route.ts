@@ -8,13 +8,14 @@ const banSchema = z.object({
   isBanned: z.boolean(),
 });
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    const resolvedParams = await params;
     const body = await req.json();
     const result = banSchema.safeParse(body);
 
@@ -23,7 +24,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: { isBanned: result.data.isBanned },
     });
 

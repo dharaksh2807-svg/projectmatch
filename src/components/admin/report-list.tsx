@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ShieldBan, CheckCircle, ExternalLink, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldBan, ExternalLink, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 interface Report {
