@@ -48,9 +48,10 @@ export type ProjectInput = z.infer<typeof projectSchema>;
 
 export const ratingSchema = z.object({
   projectId: z.string().min(1, "Project ID is required"),
-  rateeId: z.string().min(1, "Ratee ID is required"),
-  score: z.number().int().min(1, "Rating must be at least 1 star").max(5, "Rating cannot exceed 5 stars"),
-  comment: z.string().max(500, "Comment cannot exceed 500 characters").optional(),
+  revieweeId: z.string().min(1, "Reviewee ID is required"),
+  rating: z.number().int().min(1, "Rating must be at least 1 star").max(5, "Rating cannot exceed 5 stars"),
+  content: z.string().max(500, "Content cannot exceed 500 characters").optional(),
+  skillsEndorsed: z.array(z.string()).max(10, "Maximum 10 skills").optional().default([]),
 });
 
 export type RatingInput = z.infer<typeof ratingSchema>;

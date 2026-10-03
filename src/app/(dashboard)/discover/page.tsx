@@ -762,16 +762,20 @@ function ProjectRoleCard({
       <CardFooter className="p-5 pt-0 border-t border-border/40 mt-auto flex items-center justify-between">
         {/* Owner Info */}
         <div className="flex items-center gap-2 pt-3">
-          <Avatar
-            src={role.project.owner.image}
-            alt={role.project.owner.name || "Owner"}
-            size="sm"
-            className="w-6 h-6 text-[10px]"
-          />
+          <Link href={`/profile/${role.project.ownerId}`}>
+            <Avatar
+              src={role.project.owner.image}
+              alt={role.project.owner.name || "Owner"}
+              size="sm"
+              className="w-6 h-6 text-[10px] ring-1 ring-border/50 hover:ring-primary transition-colors cursor-pointer"
+            />
+          </Link>
           <div className="min-w-0">
-            <span className="text-xs text-muted-foreground truncate max-w-[100px] block">
-              {role.project.owner.name || "Project Lead"}
-            </span>
+            <Link href={`/profile/${role.project.ownerId}`}>
+              <span className="text-xs text-muted-foreground truncate max-w-[100px] block hover:underline hover:text-primary transition-colors cursor-pointer">
+                {role.project.owner.name || "Project Lead"}
+              </span>
+            </Link>
             {role.project.owner.reputationScore !== undefined && (
               <ReputationBadge score={role.project.owner.reputationScore} size="xs" />
             )}

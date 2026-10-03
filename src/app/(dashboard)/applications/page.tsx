@@ -510,17 +510,21 @@ export default function ApplicationsPage() {
                       {/* Top Row: Candidate Info & Target Role */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-start gap-3.5">
-                          <Avatar
-                            src={app.user.image || undefined}
-                            alt={app.user.name || "Candidate"}
-                            size="md"
-                            className="ring-1 ring-border shrink-0 mt-0.5"
-                          />
+                          <Link href={`/profile/${app.user.id}`}>
+                            <Avatar
+                              src={app.user.image || undefined}
+                              alt={app.user.name || "Candidate"}
+                              size="md"
+                              className="ring-1 ring-border shrink-0 mt-0.5 hover:ring-primary transition-all cursor-pointer"
+                            />
+                          </Link>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-bold text-base text-foreground truncate">
-                                {app.user.name || "Anonymous Builder"}
-                              </h3>
+                              <Link href={`/profile/${app.user.id}`}>
+                                <h3 className="font-bold text-base text-foreground truncate hover:underline hover:text-primary transition-colors cursor-pointer">
+                                  {app.user.name || "Anonymous Builder"}
+                                </h3>
+                              </Link>
                               {app.user.experienceLevel && (
                                 <Badge
                                   variant="outline"

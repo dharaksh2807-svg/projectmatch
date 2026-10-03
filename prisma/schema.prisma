@@ -96,6 +96,10 @@ model User {
   conversationsAsUserTwo DirectConversation[] @relation("ConversationUserTwo")
   messagesSent           DirectMessage[]
 
+  // Relations — Reviews & Endorsements
+  reviewsWritten   Review[] @relation("ReviewsWritten")
+  reviewsReceived  Review[] @relation("ReviewsReceived")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -276,6 +280,7 @@ model Project {
   roles       Role[]
   applications Application[]
   conversations DirectConversation[]
+  reviews     Review[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -414,6 +419,32 @@ model DirectMessage {
   @@index([conversationId])
   @@index([senderId])
   @@index([conversationId, createdAt(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────
+// Reviews & Endorsements
+// ─────────────────────────────────────────────
+
+/// A review left by a teammate for a user after a project
+model Review {
+  id          String   @id @default(cuid())
+  reviewerId  String
+  reviewer    User     @relation("ReviewsWritten", fields: [reviewerId], references: [id], onDelete: Cascade)
+  revieweeId  String
+  reviewee    User     @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  rating      Int      // 1-5
+  content     String?  @db.Text
+  skillsEndorsed String[] @default([])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([reviewerId, revieweeId, projectId])
+  @@index([revieweeId])
+  @@index([projectId])
 }
 
 // ─────────────────────────────────────────────
