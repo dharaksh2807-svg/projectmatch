@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { checkAgentMutationRateLimit } from "@/lib/redis";
+import { checkRateLimit } from "@/lib/redis";
 
 const applicationSchema = z.object({
   roleId: z.string().cuid("roleId must be a valid CUID"),
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Rate limiting
-  const rl = await checkAgentMutationRateLimit(session.user.id);
+  const rl = await checkRateLimit(session.user.id);
   if (!rl.success) {
     const retryAfterSec = rl.reset ? Math.ceil((rl.reset - Date.now()) / 1000) : 60;
     return NextResponse.json(

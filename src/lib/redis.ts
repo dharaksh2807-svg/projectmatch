@@ -59,12 +59,17 @@ export async function checkRateLimit(
     return { success: true, remaining: 999 };
   }
 
-  const result = await applicationRatelimit.limit(identifier);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await applicationRatelimit.limit(identifier);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch (err) {
+    console.error("Redis RateLimit error (checkRateLimit):", err);
+    return { success: true, remaining: 999 };
+  }
 }
 
 /**
@@ -77,12 +82,17 @@ export async function checkChatRateLimit(
   if (!chatRatelimit) {
     return { success: true, remaining: 20 };
   }
-  const result = await chatRatelimit.limit(userId);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await chatRatelimit.limit(userId);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch (err) {
+    console.error("Redis RateLimit error (checkChatRateLimit):", err);
+    return { success: true, remaining: 999 };
+  }
 }
 
 /**
@@ -97,12 +107,17 @@ export async function checkAgentMutationRateLimit(
     // Dev fallback: always allow when Upstash is not configured
     return { success: true, remaining: 10 };
   }
-  const result = await agentMutationRatelimit.limit(userId);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await agentMutationRatelimit.limit(userId);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch (err) {
+    console.error("Redis RateLimit error (checkAgentMutationRateLimit):", err);
+    return { success: true, remaining: 999 };
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -129,12 +144,17 @@ export async function checkDmRateLimit(
   if (!dmRatelimit) {
     return { success: true, remaining: 30 };
   }
-  const result = await dmRatelimit.limit(userId);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await dmRatelimit.limit(userId);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch (err) {
+    console.error("Redis RateLimit error (checkDmRateLimit):", err);
+    return { success: true, remaining: 999 };
+  }
 }
 
 /**
