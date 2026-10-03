@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema, type ProfileInput } from "@/lib/validations";
 import { TagInput } from "@/components/shared/tag-input";
-import { Loader2, Save, CheckCircle2, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { Loader2, Save, CheckCircle2, AlertCircle } from "lucide-react";
 
 const SKILL_SUGGESTIONS = [
   "React", "Next.js", "TypeScript", "JavaScript", "Node.js", "Python", "Java", "Go", "Rust",
@@ -13,12 +13,6 @@ const SKILL_SUGGESTIONS = [
   "Machine Learning", "Data Science", "TensorFlow", "PyTorch", "SQL", "PostgreSQL", "MongoDB",
   "AWS", "GCP", "Azure", "Docker", "Kubernetes", "DevOps", "CI/CD", "Android", "iOS",
   "Flutter", "React Native", "Web3", "Solidity", "Blockchain", "Game Dev", "Unity",
-];
-
-const INTEREST_SUGGESTIONS = [
-  "EdTech", "HealthTech", "FinTech", "Climate", "AI/ML", "Gaming", "Social Impact",
-  "Open Source", "Dev Tools", "Productivity", "E-commerce", "SaaS", "Blockchain/Web3",
-  "AR/VR", "Research", "Mobile", "Security", "IoT", "Space Tech", "Biotech",
 ];
 
 const TIMEZONES = [
@@ -32,15 +26,11 @@ const TIMEZONES = [
 ];
 
 interface ProfileFormProps {
-  initialData?: Partial<ProfileInput> & { name?: string };
+  initialData?: Partial<ProfileInput>;
 }
 
 export function ProfileForm({ initialData }: ProfileFormProps) {
   const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
-  const [portfolioLinks, setPortfolioLinks] = useState<string[]>(
-    initialData?.portfolioLinks || []
-  );
-  const [newLink, setNewLink] = useState("");
 
   const {
     register,
@@ -52,18 +42,18 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: initialData?.name || "",
+      bio: initialData?.bio || "",
       skills: initialData?.skills || [],
-      interests: initialData?.interests || [],
-      availabilityHours: initialData?.availabilityHours || 10,
-      availabilityDuration: initialData?.availabilityDuration || "1 month",
+      availability: initialData?.availability || null,
       timezone: initialData?.timezone || "UTC+5:30 (IST)",
-      experienceLevel: initialData?.experienceLevel || "Intermediate",
-      portfolioLinks: initialData?.portfolioLinks || [],
+      experienceLevel: initialData?.experienceLevel || null,
+      portfolioUrl: initialData?.portfolioUrl || "",
+      linkedinUrl: initialData?.linkedinUrl || "",
+      twitterHandle: initialData?.twitterHandle || "",
     },
   });
 
   const skills = watch("skills");
-  const interests = watch("interests");
 
   const onSubmit = async (data: ProfileInput) => {
     setStatus("saving");
@@ -71,7 +61,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, portfolioLinks }),
+        body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to save");
       setStatus("success");
@@ -82,31 +72,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     }
   };
 
-  const addPortfolioLink = () => {
-    if (!newLink.trim() || portfolioLinks.includes(newLink)) return;
-    try {
-      new URL(newLink);
-      const updated = [...portfolioLinks, newLink.trim()];
-      setPortfolioLinks(updated);
-      setValue("portfolioLinks", updated);
-      setNewLink("");
-    } catch {
-      // invalid URL
-    }
-  };
-
-  const removePortfolioLink = (link: string) => {
-    const updated = portfolioLinks.filter((l) => l !== link);
-    setPortfolioLinks(updated);
-    setValue("portfolioLinks", updated);
-  };
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-2xl">
       {/* Name */}
       <div className="space-y-2">
         <label htmlFor="name" className="text-sm font-medium">
-          Full Name <span className="text-destructive">*</span>
+          Full Name
         </label>
         <input
           id="name"
@@ -119,10 +90,26 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         )}
       </div>
 
+      {/* Bio */}
+      <div className="space-y-2">
+        <label htmlFor="bio" className="text-sm font-medium">
+          Bio
+        </label>
+        <textarea
+          id="bio"
+          {...register("bio")}
+          className="w-full h-24 px-4 py-3 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+          placeholder="Tell teammates a bit about yourself..."
+        />
+        {errors.bio && (
+          <p className="text-xs text-destructive">{errors.bio.message}</p>
+        )}
+      </div>
+
       {/* Skills */}
       <div className="space-y-2">
         <label className="text-sm font-medium">
-          Skills <span className="text-destructive">*</span>
+          Skills
         </label>
         <TagInput
           id="skills"
@@ -137,65 +124,18 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         )}
       </div>
 
-      {/* Interests */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Interests & Domains</label>
-        <TagInput
-          id="interests"
-          value={interests || []}
-          onChange={(tags) => setValue("interests", tags, { shouldDirty: true })}
-          placeholder="e.g. HealthTech, Open Source..."
-          suggestions={INTEREST_SUGGESTIONS}
-          maxTags={20}
-        />
-      </div>
-
-      {/* Availability */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="availabilityHours" className="text-sm font-medium">
-            Availability (hrs/week) <span className="text-destructive">*</span>
-          </label>
-          <input
-            id="availabilityHours"
-            type="number"
-            min={1}
-            max={80}
-            {...register("availabilityHours")}
-            className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
-          />
-          {errors.availabilityHours && (
-            <p className="text-xs text-destructive">{errors.availabilityHours.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="availabilityDuration" className="text-sm font-medium">
-            Duration <span className="text-destructive">*</span>
-          </label>
-          <select
-            id="availabilityDuration"
-            {...register("availabilityDuration")}
-            className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
-          >
-            {["1-2 weeks", "1 month", "3 months", "6+ months", "Ongoing"].map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Experience & Timezone */}
+      {/* Experience & Availability */}
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label htmlFor="experienceLevel" className="text-sm font-medium">
-            Experience Level <span className="text-destructive">*</span>
+            Experience Level
           </label>
           <select
             id="experienceLevel"
             {...register("experienceLevel")}
             className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
           >
+            <option value="">Select Level</option>
             {["Beginner", "Intermediate", "Advanced", "Expert"].map((l) => (
               <option key={l} value={l}>{l}</option>
             ))}
@@ -203,67 +143,76 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="timezone" className="text-sm font-medium">
-            Timezone <span className="text-destructive">*</span>
+          <label htmlFor="availability" className="text-sm font-medium">
+            Availability
           </label>
           <select
-            id="timezone"
-            {...register("timezone")}
+            id="availability"
+            {...register("availability")}
             className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
           >
-            {TIMEZONES.map((tz) => (
-              <option key={tz} value={tz}>{tz}</option>
+            <option value="">Select Availability</option>
+            {["Full-time", "Part-time", "Flexible", "Weekends"].map((d) => (
+              <option key={d} value={d}>{d}</option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Portfolio Links */}
+      {/* Timezone */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Portfolio Links</label>
-        <div className="space-y-2">
-          {portfolioLinks.map((link) => (
-            <div
-              key={link}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-secondary/30 group"
-            >
-              <a
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-sm text-primary hover:underline truncate"
-              >
-                {link}
-              </a>
-              <button
-                type="button"
-                onClick={() => removePortfolioLink(link)}
-                className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+        <label htmlFor="timezone" className="text-sm font-medium">
+          Timezone
+        </label>
+        <select
+          id="timezone"
+          {...register("timezone")}
+          className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+        >
+          {TIMEZONES.map((tz) => (
+            <option key={tz} value={tz}>{tz}</option>
           ))}
-          <div className="flex gap-2">
-            <input
-              type="url"
-              value={newLink}
-              onChange={(e) => setNewLink(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addPortfolioLink())}
-              placeholder="https://github.com/yourusername"
-              className="flex-1 h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-            <button
-              type="button"
-              onClick={addPortfolioLink}
-              className="h-11 px-4 rounded-xl border border-border hover:border-primary/30 hover:bg-accent transition-all flex items-center gap-2 text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add
-            </button>
-          </div>
+        </select>
+      </div>
+
+      {/* Social Links */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="portfolioUrl" className="text-sm font-medium">
+            Portfolio URL
+          </label>
+          <input
+            id="portfolioUrl"
+            type="url"
+            {...register("portfolioUrl")}
+            className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+            placeholder="https://yourwebsite.com"
+          />
         </div>
-        <p className="text-xs text-muted-foreground">GitHub, LinkedIn, portfolio site, etc.</p>
+        <div className="space-y-2">
+          <label htmlFor="linkedinUrl" className="text-sm font-medium">
+            LinkedIn URL
+          </label>
+          <input
+            id="linkedinUrl"
+            type="url"
+            {...register("linkedinUrl")}
+            className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+            placeholder="https://linkedin.com/in/you"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="twitterHandle" className="text-sm font-medium">
+          X (Twitter) Handle
+        </label>
+        <input
+          id="twitterHandle"
+          {...register("twitterHandle")}
+          className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+          placeholder="@yourhandle"
+        />
       </div>
 
       {/* Submit */}

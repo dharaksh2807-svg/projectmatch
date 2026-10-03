@@ -23,6 +23,7 @@ const HANDLE_PLATFORMS = [
   "hackerrank",
   "gitlab",
   "twitter",
+  "wakatime",
 ] as const;
 
 type HandlePlatform = (typeof HANDLE_PLATFORMS)[number];
@@ -39,6 +40,7 @@ const PROFILE_URL_TEMPLATES: Record<HandlePlatform, (handle: string) => string> 
   hackerrank: (h) => `https://www.hackerrank.com/profile/${h}`,
   gitlab: (h) => `https://gitlab.com/${h}`,
   twitter: (h) => `https://x.com/${h}`,
+  wakatime: (h) => `https://wakatime.com/@${h}`,
 };
 
 const postConnectionSchema = z.object({

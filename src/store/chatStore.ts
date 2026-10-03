@@ -25,6 +25,13 @@ export interface Message {
   createdAt?: string;
 }
 
+export interface ChatSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 interface ChatState {
   availableModels: AIModel[];
   selectedModelId: string | null;
@@ -32,7 +39,7 @@ interface ChatState {
   messages: Message[];
   isStreaming: boolean;
   activeChatId: string | null;
-  chatList: any[];
+  chatList: ChatSummary[];
 
   setModels: (models: AIModel[]) => void;
   setModel: (modelId: string) => void;

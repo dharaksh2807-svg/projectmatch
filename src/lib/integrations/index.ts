@@ -2,6 +2,9 @@ import { CompressedMetadata, IntegrationError } from "./types";
 import { fetchLeetCode } from "./leetcode";
 import { fetchCodeforces } from "./codeforces";
 import { fetchKaggle } from "./kaggle";
+import { fetchStackOverflow } from "./stackoverflow";
+import { fetchGithub } from "./github";
+import { fetchDevTo } from "./devto";
 import { Redis } from "@upstash/redis";
 
 // ─────────────────────────────────────────────
@@ -14,11 +17,14 @@ const FETCHERS: Record<string, Fetcher> = {
   leetcode: fetchLeetCode,
   codeforces: fetchCodeforces,
   kaggle: fetchKaggle,
+  stackoverflow: fetchStackOverflow,
+  github: fetchGithub,
+  devto: fetchDevTo,
 };
 
 // Stub for platforms with no public data API yet.
 // Returns a minimal object so the AI context still knows the platform exists.
-function stubFetcher(_platform: string): Fetcher {
+function stubFetcher(): Fetcher {
   return async (handle: string): Promise<CompressedMetadata> => ({
     rank: handle, // just record the handle as a marker
     syncedAt: new Date().toISOString(),
@@ -27,18 +33,17 @@ function stubFetcher(_platform: string): Fetcher {
 
 // Platforms that only store handles — no public stat API available
 const STUB_PLATFORMS = [
-  "stackoverflow",
   "medium",
   "hashnode",
-  "devto",
   "hackerrank",
   "gitlab",
   "twitter",
+  "wakatime",
 ] as const;
 
 // Register stubs
 for (const platform of STUB_PLATFORMS) {
-  FETCHERS[platform] = stubFetcher(platform);
+  FETCHERS[platform] = stubFetcher();
 }
 
 // ─────────────────────────────────────────────
@@ -52,7 +57,7 @@ const CACHE_TTL_SEC = 15 * 60; // 15 minutes in seconds
 let redis: Redis | null = null;
 try {
   redis = Redis.fromEnv();
-} catch (e) {
+} catch {
   console.warn("Upstash Redis is not configured. Falling back to un-cached fetches.");
 }
 

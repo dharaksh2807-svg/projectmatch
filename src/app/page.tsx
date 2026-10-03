@@ -56,6 +56,12 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/hackathons"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5 hidden sm:inline"
+            >
+              Hackathons
+            </Link>
+            <Link
               href="/login"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
             >

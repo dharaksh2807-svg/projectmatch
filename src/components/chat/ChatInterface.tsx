@@ -92,8 +92,8 @@ export function ChatInterface() {
         // Final flush
         appendToLastMessage(decoder.decode());
       }
-    } catch (error: any) {
-      if (error.name === "AbortError") {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") {
         console.log("Stream aborted by user");
       } else {
         console.error(error);

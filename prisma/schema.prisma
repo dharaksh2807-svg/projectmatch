@@ -62,6 +62,17 @@ model User {
   emailVerified DateTime?
   image         String?
 
+  // Profile fields for project-matching
+  bio              String?  @db.Text
+  skills           String[] @default([])          // e.g. ["React", "Python", "TypeScript"]
+  experienceLevel  String?                         // "Beginner" | "Intermediate" | "Advanced" | "Expert"
+  availability     String?                         // "Full-time" | "Part-time" | "Flexible" | "Weekends"
+  timezone         String?                         // IANA timezone e.g. "Asia/Kolkata"
+  reputationScore  Float    @default(0)            // 0-100, computed from activity & peer feedback
+  portfolioUrl     String?
+  linkedinUrl      String?
+  twitterHandle    String?
+
   // Relations — NextAuth
   accounts Account[]
   sessions Session[]
@@ -72,6 +83,16 @@ model User {
   chats         Chat[]
   promptBattles PromptBattle[]
   connections   UserConnection[]
+
+  // Relations — Project Matching
+  ownedProjects  Project[]
+  applications   Application[]
+  notifications  Notification[]
+
+  // Relations — Direct Messaging
+  conversationsAsUserOne DirectConversation[] @relation("ConversationUserOne")
+  conversationsAsUserTwo DirectConversation[] @relation("ConversationUserTwo")
+  messagesSent           DirectMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -229,6 +250,171 @@ model UserConnection {
 }
 
 // ─────────────────────────────────────────────
+// Project Matching Domain
+// ─────────────────────────────────────────────
+
+/// A project posted by a user looking for collaborators
+model Project {
+  id          String  @id @default(cuid())
+  ownerId     String
+  owner       User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String  @db.Text
+  projectType String                          // "Hackathon" | "Startup" | "Open Source" | "Side Project" | "Research" | "Competition"
+  duration    String                          // "< 1 week" | "1-4 weeks" | "1-3 months" | "3-6 months" | "6+ months"
+  techStack   String[] @default([])           // e.g. ["React", "FastAPI", "PostgreSQL"]
+  repoUrl     String?
+  websiteUrl  String?
+  isPublished Boolean @default(false)         // draft until published
+
+  hackathonId String?
+  hackathon   Hackathon? @relation(fields: [hackathonId], references: [id], onDelete: SetNull)
+
+  roles       Role[]
+  applications Application[]
+  conversations DirectConversation[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([isPublished])
+  @@index([projectType])
+}
+
+/// An open team position on a project
+model Role {
+  id                     String  @id @default(cuid())
+  projectId              String
+  project                Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  title                  String                      // e.g. "Senior Next.js Developer"
+  description            String? @db.Text
+  requiredSkills         String[] @default([])        // e.g. ["React", "TypeScript"]
+  requiredExperienceLevel String                      // "Beginner" | "Intermediate" | "Advanced" | "Expert" | "Any"
+  timeCommitment         String                      // e.g. "Part-time (10-15h/week)" | "Full-time" | "Flexible"
+  headcount              Int     @default(1)          // number of people needed
+  filledCount            Int     @default(0)          // how many spots are taken
+  isOpen                 Boolean @default(true)
+
+  applications Application[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([isOpen])
+}
+
+/// An application from a user to a specific Role
+model Application {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId    String
+  role      Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  status    ApplicationStatus @default(PENDING)
+  message   String?  @db.Text              // optional cover note from the applicant
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, roleId])               // one application per role per user
+  @@index([userId])
+  @@index([roleId])
+  @@index([projectId])
+  @@index([status])
+}
+
+/// In-app notification for a user
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      NotificationType
+  title     String
+  body      String   @db.Text
+  link      String?                         // optional deep link e.g. /projects/clxyz
+  isRead    Boolean  @default(false)
+  metadata  Json?                           // extra structured data (applicationId, projectId, etc.)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, isRead])
+}
+
+// ─────────────────────────────────────────────
+// Hackathons & Messaging (P2P)
+// ─────────────────────────────────────────────
+
+/// A specific Hackathon event that projects can be associated with
+model Hackathon {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  startDate   DateTime?
+  endDate     DateTime?
+  devpostUrl  String?
+  websiteUrl  String?
+  location    String?
+
+  projects    Project[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([startDate])
+}
+
+/// A P2P conversation between two users
+model DirectConversation {
+  id        String @id @default(cuid())
+  userOneId String
+  userOne   User   @relation("ConversationUserOne", fields: [userOneId], references: [id], onDelete: Cascade)
+  userTwoId String
+  userTwo   User   @relation("ConversationUserTwo", fields: [userTwoId], references: [id], onDelete: Cascade)
+  
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  messages  DirectMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userOneId, userTwoId])
+  @@index([userOneId])
+  @@index([userTwoId])
+  @@index([projectId])
+}
+
+/// A single direct message in a P2P conversation
+model DirectMessage {
+  id             String             @id @default(cuid())
+  conversationId String
+  conversation   DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  senderId       String
+  sender         User               @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  
+  content        String             @db.Text
+  isRead         Boolean            @default(false)
+  
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([conversationId, createdAt(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────
 // Enums
 // ─────────────────────────────────────────────
 
@@ -237,3 +423,19 @@ enum MessageRole {
   ASSISTANT
   SYSTEM
 }
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum NotificationType {
+  APPLICATION_RECEIVED   // project owner gets this when someone applies
+  APPLICATION_ACCEPTED   // applicant gets this when accepted
+  APPLICATION_REJECTED   // applicant gets this when rejected
+  NEW_MESSAGE            // any new chat message
+  SYSTEM                 // platform announcements
+}
+

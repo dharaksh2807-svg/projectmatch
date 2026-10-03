@@ -24,9 +24,27 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email) return null;
-        const user = await prisma.user.findUnique({
+        
+        let user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
+
+        // Auto-create demo users if they don't exist
+        if (!user && ["owner@example.com", "bob@example.com", "alice@example.com"].includes(credentials.email)) {
+          const names: Record<string, string> = {
+            "owner@example.com": "Eve Johnson",
+            "bob@example.com": "Bob Kumar",
+            "alice@example.com": "Alice Chen",
+          };
+          user = await prisma.user.create({
+            data: {
+              email: credentials.email,
+              name: names[credentials.email],
+              reputationScore: 75,
+            },
+          });
+        }
+
         if (user) {
           return {
             id: user.id,

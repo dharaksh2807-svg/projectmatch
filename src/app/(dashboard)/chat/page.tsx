@@ -5,8 +5,10 @@ import { useSession } from "next-auth/react";
 import { useChatStore } from "@/store/chatStore";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AgentConfigPanel } from "@/components/chat/AgentConfigPanel";
+import { WhatsAppChatInterface } from "@/components/chat/WhatsAppChatInterface";
 import { Button } from "@/components/ui/button";
 import { Settings2, Bot, PlusCircle, MessageSquare, Trash2, Menu } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -19,6 +21,7 @@ import { useToast } from "@/components/ui/toast-provider";
 
 export default function ChatPage() {
   const { data: session } = useSession();
+  const [chatTab, setChatTab] = useState<"direct" | "agent">("direct");
   const { setModels, activeAgent, setAgent, clearChat, chatList, fetchChats, loadChatHistory, activeChatId } = useChatStore();
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
@@ -81,7 +84,49 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-zinc-950">
+    <div className="flex flex-col h-[calc(100vh-4rem)] w-full overflow-hidden bg-zinc-950">
+      {/* Top Mode Switcher Bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/80 bg-zinc-950 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center p-0.5 rounded-lg bg-zinc-900 border border-zinc-800">
+            <button
+              onClick={() => setChatTab("direct")}
+              className={cn(
+                "px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+                chatTab === "direct"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              )}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              Direct / Team Chat (WhatsApp)
+            </button>
+            <button
+              onClick={() => setChatTab("agent")}
+              className={cn(
+                "px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+                chatTab === "agent"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              )}
+            >
+              <Bot className="w-3.5 h-3.5" />
+              AI Agent Chat
+            </button>
+          </div>
+        </div>
+
+        <span className="text-[11px] text-zinc-500 hidden sm:inline">
+          {chatTab === "direct" ? "WhatsApp Split-Pane • Live Redis SSE" : "LLM Multi-Agent Sandbox"}
+        </span>
+      </div>
+
+      {chatTab === "direct" ? (
+        <div className="flex-1 overflow-hidden">
+          <WhatsAppChatInterface />
+        </div>
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
       
       
       {/* Chat History Sidebar (Desktop) */}
@@ -236,7 +281,9 @@ export default function ChatPage() {
             .catch(console.error);
         }}
       />
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

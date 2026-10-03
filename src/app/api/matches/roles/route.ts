@@ -1,113 +1,146 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/matches/roles
  *
- * Returns a list of mock matched roles for the Discover page.
- * Each role includes project info, owner info, and a compatibility score.
- * This endpoint is public (accessible to guests for browsing).
+ * Returns roles from published projects.
+ * For authenticated users: also attaches a compatibility score based on skill overlap.
+ * For guests: returns plain role list (no scores).
+ *
+ * Public endpoint — no auth required for browsing.
  */
-const mockRoles = [
-  {
-    id: "role-1",
-    title: "Senior Next.js Developer",
-    requiredSkills: ["React", "Next.js", "TypeScript"],
-    requiredExperienceLevel: "Advanced",
-    timeCommitment: "Part-time (10-15h/week)",
-    headcount: 2,
-    filledCount: 0,
-    project: {
-      id: "proj-1",
-      title: "AI Project Management Tool",
-      description:
-        "Building a revolutionary AI-powered tool to help PMs automate Jira workflows and sprint planning.",
-      projectType: "Startup",
-      duration: "3-6 months",
-      ownerId: "user-1",
-      owner: {
-        name: "Alice Chen",
-        image: null,
-        reputationScore: 92,
-      },
-    },
-    compatibility: {
-      score: 0.85,
-      breakdown: {
-        skillOverlap: 0.9,
-        availabilityFit: 0.8,
-        interestAlignment: 0.85,
-        experienceFit: 0.9,
-        reputationScore: 0.8,
-      },
-    },
-  },
-  {
-    id: "role-2",
-    title: "Machine Learning Engineer",
-    requiredSkills: ["Python", "PyTorch", "LLMs"],
-    requiredExperienceLevel: "Intermediate",
-    timeCommitment: "Full-time",
-    headcount: 1,
-    filledCount: 0,
-    project: {
-      id: "proj-2",
-      title: "Open Source LLM Evaluator",
-      description:
-        "An open-source framework for evaluating RAG pipelines and LLM agents with reproducible benchmarks.",
-      projectType: "Open Source",
-      duration: "6+ months",
-      ownerId: "user-2",
-      owner: {
-        name: "Bob Kumar",
-        image: null,
-        reputationScore: 85,
-      },
-    },
-    compatibility: {
-      score: 0.45,
-      breakdown: {
-        skillOverlap: 0.3,
-        availabilityFit: 0.5,
-        interestAlignment: 0.7,
-        experienceFit: 0.5,
-        reputationScore: 0.25,
-      },
-    },
-  },
-  {
-    id: "role-3",
-    title: "UI/UX Designer",
-    requiredSkills: ["Figma", "Tailwind CSS"],
-    requiredExperienceLevel: "Beginner",
-    timeCommitment: "Flexible",
-    headcount: 3,
-    filledCount: 1,
-    project: {
-      id: "proj-3",
-      title: "Hackathon: EcoTrack App",
-      description:
-        "A mobile app to track personal carbon footprints for the Global Green Hackathon.",
-      projectType: "Hackathon",
-      duration: "< 1 week",
-      ownerId: "user-3",
-      owner: {
-        name: "Eve Johnson",
-        image: null,
-      },
-    },
-    compatibility: {
-      score: 0.95,
-      breakdown: {
-        skillOverlap: 1.0,
-        availabilityFit: 0.95,
-        interestAlignment: 0.9,
-        experienceFit: 0.95,
-        reputationScore: 0.95,
-      },
-    },
-  },
-];
-
 export async function GET() {
-  return NextResponse.json({ results: mockRoles });
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+
+  // Fetch user's skills if logged in
+  let userSkills: string[] = [];
+  let userExperienceLevel: string | null = null;
+  let userAvailability: string | null = null;
+
+  if (userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { skills: true, experienceLevel: true, availability: true, reputationScore: true },
+    });
+    if (user) {
+      userSkills = user.skills;
+      userExperienceLevel = user.experienceLevel ?? null;
+      userAvailability = user.availability ?? null;
+    }
+  }
+
+  try {
+    const roles = await prisma.role.findMany({
+      where: {
+        isOpen: true,
+        project: { isPublished: true },
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            projectType: true,
+            duration: true,
+            ownerId: true,
+            owner: {
+              select: { name: true, image: true, reputationScore: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Attach compatibility score for authenticated users
+    const results = roles.map((role) => {
+      let compatibility: {
+        score: number;
+        breakdown: {
+          skillOverlap: number;
+          availabilityFit: number;
+          interestAlignment: number;
+          experienceFit: number;
+          reputationScore: number;
+        };
+      } | undefined = undefined;
+
+      if (userId && userSkills.length > 0) {
+        // Skill overlap: ratio of user skills matching role requirements
+        const roleSkills = role.requiredSkills;
+        const matchingSkills = roleSkills.filter((s) =>
+          userSkills.some((us) => us.toLowerCase() === s.toLowerCase())
+        );
+        const skillOverlap = roleSkills.length > 0
+          ? matchingSkills.length / roleSkills.length
+          : 0.5; // no requirement = neutral
+
+        // Experience fit: compare user vs role levels
+        const levels = ["Beginner", "Intermediate", "Advanced", "Expert"];
+        const userLevelIdx = levels.indexOf(userExperienceLevel ?? "");
+        const roleLevelIdx = levels.indexOf(role.requiredExperienceLevel);
+        let experienceFit = 0.5;
+        if (role.requiredExperienceLevel === "Any") {
+          experienceFit = 1.0;
+        } else if (userLevelIdx >= 0 && roleLevelIdx >= 0) {
+          const diff = Math.abs(userLevelIdx - roleLevelIdx);
+          experienceFit = diff === 0 ? 1.0 : diff === 1 ? 0.7 : 0.3;
+        }
+
+        // Availability fit: loose string match
+        const availabilityFit =
+          !userAvailability || !role.timeCommitment
+            ? 0.5
+            : role.timeCommitment.toLowerCase().includes(userAvailability.toLowerCase()) ||
+              userAvailability.toLowerCase() === "flexible"
+            ? 1.0
+            : 0.4;
+
+        // Interest alignment: placeholder — would use NLP in production
+        const interestAlignment = skillOverlap > 0 ? 0.75 : 0.5;
+
+        // Reputation — treat as fixed 0.7 (production: factor in peer reviews)
+        const reputationScore = 0.7;
+
+        const score =
+          skillOverlap * 0.4 +
+          experienceFit * 0.25 +
+          availabilityFit * 0.2 +
+          interestAlignment * 0.1 +
+          reputationScore * 0.05;
+
+        compatibility = {
+          score: Math.min(Math.max(score, 0), 1),
+          breakdown: {
+            skillOverlap,
+            availabilityFit,
+            interestAlignment,
+            experienceFit,
+            reputationScore,
+          },
+        };
+      }
+
+      return { ...role, compatibility };
+    });
+
+    // Sort: authenticated users get recommended (score >= 0.5) first
+    if (userId) {
+      results.sort((a, b) => {
+        const sa = a.compatibility?.score ?? 0;
+        const sb = b.compatibility?.score ?? 0;
+        return sb - sa;
+      });
+    }
+
+    return NextResponse.json({ results });
+  } catch (err) {
+    console.error("GET /api/matches/roles failed:", err);
+    return NextResponse.json({ error: "Failed to fetch roles" }, { status: 500 });
+  }
 }

@@ -73,18 +73,17 @@ export default async function ProfilePage() {
       <ProfileForm
         initialData={{
           name: safeUser.name || "",
-          skills: safeUser.skills,
-          interests: safeUser.interests,
-          availabilityHours: safeUser.availabilityHours || undefined,
-          availabilityDuration: (safeUser.availabilityDuration as ProfileInput["availabilityDuration"]) || undefined,
-          timezone: safeUser.timezone || undefined,
-          experienceLevel: (safeUser.experienceLevel as ProfileInput["experienceLevel"]) || undefined,
-          portfolioLinks: safeUser.portfolioLinks,
+          bio: safeUser.bio || "",
+          skills: safeUser.skills || [],
+          experienceLevel: safeUser.experienceLevel || null,
+          availability: safeUser.availability || null,
+          timezone: safeUser.timezone || "UTC+5:30 (IST)",
+          portfolioUrl: safeUser.portfolioUrl || "",
+          linkedinUrl: safeUser.linkedinUrl || "",
+          twitterHandle: safeUser.twitterHandle || "",
         }}
       />
     </div>
   );
 }
 
-// Type import needed for the server component
-type ProfileInput = import("@/lib/validations").ProfileInput;

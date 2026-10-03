@@ -104,3 +104,65 @@ export async function checkAgentMutationRateLimit(
     reset: result.reset,
   };
 }
+
+// ─────────────────────────────────────────────
+// Direct Message Rate Limiting & Pub/Sub
+// ─────────────────────────────────────────────
+
+// Rate limiter: 30 direct messages per minute per user
+export const dmRatelimit = hasRedisConfig
+  ? new Ratelimit({
+      redis: redis as Redis,
+      limiter: Ratelimit.slidingWindow(30, "1 m"),
+      analytics: true,
+      prefix: "projectmatch:dm",
+    })
+  : null;
+
+/**
+ * Check DM rate limit (30 msg/min) for a given userId.
+ * Returns { success: true } when Redis is not configured (dev fallback).
+ */
+export async function checkDmRateLimit(
+  userId: string
+): Promise<{ success: boolean; remaining?: number; reset?: number }> {
+  if (!dmRatelimit) {
+    return { success: true, remaining: 30 };
+  }
+  const result = await dmRatelimit.limit(userId);
+  return {
+    success: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+  };
+}
+
+/**
+ * Publish a real-time event to a Redis channel.
+ * Writes to both a pub/sub channel and a polling key for Upstash REST compat.
+ * The polling key is used by the SSE stream endpoint.
+ * No-ops silently if Redis is unavailable.
+ */
+export async function publishEvent(
+  channel: string,
+  data: Record<string, unknown>
+): Promise<void> {
+  if (!redis) return;
+  const payload = JSON.stringify(data);
+  try {
+    // Write to the polling key (SSE reads this)
+    // TTL of 120s ensures stale data is cleaned up automatically
+    await redis.set(`${channel}:latest`, payload, { ex: 120 });
+    // Also publish for any native subscribers
+    await redis.publish(channel, payload);
+  } catch (err) {
+    console.error(`Failed to publish to channel "${channel}":`, err);
+  }
+}
+
+/**
+ * Build the Redis channel name for a conversation's real-time stream.
+ */
+export function conversationChannel(conversationId: string): string {
+  return `dm:conversation:${conversationId}`;
+}
