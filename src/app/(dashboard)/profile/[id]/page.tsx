@@ -7,9 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Star, Link as LinkIcon, CheckCircle2, Calendar, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import sanitizeHtml from "sanitize-html";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ReviewModal } from "@/components/profile/review-modal";
+import { ReportModal } from "@/components/shared/report-modal";
 
 export default async function PublicProfilePage({
   params,
@@ -128,14 +130,16 @@ export default async function PublicProfilePage({
                     skills={profile.skills}
                   />
                 )}
+                <ReportModal reportedUserId={profile.id} targetName={profile.name || "User"} />
               </div>
             )}
           </div>
 
           {profile.bio && (
-            <div className="mt-6 text-foreground/90 leading-relaxed max-w-3xl">
-              {profile.bio}
-            </div>
+            <div 
+              className="mt-6 text-foreground/90 leading-relaxed max-w-3xl prose prose-sm dark:prose-invert prose-p:my-1 prose-ul:my-1"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(profile.bio) }}
+            />
           )}
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">

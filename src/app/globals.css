@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -158,6 +159,17 @@
 }
 
 /* Custom utility classes */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: oklch(0.45 0.02 265);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.dark .ProseMirror p.is-editor-empty:first-child::before {
+  color: oklch(0.65 0.02 265);
+}
+
 @layer utilities {
   .glass {
     background: oklch(1 0 0 / 4%);

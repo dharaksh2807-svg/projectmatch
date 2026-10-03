@@ -6,6 +6,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { projectSchema, type ProjectInput } from "@/lib/validations";
 import { TagInput } from "@/components/shared/tag-input";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Loader2,
   Plus,
@@ -113,12 +114,11 @@ export function ProjectForm() {
         <label htmlFor="description" className="text-sm font-medium">
           Description <span className="text-destructive">*</span>
         </label>
-        <textarea
-          id="description"
-          {...register("description")}
-          rows={5}
+        <RichTextEditor
+          value={watch("description") || ""}
+          onChange={(val) => setValue("description", val, { shouldValidate: true, shouldDirty: true })}
           placeholder="Describe your project — what problem it solves, what you're building, what stage you're at, and what kind of team you need..."
-          className="w-full px-4 py-3 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+          className="bg-transparent border-input focus-visible:ring-primary/20 focus-visible:border-primary/50 rounded-xl"
         />
         {errors.description && (
           <p className="text-xs text-destructive">{errors.description.message}</p>

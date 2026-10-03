@@ -697,7 +697,7 @@ function ProjectRoleCard({
 
         {/* Snippet of Description */}
         <CardDescription className="text-xs line-clamp-2 text-muted-foreground leading-relaxed pt-1">
-          {role.project.description}
+          {role.project.description.replace(/<[^>]*>?/gm, '')}
         </CardDescription>
       </CardHeader>
 

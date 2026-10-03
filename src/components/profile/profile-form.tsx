@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema, type ProfileInput } from "@/lib/validations";
 import { TagInput } from "@/components/shared/tag-input";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Loader2, Save, CheckCircle2, AlertCircle } from "lucide-react";
 
 const SKILL_SUGGESTIONS = [
@@ -97,11 +98,11 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         <label htmlFor="bio" className="text-sm font-medium">
           Bio
         </label>
-        <textarea
-          id="bio"
-          {...register("bio")}
-          className="w-full h-24 px-4 py-3 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+        <RichTextEditor
+          value={watch("bio") || ""}
+          onChange={(val) => setValue("bio", val, { shouldValidate: true, shouldDirty: true })}
           placeholder="Tell teammates a bit about yourself..."
+          className="bg-transparent border-input focus-visible:ring-primary/20 focus-visible:border-primary/50 rounded-xl"
         />
         {errors.bio && (
           <p className="text-xs text-destructive">{errors.bio.message}</p>

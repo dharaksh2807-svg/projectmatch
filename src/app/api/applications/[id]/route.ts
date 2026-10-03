@@ -142,8 +142,9 @@ export async function PATCH(
       await publishEvent(userNotificationsChannel(application.user.id), notification);
       
       if (application.user.email) {
-        // Construct the project URL. Note: you might want to use process.env.NEXT_PUBLIC_APP_URL for the domain.
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        // Automatically use VERCEL_PROJECT_PRODUCTION_URL if deployed to Vercel, else fallback to NEXT_PUBLIC_APP_URL or localhost
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 
+          (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
         await sendApplicationStatusEmail({
           to: application.user.email,
           applicantName: application.user.name || "Builder",

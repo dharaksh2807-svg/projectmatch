@@ -51,6 +51,8 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             email: user.email,
             image: user.image,
+            role: user.role,
+            isBanned: user.isBanned,
           };
         }
         return null;
@@ -61,15 +63,27 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
+    async signIn({ user }) {
+      // Check if user is banned
+      if (user.email) {
+        const dbUser = await prisma.user.findUnique({ where: { email: user.email }});
+        if (dbUser?.isBanned) return false;
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.role = (user as any).role;
+        token.isBanned = (user as any).isBanned;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token) {
         session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.isBanned = token.isBanned as boolean;
       }
       return session;
     },

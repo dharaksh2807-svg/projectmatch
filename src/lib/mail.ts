@@ -7,7 +7,7 @@ const hasResendKey =
 const resend = hasResendKey ? new Resend(process.env.RESEND_API_KEY!) : null;
 
 const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL || "noreply@projectmatch.dev";
+  process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
 export interface MailOptions {
   to: string;

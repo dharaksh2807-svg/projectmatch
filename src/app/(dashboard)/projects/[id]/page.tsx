@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import sanitizeHtml from "sanitize-html";
 import { formatDistanceToNow } from "date-fns";
 import {
   Clock,
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast-provider";
 import { ReputationBadge } from "@/components/ratings/reputation-badge";
+import { ReportModal } from "@/components/shared/report-modal";
 
 interface Role {
   id: string;
@@ -158,9 +160,10 @@ export default function ProjectDetailPage() {
                 )}
               </div>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">{project.title}</h1>
-              <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap">
-                {project.description}
-              </div>
+              <div 
+                className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap prose-p:my-1 prose-ul:my-1"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.description) }}
+              />
             </div>
 
             {project.techStack.length > 0 && (
@@ -284,6 +287,12 @@ export default function ProjectDetailPage() {
                 ) : (
                    <Button className="w-full brand-gradient text-white">Publish Now</Button>
                 )}
+              </div>
+            )}
+
+            {loggedInUserId && !isOwner && (
+              <div className="pt-4 flex justify-end">
+                <ReportModal projectId={project.id} targetName={project.title} />
               </div>
             )}
           </div>

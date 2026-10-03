@@ -158,7 +158,7 @@ ${JSON.stringify(
     requiredExperience: r.requiredExperienceLevel,
     timeCommitment: r.timeCommitment,
     projectTitle: r.project.title,
-    projectDescription: r.project.description,
+    projectDescription: r.project.description.replace(/<[^>]*>?/gm, ''),
     projectType: r.project.projectType,
   })),
   null,

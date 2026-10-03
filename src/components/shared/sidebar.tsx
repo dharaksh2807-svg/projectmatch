@@ -16,6 +16,7 @@ import {
   MessageSquare,
   UserCheck,
   Menu,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -75,6 +76,24 @@ export function Sidebar() {
           </Link>
         );
       })}
+      
+      {session?.user?.role === "ADMIN" && (
+        <div className="pt-4 mt-4 border-t">
+          <Link
+            href="/admin"
+            onClick={() => onNavigate?.()}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              pathname.startsWith("/admin")
+                ? "bg-destructive/15 text-destructive"
+                : "text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+            )}
+          >
+            <ShieldAlert className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <span>Admin Dashboard</span>
+          </Link>
+        </div>
+      )}
     </nav>
   );
 

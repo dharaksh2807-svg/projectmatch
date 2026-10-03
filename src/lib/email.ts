@@ -42,7 +42,7 @@ export async function sendApplicationStatusEmail({
     );
 
     const data = await resend.emails.send({
-      from: "Project Match <notifications@yourdomain.com>", // Replace with your verified domain
+      from: process.env.RESEND_FROM_EMAIL || "Project Match <onboarding@resend.dev>",
       to: [to],
       subject:
         status === "ACCEPTED"

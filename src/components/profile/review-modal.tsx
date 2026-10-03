@@ -83,12 +83,14 @@ export function ReviewModal({ revieweeId, revieweeName, projects, skills }: Revi
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <Star className="w-4 h-4 fill-current" />
-          Leave a Review
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button size="sm" className="gap-2">
+            <Star className="w-4 h-4 fill-current" />
+            Leave a Review
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Review {revieweeName}</DialogTitle>

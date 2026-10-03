@@ -61,6 +61,8 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  role          UserRole  @default(USER)
+  isBanned      Boolean   @default(false)
 
   // Profile fields for project-matching
   bio              String?  @db.Text
@@ -99,6 +101,10 @@ model User {
   // Relations — Reviews & Endorsements
   reviewsWritten   Review[] @relation("ReviewsWritten")
   reviewsReceived  Review[] @relation("ReviewsReceived")
+
+  // Relations — Moderation
+  reportsSubmitted Report[] @relation("ReportsSubmitted")
+  reportsReceived  Report[] @relation("ReportsReceived")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -281,6 +287,7 @@ model Project {
   applications Application[]
   conversations DirectConversation[]
   reviews     Review[]
+  reports     Report[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -448,6 +455,31 @@ model Review {
 }
 
 // ─────────────────────────────────────────────
+// Moderation
+// ─────────────────────────────────────────────
+
+model Report {
+  id             String @id @default(cuid())
+  reporterId     String
+  reporter       User   @relation("ReportsSubmitted", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUserId String?
+  reportedUser   User?  @relation("ReportsReceived", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  projectId      String?
+  project        Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  reason         String @db.Text
+  status         ReportStatus @default(PENDING)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([projectId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
 // Enums
 // ─────────────────────────────────────────────
 
@@ -470,5 +502,16 @@ enum NotificationType {
   APPLICATION_REJECTED   // applicant gets this when rejected
   NEW_MESSAGE            // any new chat message
   SYSTEM                 // platform announcements
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
 }
 
