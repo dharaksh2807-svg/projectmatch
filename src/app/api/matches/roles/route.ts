@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
  *
  * Public endpoint — no auth required for browsing.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string } | undefined)?.id;
@@ -35,11 +35,45 @@ export async function GET() {
   }
 
   try {
+    const searchParams = req.nextUrl.searchParams;
+    const typeFilter = searchParams.get("type");
+    const durationFilter = searchParams.get("duration");
+    const expFilter = searchParams.get("exp");
+    const skillFilter = searchParams.get("skill");
+    const query = searchParams.get("q");
+
+    // Build the Prisma where clause
+    const whereClause: any = {
+      isOpen: true,
+      project: { isPublished: true },
+    };
+
+    if (typeFilter && typeFilter !== "All") {
+      whereClause.project.projectType = { equals: typeFilter, mode: "insensitive" };
+    }
+
+    if (durationFilter && durationFilter !== "All") {
+      whereClause.project.duration = { equals: durationFilter, mode: "insensitive" };
+    }
+
+    if (expFilter && expFilter !== "All") {
+      whereClause.requiredExperienceLevel = { equals: expFilter, mode: "insensitive" };
+    }
+
+    if (skillFilter) {
+      whereClause.requiredSkills = { has: skillFilter };
+    }
+
+    if (query) {
+      whereClause.OR = [
+        { title: { contains: query, mode: "insensitive" } },
+        { project: { title: { contains: query, mode: "insensitive" } } },
+        { project: { description: { contains: query, mode: "insensitive" } } },
+      ];
+    }
+
     const roles = await prisma.role.findMany({
-      where: {
-        isOpen: true,
-        project: { isPublished: true },
-      },
+      where: whereClause,
       include: {
         project: {
           select: {

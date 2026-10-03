@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { publishEvent, userNotificationsChannel } from "@/lib/redis";
+import { sendApplicationStatusEmail } from "@/lib/email";
 
 type Params = Promise<{ id: string }>;
 
@@ -28,8 +29,8 @@ export async function PATCH(
     where: { id },
     include: {
       role: { select: { title: true } },
-      project: { select: { id: true, title: true, ownerId: true } },
-      user: { select: { id: true } },
+      project: { select: { id: true, title: true, ownerId: true, owner: { select: { name: true } } } },
+      user: { select: { id: true, name: true, email: true } },
     },
   });
 
@@ -139,6 +140,20 @@ export async function PATCH(
     if (notificationIndex > 0) {
       const notification = results[notificationIndex];
       await publishEvent(userNotificationsChannel(application.user.id), notification);
+      
+      if (application.user.email) {
+        // Construct the project URL. Note: you might want to use process.env.NEXT_PUBLIC_APP_URL for the domain.
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        await sendApplicationStatusEmail({
+          to: application.user.email,
+          applicantName: application.user.name || "Builder",
+          projectTitle: application.project.title,
+          roleTitle: application.role.title,
+          status: status as "ACCEPTED" | "REJECTED",
+          projectOwnerName: application.project.owner.name || "The Project Team",
+          projectUrl: `${appUrl}/projects/${application.project.id}`,
+        }).catch(console.error); // Fire and forget so we don't block the request
+      }
     }
 
     return NextResponse.json({ success: true, status });

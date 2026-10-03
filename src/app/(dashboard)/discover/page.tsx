@@ -121,7 +121,14 @@ export default function DiscoverPage() {
     async function fetchMatches() {
       setLoading(true);
       try {
-        const res = await fetch("/api/matches/roles");
+        const queryParams = new URLSearchParams();
+        if (selectedType !== "All") queryParams.append("type", selectedType);
+        if (selectedDuration !== "All") queryParams.append("duration", selectedDuration);
+        if (selectedExp !== "All") queryParams.append("exp", selectedExp);
+        if (selectedSkill) queryParams.append("skill", selectedSkill);
+        if (searchQuery.trim()) queryParams.append("q", searchQuery.trim());
+
+        const res = await fetch(`/api/matches/roles?${queryParams.toString()}`);
         if (res.ok) {
           const data = await res.json();
           setRoles(data.results || []);
@@ -133,8 +140,13 @@ export default function DiscoverPage() {
       }
     }
 
-    fetchMatches();
-  }, [status]);
+    // Debounce the fetch slightly to avoid spamming on typing in search
+    const timeoutId = setTimeout(() => {
+      fetchMatches();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [status, selectedType, selectedDuration, selectedExp, selectedSkill, searchQuery]);
 
   // Extract all unique skills across all available roles for quick filtering
   const allUniqueSkills = useMemo(() => {
@@ -148,39 +160,7 @@ export default function DiscoverPage() {
   // Separate Recommended (score >= 0.5 or highest ranked) vs All Open Roles
   const { recommendedRoles, otherRoles } = useMemo(() => {
     const filtered = roles.filter((role) => {
-      // Search query filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchesTitle = role.title.toLowerCase().includes(query);
-        const matchesProject = role.project.title.toLowerCase().includes(query);
-        const matchesDesc = role.project.description.toLowerCase().includes(query);
-        const matchesSkill = role.requiredSkills.some((s) => s.toLowerCase().includes(query));
-        if (!matchesTitle && !matchesProject && !matchesDesc && !matchesSkill) {
-          return false;
-        }
-      }
-
-      // Project type filter
-      if (selectedType !== "All" && role.project.projectType.toLowerCase() !== selectedType.toLowerCase()) {
-        return false;
-      }
-
-      // Duration filter
-      if (selectedDuration !== "All" && role.project.duration.toLowerCase() !== selectedDuration.toLowerCase()) {
-        return false;
-      }
-
-      // Experience level filter
-      if (selectedExp !== "All" && role.requiredExperienceLevel.toLowerCase() !== selectedExp.toLowerCase()) {
-        return false;
-      }
-
-      // Skill filter
-      if (selectedSkill && !role.requiredSkills.some((s) => s.toLowerCase() === selectedSkill.toLowerCase())) {
-        return false;
-      }
-
-      // Minimum score filter
+      // Minimum score filter (client-side only, as score is calculated dynamically)
       if (role.compatibility && role.compatibility.score < minScoreFilter / 100) {
         return false;
       }
@@ -197,7 +177,7 @@ export default function DiscoverPage() {
     );
 
     return { recommendedRoles: recommended, otherRoles: others };
-  }, [roles, searchQuery, selectedType, selectedDuration, selectedExp, selectedSkill, minScoreFilter]);
+  }, [roles, minScoreFilter]);
 
   const resetFilters = () => {
     setSearchQuery("");
