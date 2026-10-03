@@ -187,7 +187,7 @@ export async function POST(
 
   try {
     // Create message + update conversation timestamp + notify recipient
-    const [message] = await prisma.$transaction([
+    const [message, _conv, notification] = await prisma.$transaction([
       prisma.directMessage.create({
         data: {
           conversationId,
@@ -209,8 +209,7 @@ export async function POST(
           userId: recipientId,
           type: "NEW_MESSAGE",
           title: `New message from ${session.user.name ?? "someone"}`,
-          body:
-            content.length > 100 ? content.slice(0, 100) + "…" : content,
+          body: content.length > 100 ? content.slice(0, 100) + "…" : content,
           link: `/chat/${conversationId}`,
           metadata: { conversationId, senderId: session.user.id },
         },
@@ -224,13 +223,7 @@ export async function POST(
     });
 
     // Publish to the recipient's global notification channel (SSE stream)
-    await publishEvent(userNotificationsChannel(recipientId), {
-      type: "NEW_MESSAGE",
-      title: `New message from ${session.user.name ?? "someone"}`,
-      body: content.length > 100 ? content.slice(0, 100) + "…" : content,
-      link: `/chat/${conversationId}`,
-      ts: Date.now(),
-    });
+    await publishEvent(userNotificationsChannel(recipientId), notification);
 
     return NextResponse.json(message, { status: 201 });
   } catch (err) {

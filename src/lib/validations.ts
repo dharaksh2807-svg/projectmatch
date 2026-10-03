@@ -15,6 +15,8 @@ export const profileSchema = z.object({
   portfolioUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
   linkedinUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
   twitterHandle: z.string().max(50).optional().nullable(),
+  instagramHandle: z.string().max(50).optional().nullable(),
+  phoneNumber: z.string().max(30).optional().nullable(),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;

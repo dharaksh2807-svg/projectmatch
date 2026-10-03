@@ -81,6 +81,8 @@ export default async function ProfilePage() {
           portfolioUrl: safeUser.portfolioUrl || "",
           linkedinUrl: safeUser.linkedinUrl || "",
           twitterHandle: safeUser.twitterHandle || "",
+          instagramHandle: safeUser.instagramHandle || "",
+          phoneNumber: safeUser.phoneNumber || "",
         }}
       />
     </div>

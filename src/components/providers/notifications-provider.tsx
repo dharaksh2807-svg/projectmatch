@@ -1,13 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { useToast } from "@/components/ui/toast-provider";
 
 interface NotificationsContextType {
   unreadCount: number;
   decrementUnread: () => void;
   markAllRead: () => void;
+  latestNotification: any | null;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
@@ -15,7 +17,16 @@ const NotificationsContext = createContext<NotificationsContextType | undefined>
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession();
   const { toast } = useToast();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+
+  // Keep a ref to the latest pathname so we can check it in the SSE listener without adding it to the dependency array
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
   const [unreadCount, setUnreadCount] = useState(0);
+  const [latestNotification, setLatestNotification] = useState<any | null>(null);
 
   // Fetch initial unread count
   useEffect(() => {
@@ -47,12 +58,18 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       try {
         const notification = JSON.parse(e.data);
         
-        // Only show toast if it's not a message (messages are handled in chat UI) or maybe we do want toast for messages when not in chat?
-        // Actually, the requirement asks for toast alerts: "New message from X" or "Application received"
-        toast(notification.title || "New Notification", "info");
+        // Suppress toast and badge increment if we are actively looking at the chat
+        const isCurrentlyInChat =
+          notification.type === "NEW_MESSAGE" &&
+          pathnameRef.current === `/chat/${notification.metadata?.conversationId}`;
+
+        if (!isCurrentlyInChat) {
+          toast(notification.title || "New Notification", "info");
+          setUnreadCount((prev) => prev + 1);
+        }
         
-        // Increment unread count
-        setUnreadCount((prev) => prev + 1);
+        // Expose the raw notification object so pages can update their UI instantly
+        setLatestNotification(notification);
       } catch (err) {
         console.error("Error parsing notification stream data:", err);
       }
@@ -72,7 +89,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const markAllRead = () => setUnreadCount(0);
 
   return (
-    <NotificationsContext.Provider value={{ unreadCount, decrementUnread, markAllRead }}>
+    <NotificationsContext.Provider value={{ unreadCount, decrementUnread, markAllRead, latestNotification }}>
       {children}
     </NotificationsContext.Provider>
   );

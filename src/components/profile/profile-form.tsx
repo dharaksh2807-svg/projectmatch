@@ -50,6 +50,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       portfolioUrl: initialData?.portfolioUrl || "",
       linkedinUrl: initialData?.linkedinUrl || "",
       twitterHandle: initialData?.twitterHandle || "",
+      instagramHandle: initialData?.instagramHandle || "",
+      phoneNumber: initialData?.phoneNumber || "",
     },
   });
 
@@ -213,6 +215,31 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
           placeholder="@yourhandle"
         />
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="instagramHandle" className="text-sm font-medium">
+            Instagram Handle (Optional)
+          </label>
+          <input
+            id="instagramHandle"
+            {...register("instagramHandle")}
+            className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+            placeholder="@yourhandle"
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="phoneNumber" className="text-sm font-medium">
+            Phone / WhatsApp (Optional)
+          </label>
+          <input
+            id="phoneNumber"
+            {...register("phoneNumber")}
+            className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+            placeholder="+1 234 567 890"
+          />
+        </div>
       </div>
 
       {/* Submit */}

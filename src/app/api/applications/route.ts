@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create application + owner notification in a transaction
-    const [application] = await prisma.$transaction([
+    const [application, notification] = await prisma.$transaction([
       prisma.application.create({
         data: {
           userId: session.user.id,
@@ -108,13 +108,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     // Publish to the project owner's global notification channel (SSE)
-    await publishEvent(userNotificationsChannel(role.project.ownerId), {
-      type: "APPLICATION_RECEIVED",
-      title: "New Application Received",
-      body: `Someone applied for "${role.title}" on your project "${role.project.title}".`,
-      link: `/projects/${role.project.id}`,
-      ts: Date.now(),
-    });
+    await publishEvent(userNotificationsChannel(role.project.ownerId), notification);
 
     return NextResponse.json(
       {
@@ -183,6 +177,8 @@ export async function GET(req: NextRequest) {
               portfolioUrl: true,
               linkedinUrl: true,
               twitterHandle: true,
+              instagramHandle: true,
+              phoneNumber: true,
               reputationScore: true,
             },
           },

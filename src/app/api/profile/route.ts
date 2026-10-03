@@ -14,6 +14,8 @@ const profileUpdateSchema = z.object({
   portfolioUrl: z.string().url().optional().nullable().or(z.literal("")),
   linkedinUrl: z.string().url().optional().nullable().or(z.literal("")),
   twitterHandle: z.string().max(50).trim().optional().nullable(),
+  instagramHandle: z.string().max(50).trim().optional().nullable(),
+  phoneNumber: z.string().max(30).trim().optional().nullable(),
 });
 
 /**
@@ -44,6 +46,8 @@ export async function GET() {
         portfolioUrl: true,
         linkedinUrl: true,
         twitterHandle: true,
+        instagramHandle: true,
+        phoneNumber: true,
         createdAt: true,
         connections: {
           select: {
@@ -129,6 +133,8 @@ export async function PATCH(req: NextRequest) {
         portfolioUrl: true,
         linkedinUrl: true,
         twitterHandle: true,
+        instagramHandle: true,
+        phoneNumber: true,
       },
     });
 

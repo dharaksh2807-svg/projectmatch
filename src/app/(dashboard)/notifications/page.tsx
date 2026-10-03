@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast-provider";
+import { useNotifications } from "@/components/providers/notifications-provider";
 
 interface NotificationItem {
   id: string;
@@ -41,6 +42,7 @@ const TYPE_CONFIG = {
 export default function NotificationsPage() {
   const { status: sessionStatus } = useSession();
   const { toast } = useToast();
+  const { markAllRead: globalMarkAllRead, latestNotification, decrementUnread } = useNotifications();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingRead, setMarkingRead] = useState(false);
@@ -66,6 +68,17 @@ export default function NotificationsPage() {
     }
   }, [sessionStatus]);
 
+  // Sync with global real-time notifications stream
+  useEffect(() => {
+    if (latestNotification) {
+      setNotifications((prev) => {
+        // Prevent duplicates if already present
+        if (prev.some((n) => n.id === latestNotification.id)) return prev;
+        return [latestNotification as NotificationItem, ...prev];
+      });
+    }
+  }, [latestNotification]);
+
   async function markAllAsRead() {
     setMarkingRead(true);
     try {
@@ -76,12 +89,34 @@ export default function NotificationsPage() {
       });
       if (res.ok) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        globalMarkAllRead(); // Instantly update the sidebar badge
         toast("All notifications marked as read.", "success");
       }
     } catch {
       toast("Failed to mark read.", "error");
     } finally {
       setMarkingRead(false);
+    }
+  }
+
+  async function handleNotificationClick(id: string, isRead: boolean) {
+    if (isRead) return;
+
+    // Optimistic UI update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+    decrementUnread();
+
+    // Fire-and-forget DB update
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] }),
+      });
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
     }
   }
 
@@ -186,14 +221,27 @@ export default function NotificationsPage() {
 
             if (n.link) {
               return (
-                <Link key={n.id} href={n.link} className="block group">
+                <Link 
+                  key={n.id} 
+                  href={n.link} 
+                  className="block group"
+                  onClick={() => handleNotificationClick(n.id, n.isRead)}
+                >
                   <div className="group-hover:scale-[1.01] transition-transform">
                     {content}
                   </div>
                 </Link>
               );
             }
-            return <div key={n.id}>{content}</div>;
+            return (
+              <div 
+                key={n.id} 
+                className={!n.isRead ? "cursor-pointer" : ""} 
+                onClick={() => handleNotificationClick(n.id, n.isRead)}
+              >
+                {content}
+              </div>
+            );
           })}
         </div>
       )}

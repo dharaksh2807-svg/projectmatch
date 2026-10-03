@@ -48,6 +48,8 @@ interface ReceivedApplicant {
     portfolioUrl: string | null;
     linkedinUrl: string | null;
     twitterHandle: string | null;
+    instagramHandle: string | null;
+    phoneNumber: string | null;
     reputationScore: number;
   };
   role: {
@@ -626,6 +628,36 @@ export default function ApplicationsPage() {
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                               LinkedIn
+                            </a>
+                          )}
+                          {app.user.twitterHandle && (
+                            <a
+                              href={`https://x.com/${app.user.twitterHandle.replace("@", "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                            >
+                              X (Twitter)
+                            </a>
+                          )}
+                          {app.user.instagramHandle && (
+                            <a
+                              href={`https://instagram.com/${app.user.instagramHandle.replace("@", "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                            >
+                              Instagram
+                            </a>
+                          )}
+                          {app.user.phoneNumber && (
+                            <a
+                              href={`https://wa.me/${app.user.phoneNumber.replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                            >
+                              WhatsApp
                             </a>
                           )}
                         </div>

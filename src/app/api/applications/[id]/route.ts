@@ -129,20 +129,16 @@ export async function PATCH(
   }
 
   try {
-    await prisma.$transaction(ops);
+    const results = await prisma.$transaction(ops);
+
+    // The application update is at index 0. 
+    // If we added a notification (isOwner && accepted/rejected), it will be at index 1.
+    const notificationIndex = isOwner && (status === "ACCEPTED" || status === "REJECTED") ? 1 : -1;
 
     // Publish to the applicant's global notification channel (SSE)
-    if (isOwner && (status === "ACCEPTED" || status === "REJECTED")) {
-      const accepted = status === "ACCEPTED";
-      await publishEvent(userNotificationsChannel(application.user.id), {
-        type: accepted ? "APPLICATION_ACCEPTED" : "APPLICATION_REJECTED",
-        title: accepted ? "Application Accepted! 🎉" : "Application Update",
-        body: accepted
-          ? `Your application for "${application.role.title}" on "${application.project.title}" was accepted.`
-          : `Your application for "${application.role.title}" on "${application.project.title}" was not selected.`,
-        link: `/projects/${application.project.id}`,
-        ts: Date.now(),
-      });
+    if (notificationIndex > 0) {
+      const notification = results[notificationIndex];
+      await publishEvent(userNotificationsChannel(application.user.id), notification);
     }
 
     return NextResponse.json({ success: true, status });

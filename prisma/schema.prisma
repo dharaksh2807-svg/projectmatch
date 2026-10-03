@@ -72,6 +72,8 @@ model User {
   portfolioUrl     String?
   linkedinUrl      String?
   twitterHandle    String?
+  instagramHandle  String?
+  phoneNumber      String?
 
   // Relations — NextAuth
   accounts Account[]
