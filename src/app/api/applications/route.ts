@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { checkRateLimit } from "@/lib/redis";
+import { checkRateLimit, publishEvent, userNotificationsChannel } from "@/lib/redis";
 
 const applicationSchema = z.object({
   roleId: z.string().cuid("roleId must be a valid CUID"),
@@ -106,6 +106,15 @@ export async function POST(req: NextRequest) {
         },
       }),
     ]);
+
+    // Publish to the project owner's global notification channel (SSE)
+    await publishEvent(userNotificationsChannel(role.project.ownerId), {
+      type: "APPLICATION_RECEIVED",
+      title: "New Application Received",
+      body: `Someone applied for "${role.title}" on your project "${role.project.title}".`,
+      link: `/projects/${role.project.id}`,
+      ts: Date.now(),
+    });
 
     return NextResponse.json(
       {

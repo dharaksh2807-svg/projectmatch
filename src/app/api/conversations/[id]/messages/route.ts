@@ -7,6 +7,7 @@ import {
   checkDmRateLimit,
   publishEvent,
   conversationChannel,
+  userNotificationsChannel,
 } from "@/lib/redis";
 
 type Params = Promise<{ id: string }>;
@@ -216,10 +217,19 @@ export async function POST(
       }),
     ]);
 
-    // Publish real-time event via Redis
+    // Publish real-time event via Redis (conversation-level stream)
     await publishEvent(conversationChannel(conversationId), {
       type: "NEW_MESSAGE",
       message,
+    });
+
+    // Publish to the recipient's global notification channel (SSE stream)
+    await publishEvent(userNotificationsChannel(recipientId), {
+      type: "NEW_MESSAGE",
+      title: `New message from ${session.user.name ?? "someone"}`,
+      body: content.length > 100 ? content.slice(0, 100) + "…" : content,
+      link: `/chat/${conversationId}`,
+      ts: Date.now(),
     });
 
     return NextResponse.json(message, { status: 201 });

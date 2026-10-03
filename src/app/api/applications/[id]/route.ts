@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { publishEvent, userNotificationsChannel } from "@/lib/redis";
 
 type Params = Promise<{ id: string }>;
 
@@ -129,6 +130,21 @@ export async function PATCH(
 
   try {
     await prisma.$transaction(ops);
+
+    // Publish to the applicant's global notification channel (SSE)
+    if (isOwner && (status === "ACCEPTED" || status === "REJECTED")) {
+      const accepted = status === "ACCEPTED";
+      await publishEvent(userNotificationsChannel(application.user.id), {
+        type: accepted ? "APPLICATION_ACCEPTED" : "APPLICATION_REJECTED",
+        title: accepted ? "Application Accepted! 🎉" : "Application Update",
+        body: accepted
+          ? `Your application for "${application.role.title}" on "${application.project.title}" was accepted.`
+          : `Your application for "${application.role.title}" on "${application.project.title}" was not selected.`,
+        link: `/projects/${application.project.id}`,
+        ts: Date.now(),
+      });
+    }
+
     return NextResponse.json({ success: true, status });
   } catch (err) {
     console.error("PATCH /api/applications/[id] failed:", err);

@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useNotifications } from "@/components/providers/notifications-provider";
 
 const navItems = [
   { href: "/discover", icon: Sparkles, label: "Discover" },
@@ -37,6 +38,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
   const navigationList = (onNavigate?: () => void) => (
     <nav className="flex-1 p-4 space-y-1 overflow-y-auto" aria-label="Site navigation">
@@ -81,11 +83,26 @@ export function Sidebar() {
       <Link
         href="/notifications"
         onClick={() => setMobileOpen(false)}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-accent transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-accent transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         aria-label="View Notifications"
       >
-        <Bell className="w-4 h-4" aria-hidden="true" />
-        <span>Notifications</span>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Bell className="w-4 h-4" aria-hidden="true" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive"></span>
+              </span>
+            )}
+          </div>
+          <span>Notifications</span>
+        </div>
+        {unreadCount > 0 && (
+          <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
       </Link>
 
       {status === "loading" ? (

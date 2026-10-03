@@ -186,3 +186,12 @@ export async function publishEvent(
 export function conversationChannel(conversationId: string): string {
   return `dm:conversation:${conversationId}`;
 }
+
+/**
+ * Build the Redis channel name for a user's global notification stream.
+ * Used by the SSE endpoint at /api/notifications/stream to push
+ * real-time notification events (new messages, applications, etc.).
+ */
+export function userNotificationsChannel(userId: string): string {
+  return `user:notifications:${userId}`;
+}

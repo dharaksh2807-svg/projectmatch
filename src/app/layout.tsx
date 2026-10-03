@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { ToastProvider } from "@/components/ui/toast-provider";
+import { NotificationsProvider } from "@/components/providers/notifications-provider";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -56,7 +57,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <NotificationsProvider>{children}</NotificationsProvider>
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
