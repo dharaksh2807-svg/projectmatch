@@ -99,7 +99,7 @@ export default function ChatPage() {
               )}
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              Direct / Team Chat (WhatsApp)
+              Direct / Team Chat
             </button>
             <button
               onClick={() => setChatTab("agent")}
@@ -117,7 +117,7 @@ export default function ChatPage() {
         </div>
 
         <span className="text-[11px] text-zinc-500 hidden sm:inline">
-          {chatTab === "direct" ? "WhatsApp Split-Pane • Live Redis SSE" : "LLM Multi-Agent Sandbox"}
+          {chatTab === "direct" ? "Direct Chat Split-Pane • Live Redis SSE" : "LLM Multi-Agent Sandbox"}
         </span>
       </div>
 

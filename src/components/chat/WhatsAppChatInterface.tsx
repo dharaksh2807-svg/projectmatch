@@ -390,7 +390,7 @@ export function WhatsAppChatInterface({ initialConversationId }: Props) {
               <h2 className="font-semibold text-sm tracking-tight text-white flex items-center gap-1.5">
                 Chats
                 <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">
-                  WhatsApp Mode
+                  Direct Mode
                 </span>
               </h2>
             </div>

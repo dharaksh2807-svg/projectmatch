@@ -681,7 +681,7 @@ export default function ApplicationsPage() {
                             ) : (
                               <MessageSquare className="w-3.5 h-3.5" />
                             )}
-                            Chat in WhatsApp
+                            Chat
                           </Button>
 
                           {/* Decision Buttons (If Pending) */}
