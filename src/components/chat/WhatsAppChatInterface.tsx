@@ -84,6 +84,7 @@ export function WhatsAppChatInterface({ initialConversationId }: Props) {
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [newChatUserId, setNewChatUserId] = useState("");
   const [startingChat, setStartingChat] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -572,6 +573,26 @@ export function WhatsAppChatInterface({ initialConversationId }: Props) {
 
               {/* Context Actions */}
               <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center bg-zinc-800/80 rounded-full border border-zinc-700/60 p-0.5 pr-1">
+                  <Input 
+                    placeholder="Enter WA number" 
+                    value={whatsappNumber} 
+                    onChange={(e) => setWhatsappNumber(e.target.value)} 
+                    className="h-7 w-32 border-0 bg-transparent text-xs text-white focus-visible:ring-0 placeholder:text-zinc-500" 
+                  />
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-6 px-2 text-emerald-400 hover:text-emerald-300 hover:bg-zinc-700 rounded-full text-[10px]"
+                    onClick={() => {
+                      if (whatsappNumber.trim()) {
+                        window.open(`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}`, "_blank");
+                      }
+                    }}
+                  >
+                    Open WA
+                  </Button>
+                </div>
                 {activeConversation.project && (
                   <Link
                     href={`/projects/${activeConversation.project.id}`}
