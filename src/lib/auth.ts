@@ -59,6 +59,7 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  secret: process.env.NEXTAUTH_SECRET || "fallback_secret_for_demo_only",
   session: {
     strategy: "jwt",
   },
