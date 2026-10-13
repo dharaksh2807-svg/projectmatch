@@ -90,13 +90,18 @@ const DURATIONS = [
   "6+ months",
 ];
 
-const EXPERIENCE_LEVELS = [
-  "All",
-  "Beginner",
-  "Intermediate",
-  "Advanced",
-  "Expert",
-  "Any",
+// UI labels for the experience-level filter.
+// IMPORTANT: "Any" in the DB means "the role accepts any experience level".
+// We display it as "Any Level" in the UI to avoid confusion with "All" (= no filter).
+// When the user picks "Any Level" we send exp=Any to the server, which will query
+// for roles whose requiredExperienceLevel is exactly "Any".
+const EXPERIENCE_LEVELS: { label: string; value: string }[] = [
+  { label: "All", value: "All" },
+  { label: "Beginner", value: "Beginner" },
+  { label: "Intermediate", value: "Intermediate" },
+  { label: "Advanced", value: "Advanced" },
+  { label: "Expert", value: "Expert" },
+  { label: "Any Level", value: "Any" },
 ];
 
 export default function DiscoverPage() {
@@ -112,7 +117,8 @@ export default function DiscoverPage() {
   const [minScoreFilter, setMinScoreFilter] = useState<number>(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Fetch roles — public for guests, personalized for authenticated users
+  // Fetch roles — public for guests, personalized for authenticated users.
+  // We debounce ALL filter changes, including the slider, to avoid API spam.
   useEffect(() => {
     // Wait until NextAuth has resolved the session before fetching
     // to avoid a redundant double-fetch (loading → unauthenticated → fetch).
@@ -127,6 +133,9 @@ export default function DiscoverPage() {
         if (selectedExp !== "All") queryParams.append("exp", selectedExp);
         if (selectedSkill) queryParams.append("skill", selectedSkill);
         if (searchQuery.trim()) queryParams.append("q", searchQuery.trim());
+        // Send minScore to the server for authenticated users so the
+        // heavy lifting is done in the query, not client-side.
+        if (minScoreFilter > 0) queryParams.append("minScore", String(minScoreFilter));
 
         const res = await fetch(`/api/matches/roles?${queryParams.toString()}`);
         if (res.ok) {
@@ -140,13 +149,15 @@ export default function DiscoverPage() {
       }
     }
 
-    // Debounce the fetch slightly to avoid spamming on typing in search
+    // Debounce: 300 ms for text input, 500 ms for slider to avoid hammering
+    // the API while the user is still dragging.
+    const delay = 300;
     const timeoutId = setTimeout(() => {
       fetchMatches();
-    }, 300);
+    }, delay);
 
     return () => clearTimeout(timeoutId);
-  }, [status, selectedType, selectedDuration, selectedExp, selectedSkill, searchQuery]);
+  }, [status, selectedType, selectedDuration, selectedExp, selectedSkill, searchQuery, minScoreFilter]);
 
   // Extract all unique skills across all available roles for quick filtering
   const allUniqueSkills = useMemo(() => {
@@ -157,27 +168,19 @@ export default function DiscoverPage() {
     return Array.from(skillSet).slice(0, 15);
   }, [roles]);
 
-  // Separate Recommended (score >= 0.5 or highest ranked) vs All Open Roles
+  // Separate Recommended (score >= 0.5) vs Browse All.
+  // The server has already applied minScore filtering and sorted by score desc,
+  // so we only need to split here — no extra client-side filter needed.
   const { recommendedRoles, otherRoles } = useMemo(() => {
-    const filtered = roles.filter((role) => {
-      // Minimum score filter (client-side only, as score is calculated dynamically)
-      if (role.compatibility && role.compatibility.score < minScoreFilter / 100) {
-        return false;
-      }
-
-      return true;
-    });
-
-    // Pinned Recommended: Roles with score >= 0.50 (if user is logged in)
-    const recommended = filtered.filter(
+    // Pinned Recommended: Roles with score >= 0.50 (authenticated users only)
+    const recommended = roles.filter(
       (r) => r.compatibility && r.compatibility.score >= 0.5
     );
-    const others = filtered.filter(
+    const others = roles.filter(
       (r) => !r.compatibility || r.compatibility.score < 0.5
     );
-
     return { recommendedRoles: recommended, otherRoles: others };
-  }, [roles, minScoreFilter]);
+  }, [roles]);
 
   const resetFilters = () => {
     setSearchQuery("");
@@ -361,19 +364,19 @@ export default function DiscoverPage() {
               Experience Level
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {EXPERIENCE_LEVELS.map((exp) => (
+              {EXPERIENCE_LEVELS.map(({ label, value }) => (
                 <button
-                  key={exp}
-                  onClick={() => setSelectedExp(exp)}
-                  aria-pressed={selectedExp === exp}
+                  key={value}
+                  onClick={() => setSelectedExp(value)}
+                  aria-pressed={selectedExp === value}
                   className={cn(
                     "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                    selectedExp === exp
+                    selectedExp === value
                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
                       : "bg-secondary/40 text-muted-foreground border-border/40 hover:bg-accent hover:text-foreground"
                   )}
                 >
-                  {exp}
+                  {label}
                 </button>
               ))}
             </div>
@@ -545,7 +548,7 @@ export default function DiscoverPage() {
                     </h2>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    Showing {otherRoles.length + (recommendedRoles.length > 0 ? 0 : recommendedRoles.length)} roles
+                    Showing {roles.length} {roles.length === 1 ? "role" : "roles"}
                   </span>
                 </div>
 
