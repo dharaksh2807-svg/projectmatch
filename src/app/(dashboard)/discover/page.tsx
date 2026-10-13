@@ -137,6 +137,7 @@ export default function DiscoverPage() {
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [userHasSkills, setUserHasSkills] = useState<boolean | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,6 +208,10 @@ export default function DiscoverPage() {
           setNextCursor(data.nextCursor || null);
           setHasMore(Boolean(data.hasMore));
           setTotalCount(data.totalAvailable ?? fetchedResults.length);
+
+          if (typeof data.userHasSkills === "boolean") {
+            setUserHasSkills(data.userHasSkills);
+          }
 
           if (data.allUniqueTechs && data.allUniqueTechs.length > 0) {
             setAvailableTechs(data.allUniqueTechs);
@@ -837,6 +842,28 @@ export default function DiscoverPage() {
                   <Link href="/login">
                     <Button size="sm" className="brand-gradient text-white shadow-sm flex-shrink-0">
                       Sign In
+                    </Button>
+                  </Link>
+                </div>
+              )}
+
+              {/* User missing skills profile banner */}
+              {!isGuest && userHasSkills === false && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-foreground">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 flex-shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-300">Unlock Personalized Match Scores</p>
+                      <p className="text-xs text-muted-foreground">
+                        You haven&apos;t added any skills to your profile yet. Add your skills to compute real compatibility scores.
+                      </p>
+                    </div>
+                  </div>
+                  <Link href="/profile">
+                    <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-300 hover:bg-amber-500/20 flex-shrink-0">
+                      Add Skills in Profile →
                     </Button>
                   </Link>
                 </div>
