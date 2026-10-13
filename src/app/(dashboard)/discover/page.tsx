@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -19,6 +19,11 @@ import {
   SlidersHorizontal,
   Loader2,
   Send,
+  Heart,
+  Eye,
+  Code2,
+  ArrowUpDown,
+  ChevronDown,
 } from "lucide-react";
 import {
   Card,
@@ -37,21 +42,35 @@ import { cn } from "@/lib/utils";
 import { ReputationBadge } from "@/components/ratings/reputation-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface MatchedRole {
   id: string;
   title: string;
+  description?: string | null;
   requiredSkills: string[];
   requiredExperienceLevel: string;
   timeCommitment: string;
   headcount: number;
   filledCount: number;
+  openSpots: number;
+  isApplied?: boolean;
+  isBookmarked?: boolean;
   project: {
     id: string;
     title: string;
     description: string;
     projectType: string;
     duration: string;
+    techStack: string[];
     ownerId: string;
     owner: {
       name: string | null;
@@ -90,11 +109,6 @@ const DURATIONS = [
   "6+ months",
 ];
 
-// UI labels for the experience-level filter.
-// IMPORTANT: "Any" in the DB means "the role accepts any experience level".
-// We display it as "Any Level" in the UI to avoid confusion with "All" (= no filter).
-// When the user picks "Any Level" we send exp=Any to the server, which will query
-// for roles whose requiredExperienceLevel is exactly "Any".
 const EXPERIENCE_LEVELS: { label: string; value: string }[] = [
   { label: "All", value: "All" },
   { label: "Beginner", value: "Beginner" },
@@ -104,62 +118,150 @@ const EXPERIENCE_LEVELS: { label: string; value: string }[] = [
   { label: "Any Level", value: "Any" },
 ];
 
+const SORT_OPTIONS = [
+  { label: "Best Match", value: "match" },
+  { label: "Newest First", value: "newest" },
+  { label: "Most Spots Open", value: "spots" },
+  { label: "Role Title (A-Z)", value: "title" },
+];
+
 export default function DiscoverPage() {
   const { data: session, status } = useSession();
   const currentUserId = (session?.user as { id?: string })?.id;
+  const isGuest = status === "unauthenticated";
+  const { toast } = useToast();
+
   const [roles, setRoles] = useState<MatchedRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState<number>(0);
+
+  // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("All");
   const [selectedDuration, setSelectedDuration] = useState("All");
   const [selectedExp, setSelectedExp] = useState("All");
   const [selectedSkill, setSelectedSkill] = useState("");
+  const [selectedTech, setSelectedTech] = useState("");
   const [minScoreFilter, setMinScoreFilter] = useState<number>(0);
+  const [openOnly, setOpenOnly] = useState(false);
+  const [hideApplied, setHideApplied] = useState(false);
+  const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
+  const [sortBy, setSortBy] = useState("match");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Fetch roles — public for guests, personalized for authenticated users.
-  // We debounce ALL filter changes, including the slider, to avoid API spam.
-  useEffect(() => {
-    // Wait until NextAuth has resolved the session before fetching
-    // to avoid a redundant double-fetch (loading → unauthenticated → fetch).
-    if (status === "loading") return;
+  // Available tech stack dynamic tags from backend
+  const [availableTechs, setAvailableTechs] = useState<string[]>([]);
 
-    async function fetchMatches() {
-      setLoading(true);
+  // Preview Modal State
+  const [previewRole, setPreviewRole] = useState<MatchedRole | null>(null);
+
+  // Set default sort for guests
+  useEffect(() => {
+    if (isGuest && sortBy === "match") {
+      setSortBy("newest");
+    }
+  }, [isGuest, sortBy]);
+
+  // Main Fetch function
+  const fetchRoles = useCallback(
+    async (isLoadMore = false, cursorToUse?: string | null) => {
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
       try {
         const queryParams = new URLSearchParams();
         if (selectedType !== "All") queryParams.append("type", selectedType);
         if (selectedDuration !== "All") queryParams.append("duration", selectedDuration);
         if (selectedExp !== "All") queryParams.append("exp", selectedExp);
         if (selectedSkill) queryParams.append("skill", selectedSkill);
+        if (selectedTech) queryParams.append("tech", selectedTech);
         if (searchQuery.trim()) queryParams.append("q", searchQuery.trim());
-        // Send minScore to the server for authenticated users so the
-        // heavy lifting is done in the query, not client-side.
         if (minScoreFilter > 0) queryParams.append("minScore", String(minScoreFilter));
+        if (openOnly) queryParams.append("openOnly", "true");
+        if (hideApplied) queryParams.append("hideApplied", "true");
+        if (bookmarkedOnly) queryParams.append("bookmarkedOnly", "true");
+        if (sortBy) queryParams.append("sort", sortBy);
+        queryParams.append("limit", "12");
+
+        if (isLoadMore && cursorToUse) {
+          queryParams.append("cursor", cursorToUse);
+        }
 
         const res = await fetch(`/api/matches/roles?${queryParams.toString()}`);
         if (res.ok) {
           const data = await res.json();
-          setRoles(data.results || []);
+          const fetchedResults: MatchedRole[] = data.results || [];
+
+          if (isLoadMore) {
+            setRoles((prev) => [...prev, ...fetchedResults]);
+          } else {
+            setRoles(fetchedResults);
+          }
+
+          setNextCursor(data.nextCursor || null);
+          setHasMore(Boolean(data.hasMore));
+          setTotalCount(data.totalAvailable ?? fetchedResults.length);
+
+          if (data.allUniqueTechs && data.allUniqueTechs.length > 0) {
+            setAvailableTechs(data.allUniqueTechs);
+          }
         }
       } catch (err) {
         console.error("Failed to load matching roles:", err);
+        toast("Failed to load roles. Please check your connection.", "error");
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
-    }
+    },
+    [
+      selectedType,
+      selectedDuration,
+      selectedExp,
+      selectedSkill,
+      selectedTech,
+      searchQuery,
+      minScoreFilter,
+      openOnly,
+      hideApplied,
+      bookmarkedOnly,
+      sortBy,
+      toast,
+    ]
+  );
 
-    // Debounce: 300 ms for text input, 500 ms for slider to avoid hammering
-    // the API while the user is still dragging.
-    const delay = 300;
+  // Trigger fetch with debounce when query filters change
+  useEffect(() => {
+    if (status === "loading") return;
+
     const timeoutId = setTimeout(() => {
-      fetchMatches();
-    }, delay);
+      fetchRoles(false);
+    }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [status, selectedType, selectedDuration, selectedExp, selectedSkill, searchQuery, minScoreFilter]);
+  }, [
+    status,
+    selectedType,
+    selectedDuration,
+    selectedExp,
+    selectedSkill,
+    selectedTech,
+    searchQuery,
+    minScoreFilter,
+    openOnly,
+    hideApplied,
+    bookmarkedOnly,
+    sortBy,
+    fetchRoles,
+  ]);
 
-  // Extract all unique skills across all available roles for quick filtering
+  // Extract all unique skills across loaded roles for quick pills
   const allUniqueSkills = useMemo(() => {
     const skillSet = new Set<string>();
     roles.forEach((r) => {
@@ -168,19 +270,20 @@ export default function DiscoverPage() {
     return Array.from(skillSet).slice(0, 15);
   }, [roles]);
 
-  // Separate Recommended (score >= 0.5) vs Browse All.
-  // The server has already applied minScore filtering and sorted by score desc,
-  // so we only need to split here — no extra client-side filter needed.
+  // Separate Recommended (score >= 0.5) vs All Open Roles
   const { recommendedRoles, otherRoles } = useMemo(() => {
-    // Pinned Recommended: Roles with score >= 0.50 (authenticated users only)
-    const recommended = roles.filter(
-      (r) => r.compatibility && r.compatibility.score >= 0.5
-    );
-    const others = roles.filter(
-      (r) => !r.compatibility || r.compatibility.score < 0.5
-    );
-    return { recommendedRoles: recommended, otherRoles: others };
-  }, [roles]);
+    // When sorting by match, show recommended block if authed
+    if (sortBy === "match" && !isGuest) {
+      const recommended = roles.filter(
+        (r) => r.compatibility && r.compatibility.score >= 0.5
+      );
+      const others = roles.filter(
+        (r) => !r.compatibility || r.compatibility.score < 0.5
+      );
+      return { recommendedRoles: recommended, otherRoles: others };
+    }
+    return { recommendedRoles: [], otherRoles: roles };
+  }, [roles, sortBy, isGuest]);
 
   const resetFilters = () => {
     setSearchQuery("");
@@ -188,7 +291,12 @@ export default function DiscoverPage() {
     setSelectedDuration("All");
     setSelectedExp("All");
     setSelectedSkill("");
+    setSelectedTech("");
     setMinScoreFilter(0);
+    setOpenOnly(false);
+    setHideApplied(false);
+    setBookmarkedOnly(false);
+    setSortBy(isGuest ? "newest" : "match");
   };
 
   const getScoreColor = (score: number) => {
@@ -203,8 +311,63 @@ export default function DiscoverPage() {
     return `${percent}% Match`;
   };
 
-  // Show a full-page skeleton while NextAuth resolves session
-  // This eliminates the flash of content before we know auth state
+  // Toggle bookmark handler passed to cards
+  const handleToggleBookmark = async (roleId: string, currentBookmarked: boolean) => {
+    if (!currentUserId) {
+      toast("Please sign in to save roles to your bookmarks.", "info");
+      return;
+    }
+
+    // Optimistic UI update
+    setRoles((prev) =>
+      prev.map((r) =>
+        r.id === roleId ? { ...r, isBookmarked: !currentBookmarked } : r
+      )
+    );
+
+    try {
+      const res = await fetch("/api/bookmarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roleId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        toast(
+          data.bookmarked
+            ? "Role saved to bookmarks!"
+            : "Role removed from bookmarks.",
+          "success"
+        );
+      } else {
+        // Revert on failure
+        setRoles((prev) =>
+          prev.map((r) =>
+            r.id === roleId ? { ...r, isBookmarked: currentBookmarked } : r
+          )
+        );
+        toast("Failed to update bookmark.", "error");
+      }
+    } catch {
+      setRoles((prev) =>
+        prev.map((r) =>
+          r.id === roleId ? { ...r, isBookmarked: currentBookmarked } : r
+        )
+      );
+      toast("Network error. Please try again.", "error");
+    }
+  };
+
+  // Update application status locally when user applies
+  const handleRoleApplied = (roleId: string) => {
+    setRoles((prev) =>
+      prev.map((r) =>
+        r.id === roleId ? { ...r, isApplied: true } : r
+      )
+    );
+  };
+
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-background p-4 md:p-8 space-y-8 animate-pulse">
@@ -222,8 +385,6 @@ export default function DiscoverPage() {
     );
   }
 
-  const isGuest = status === "unauthenticated";
-
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 space-y-8 animate-fade-in">
       {/* Header */}
@@ -236,32 +397,50 @@ export default function DiscoverPage() {
           <h1 className="text-3xl font-bold tracking-tight">Discover Opportunities</h1>
           <p className="text-muted-foreground text-sm mt-1">
             {isGuest
-              ? "Browse open team roles. Sign in to see your personalised match scores."
+              ? "Browse open team roles. Sign in to see your personalised match scores and save opportunities."
               : "Browse open team roles scored and matched against your skills, interests, and availability."}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Quick Bookmark View toggle if logged in */}
+          {!isGuest && (
+            <Button
+              variant={bookmarkedOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setBookmarkedOnly(!bookmarkedOnly)}
+              className="flex items-center gap-1.5"
+            >
+              <Heart
+                className={cn(
+                  "w-4 h-4",
+                  bookmarkedOnly ? "fill-current text-rose-300" : "text-muted-foreground"
+                )}
+              />
+              <span>{bookmarkedOnly ? "Saved Only" : "Bookmarks"}</span>
+            </Button>
+          )}
+
           <Button
             variant="outline"
             size="sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="md:hidden flex items-center gap-2"
+            className="lg:hidden flex items-center gap-2"
             aria-label="Toggle filter sidebar"
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
           </Button>
-          {/* Guard: redirect guests to login instead of /projects/new */}
+
           {isGuest ? (
             <Link href="/login" tabIndex={-1}>
-              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2">
+              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm">
                 Sign In to Post
               </Button>
             </Link>
           ) : (
             <Link href="/projects/new" tabIndex={-1}>
-              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2">
+              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm">
                 Post a Project
               </Button>
             </Link>
@@ -310,8 +489,45 @@ export default function DiscoverPage() {
             </div>
           </div>
 
+          {/* Quick Availability Toggles */}
+          <div className="space-y-2.5 pt-2 border-t border-border/40">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block">
+              Preferences
+            </label>
+
+            {/* Spots Available Toggle */}
+            <label className="flex items-center justify-between text-xs cursor-pointer select-none py-1 hover:text-primary transition-colors">
+              <span className="font-medium text-foreground/80 flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-primary" />
+                Spots Available Only
+              </span>
+              <input
+                type="checkbox"
+                checked={openOnly}
+                onChange={(e) => setOpenOnly(e.target.checked)}
+                className="w-4 h-4 rounded text-primary border-border focus:ring-primary"
+              />
+            </label>
+
+            {/* Hide Applied Roles Toggle (Authed users) */}
+            {!isGuest && (
+              <label className="flex items-center justify-between text-xs cursor-pointer select-none py-1 hover:text-primary transition-colors">
+                <span className="font-medium text-foreground/80 flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  Hide Applied Roles
+                </span>
+                <input
+                  type="checkbox"
+                  checked={hideApplied}
+                  onChange={(e) => setHideApplied(e.target.checked)}
+                  className="w-4 h-4 rounded text-primary border-border focus:ring-primary"
+                />
+              </label>
+            )}
+          </div>
+
           {/* Project Type Filter */}
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2 border-t border-border/40">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Project Type
             </label>
@@ -334,8 +550,45 @@ export default function DiscoverPage() {
             </div>
           </div>
 
+          {/* Tech Stack Filter (New Feature) */}
+          {availableTechs.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-border/40">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Code2 className="w-3.5 h-3.5 text-primary" />
+                  Tech Stack
+                </label>
+                {selectedTech && (
+                  <button
+                    onClick={() => setSelectedTech("")}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                {availableTechs.map((tech) => (
+                  <button
+                    key={tech}
+                    onClick={() => setSelectedTech(selectedTech === tech ? "" : tech)}
+                    aria-pressed={selectedTech === tech}
+                    className={cn(
+                      "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                      selectedTech === tech
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                        : "bg-secondary/40 text-muted-foreground border-border/40 hover:bg-accent hover:text-foreground"
+                    )}
+                  >
+                    {tech}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Duration Filter */}
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2 border-t border-border/40">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Project Duration
             </label>
@@ -359,7 +612,7 @@ export default function DiscoverPage() {
           </div>
 
           {/* Experience Level Filter */}
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2 border-t border-border/40">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Experience Level
             </label>
@@ -384,10 +637,20 @@ export default function DiscoverPage() {
 
           {/* Popular Skills Filter */}
           {allUniqueSkills.length > 0 && (
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Filter by Skill
-              </label>
+            <div className="space-y-2 pt-2 border-t border-border/40">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Filter by Skill
+                </label>
+                {selectedSkill && (
+                  <button
+                    onClick={() => setSelectedSkill("")}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {allUniqueSkills.map((skill) => (
                   <button
@@ -409,7 +672,7 @@ export default function DiscoverPage() {
           )}
 
           {/* Minimum Compatibility Threshold (if logged in) */}
-          {session?.user && (
+          {!isGuest && (
             <div className="space-y-2 pt-2 border-t border-border/40">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-medium text-muted-foreground uppercase tracking-wider">
@@ -432,7 +695,53 @@ export default function DiscoverPage() {
         </aside>
 
         {/* Main Content Area */}
-        <div className="lg:col-span-3 space-y-10">
+        <div className="lg:col-span-3 space-y-6">
+          {/* Top Control Bar: Sort Options & Results Count */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card/40 backdrop-blur-sm p-4 rounded-xl border border-border/50">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold">
+                {bookmarkedOnly
+                  ? `Saved Roles (${totalCount})`
+                  : `All Roles (${totalCount})`}
+              </span>
+              {openOnly && (
+                <Badge variant="secondary" className="text-[11px] bg-primary/10 text-primary">
+                  Spots Open Only
+                </Badge>
+              )}
+              {selectedTech && (
+                <Badge variant="outline" className="text-[11px]">
+                  Tech: {selectedTech}
+                </Badge>
+              )}
+            </div>
+
+            {/* Sort Control Dropdown */}
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Sort by:</span>
+              <div className="flex flex-wrap gap-1">
+                {SORT_OPTIONS.map((opt) => {
+                  if (opt.value === "match" && isGuest) return null;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setSortBy(opt.value)}
+                      className={cn(
+                        "text-xs px-2.5 py-1 rounded-md font-medium transition-all",
+                        sortBy === opt.value
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* Loading Skeleton */}
           {loading && (
             <div className="space-y-6">
@@ -462,18 +771,12 @@ export default function DiscoverPage() {
           {!loading && roles.length === 0 && (
             <EmptyState
               icon={<Layers />}
-              title="No Open Roles Found"
-              description="There are currently no open project roles in the database. Be the first to create one and start matching!"
-              actionLabel="Post a New Project"
-              actionHref="/projects/new"
-            />
-          )}
-
-          {!loading && roles.length > 0 && recommendedRoles.length === 0 && otherRoles.length === 0 && (
-            <EmptyState
-              icon={<Search />}
-              title="No Matching Roles"
-              description="No open roles matched your search query and filter criteria. Try adjusting or resetting your filters."
+              title={bookmarkedOnly ? "No Saved Roles" : "No Matching Roles"}
+              description={
+                bookmarkedOnly
+                  ? "You haven't bookmarked any project roles yet. Click the heart icon on any role card to save it!"
+                  : "No open roles matched your selected filters or search query. Try resetting or relaxing your filters."
+              }
               actionLabel="Reset All Filters"
               onAction={resetFilters}
             />
@@ -481,9 +784,8 @@ export default function DiscoverPage() {
 
           {!loading && roles.length > 0 && (
             <>
-              {/* SECTION 1: "Recommended for You" — only shown to authenticated users.
-                  Guests see a banner prompting them to sign in instead. */}
-              {!isGuest && recommendedRoles.length > 0 && (
+              {/* SECTION 1: "Recommended for You" (when sorting by match & authed) */}
+              {recommendedRoles.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -493,7 +795,7 @@ export default function DiscoverPage() {
                       <div>
                         <h2 className="text-xl font-bold tracking-tight">Recommended for You</h2>
                         <p className="text-xs text-muted-foreground">
-                          Roles with highest compatibility based on your skills & preferences
+                          Highest compatibility based on your skills & profile preferences
                         </p>
                       </div>
                     </div>
@@ -502,7 +804,6 @@ export default function DiscoverPage() {
                     </Badge>
                   </div>
 
-                  {/* Recommended Roles Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {recommendedRoles.map((role) => (
                       <ProjectRoleCard
@@ -512,13 +813,16 @@ export default function DiscoverPage() {
                         scoreColor={getScoreColor(role.compatibility?.score || 0)}
                         scoreText={getScoreBadgeText(role.compatibility?.score || 0)}
                         currentUserId={currentUserId}
+                        onToggleBookmark={handleToggleBookmark}
+                        onPreviewRole={(r) => setPreviewRole(r)}
+                        onApplied={handleRoleApplied}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Guest sign-in prompt banner */}
+              {/* Guest banner */}
               {isGuest && (
                 <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/20">
                   <div className="flex items-center gap-3">
@@ -527,7 +831,7 @@ export default function DiscoverPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold">See your personalised match scores</p>
-                      <p className="text-xs text-muted-foreground">Sign in to unlock AI-powered role recommendations.</p>
+                      <p className="text-xs text-muted-foreground">Sign in to unlock AI-powered recommendations & save roles.</p>
                     </div>
                   </div>
                   <Link href="/login">
@@ -539,42 +843,22 @@ export default function DiscoverPage() {
               )}
 
               {/* SECTION 2: All Explore Roles */}
-              <div className="space-y-4 pt-4">
+              <div className="space-y-4 pt-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Layers className="w-5 h-5 text-primary" />
                     <h2 className="text-xl font-bold tracking-tight">
-                      {recommendedRoles.length > 0 ? "All Open Opportunities" : "Browse Projects"}
+                      {recommendedRoles.length > 0 ? "Other Opportunities" : "Browse Projects"}
                     </h2>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    Showing {roles.length} {roles.length === 1 ? "role" : "roles"}
+                    Showing {otherRoles.length} of {totalCount} roles
                   </span>
                 </div>
 
-                {/* If recommended was shown, show otherRoles here. If no recommended, show all filtered */}
-                {recommendedRoles.length > 0 ? (
-                  otherRoles.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {otherRoles.map((role) => (
-                        <ProjectRoleCard
-                          key={role.id}
-                          role={role}
-                          isRecommended={false}
-                          scoreColor={getScoreColor(role.compatibility?.score || 0)}
-                          scoreText={getScoreBadgeText(role.compatibility?.score || 0)}
-                          currentUserId={currentUserId}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground py-6 text-center">
-                      All matching open roles are listed in your recommendations above!
-                    </p>
-                  )
-                ) : (
+                {otherRoles.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {roles.map((role) => (
+                    {otherRoles.map((role) => (
                       <ProjectRoleCard
                         key={role.id}
                         role={role}
@@ -582,15 +866,166 @@ export default function DiscoverPage() {
                         scoreColor={getScoreColor(role.compatibility?.score || 0)}
                         scoreText={getScoreBadgeText(role.compatibility?.score || 0)}
                         currentUserId={currentUserId}
+                        onToggleBookmark={handleToggleBookmark}
+                        onPreviewRole={(r) => setPreviewRole(r)}
+                        onApplied={handleRoleApplied}
                       />
                     ))}
                   </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground py-6 text-center">
+                    All matching open roles are listed in your recommendations above!
+                  </p>
                 )}
               </div>
+
+              {/* Infinite Scroll / Load More Button */}
+              {hasMore && (
+                <div className="flex justify-center pt-8 pb-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => fetchRoles(true, nextCursor)}
+                    disabled={loadingMore}
+                    className="gap-2 px-6 shadow-sm border-border/80"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Loading more roles...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4" />
+                        <span>Load More Opportunities</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {/* Role Description & Details Quick-Preview Modal */}
+      {previewRole && (
+        <Dialog open={Boolean(previewRole)} onOpenChange={(open) => !open && setPreviewRole(null)}>
+          <DialogContent className="max-w-lg bg-card/95 backdrop-blur-md border-border/80 p-6 space-y-4">
+            <DialogHeader className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs uppercase font-semibold">
+                  {previewRole.project.projectType}
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  <Clock className="w-3 h-3 mr-1 inline" />
+                  {previewRole.project.duration}
+                </Badge>
+                {previewRole.compatibility && previewRole.compatibility.score > 0 && (
+                  <Badge className={cn("text-xs font-bold ml-auto", getScoreColor(previewRole.compatibility.score))}>
+                    <Zap className="w-3 h-3 mr-1 inline fill-current" />
+                    {Math.round(previewRole.compatibility.score * 100)}% Match
+                  </Badge>
+                )}
+              </div>
+              <DialogTitle className="text-lg font-bold text-foreground">
+                {previewRole.title}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Part of project:{" "}
+                <Link
+                  href={`/projects/${previewRole.project.id}`}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  {previewRole.project.title}
+                </Link>
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-sm">
+              {/* Role Description */}
+              {previewRole.description ? (
+                <div className="space-y-1 bg-secondary/30 p-3 rounded-xl border border-border/40">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+                    Role Responsibilities
+                  </span>
+                  <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                    {previewRole.description}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  No specific role description provided. Refer to the project overview.
+                </p>
+              )}
+
+              {/* Project Description snippet */}
+              <div className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+                  Project Overview
+                </span>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {previewRole.project.description.replace(/<[^>]*>?/gm, "")}
+                </p>
+              </div>
+
+              {/* Required Skills */}
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+                  Required Skills
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {previewRole.requiredSkills.map((s) => (
+                    <Badge key={s} variant="secondary" className="text-xs">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tech Stack */}
+              {previewRole.project.techStack && previewRole.project.techStack.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+                    Project Tech Stack
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {previewRole.project.techStack.map((tech) => (
+                      <Badge key={tech} variant="outline" className="text-xs bg-secondary/20">
+                        {tech}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Headcount, Commitment, Experience */}
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40 text-xs">
+                <div>
+                  <span className="text-muted-foreground block">Spots Open</span>
+                  <span className="font-semibold">{previewRole.openSpots} / {previewRole.headcount}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Commitment</span>
+                  <span className="font-semibold">{previewRole.timeCommitment}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Experience</span>
+                  <span className="font-semibold">{previewRole.requiredExperienceLevel}</span>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2 flex justify-between gap-2 sm:justify-between">
+              <Link href={`/projects/${previewRole.project.id}`}>
+                <Button size="sm" variant="outline" className="text-xs">
+                  View Full Project
+                </Button>
+              </Link>
+              <DialogClose render={<Button size="sm" variant="secondary" className="text-xs">Close</Button>} />
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -602,20 +1037,25 @@ function ProjectRoleCard({
   scoreColor,
   scoreText,
   currentUserId,
+  onToggleBookmark,
+  onPreviewRole,
+  onApplied,
 }: {
   role: MatchedRole;
   isRecommended: boolean;
   scoreColor: string;
   scoreText: string;
   currentUserId?: string;
+  onToggleBookmark: (roleId: string, current: boolean) => void;
+  onPreviewRole: (role: MatchedRole) => void;
+  onApplied: (roleId: string) => void;
 }) {
   const { toast } = useToast();
+  const router = useRouter();
   const [applying, setApplying] = useState(false);
-  const [applied, setApplied] = useState(false);
+  const [applied, setApplied] = useState(Boolean(role.isApplied));
   const isOwner = currentUserId === role.project.ownerId;
-  const openSpots = role.headcount - role.filledCount;
-
-  const router = useRouter(); // We need to import this at the top of the file
+  const openSpots = role.openSpots ?? Math.max(role.headcount - role.filledCount, 0);
 
   async function handleApply() {
     if (!currentUserId) {
@@ -623,10 +1063,9 @@ function ProjectRoleCard({
       router.push("/login");
       return;
     }
-    
+
     setApplying(true);
     try {
-      // BUGFIX: was missing method: "POST", defaulting to GET and always failing
       const res = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -635,9 +1074,11 @@ function ProjectRoleCard({
       const data = await res.json();
       if (res.status === 201) {
         setApplied(true);
+        onApplied(role.id);
         toast(`Applied to "${role.title}" successfully!`, "success");
       } else if (res.status === 409) {
         setApplied(true);
+        onApplied(role.id);
         toast(data.error || "You already applied to this role.", "info");
       } else if (res.status === 429) {
         toast("Too many requests. Please try again in a few minutes.", "error");
@@ -654,14 +1095,15 @@ function ProjectRoleCard({
   return (
     <Card
       className={cn(
-        "group flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card/70 backdrop-blur-sm border-border/60",
-        isRecommended && "border-primary/40 shadow-sm hover:border-primary/70"
+        "group flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card/70 backdrop-blur-sm border-border/60 relative",
+        isRecommended && "border-primary/40 shadow-sm hover:border-primary/70",
+        applied && "opacity-90 border-emerald-500/20"
       )}
     >
       <CardHeader className="p-5 pb-3 space-y-2.5">
         <div className="flex items-start justify-between gap-2">
           {/* Project Type & Duration badges */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 items-center">
             <Badge variant="outline" className="text-xs uppercase tracking-wider font-semibold py-0.5 px-2 bg-secondary/40">
               {role.project.projectType}
             </Badge>
@@ -671,18 +1113,40 @@ function ProjectRoleCard({
             </Badge>
           </div>
 
-          {/* Prominent Match Score in Top-Right */}
-          {role.compatibility && role.compatibility.score > 0 && (
-            <div
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Prominent Match Score in Top-Right */}
+            {role.compatibility && role.compatibility.score > 0 && (
+              <div
+                className={cn(
+                  "flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border shadow-sm transition-transform group-hover:scale-105",
+                  scoreColor
+                )}
+              >
+                <Zap className="w-3 h-3 fill-current" />
+                <span>{scoreText}</span>
+              </div>
+            )}
+
+            {/* Bookmark / Heart Button */}
+            <button
+              onClick={() => onToggleBookmark(role.id, Boolean(role.isBookmarked))}
               className={cn(
-                "flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border shadow-sm flex-shrink-0 transition-transform group-hover:scale-105",
-                scoreColor
+                "p-1.5 rounded-lg border transition-all hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                role.isBookmarked
+                  ? "bg-rose-500/10 border-rose-500/30 text-rose-500"
+                  : "bg-secondary/40 border-border/40 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
               )}
+              title={role.isBookmarked ? "Remove from bookmarks" : "Save role"}
+              aria-label={role.isBookmarked ? "Remove from bookmarks" : "Save role"}
             >
-              <Zap className="w-3 h-3 fill-current" />
-              <span>{scoreText}</span>
-            </div>
-          )}
+              <Heart
+                className={cn(
+                  "w-3.5 h-3.5 transition-colors",
+                  role.isBookmarked && "fill-current text-rose-500"
+                )}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Project Title & Role Title */}
@@ -692,15 +1156,29 @@ function ProjectRoleCard({
               {role.project.title}
             </CardTitle>
           </Link>
-          <div className="flex items-center gap-2 mt-1">
-            <Briefcase className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-            <span className="text-sm font-semibold text-foreground/90">{role.title}</span>
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <Briefcase className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+              <span className="text-sm font-semibold text-foreground/90 truncate">{role.title}</span>
+            </div>
+
+            {/* Quick-Preview Popover Button */}
+            <button
+              onClick={() => onPreviewRole(role)}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 p-1 rounded hover:bg-secondary/40"
+              title="Preview role responsibilities & project overview"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span className="text-[11px]">Preview</span>
+            </button>
           </div>
         </div>
 
         {/* Snippet of Description */}
         <CardDescription className="text-xs line-clamp-2 text-muted-foreground leading-relaxed pt-1">
-          {role.project.description.replace(/<[^>]*>?/gm, '')}
+          {role.description
+            ? role.description
+            : role.project.description.replace(/<[^>]*>?/gm, "")}
         </CardDescription>
       </CardHeader>
 
@@ -723,6 +1201,31 @@ function ProjectRoleCard({
           </div>
         </div>
 
+        {/* Project Tech Stack (if available) */}
+        {role.project.techStack && role.project.techStack.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <Code2 className="w-3 h-3 text-muted-foreground/80" />
+              Tech Stack
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {role.project.techStack.slice(0, 4).map((tech) => (
+                <span
+                  key={tech}
+                  className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono"
+                >
+                  {tech}
+                </span>
+              ))}
+              {role.project.techStack.length > 4 && (
+                <span className="text-[11px] text-muted-foreground self-center">
+                  +{role.project.techStack.length - 4}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Commitment & Headcount Specs */}
         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
@@ -731,13 +1234,17 @@ function ProjectRoleCard({
           </div>
           <div className="flex items-center gap-1.5 justify-end">
             <Users className="w-3.5 h-3.5 text-muted-foreground/70" />
-            <span>
+            <span
+              className={cn(
+                openSpots > 0 ? "text-emerald-500 font-medium" : "text-rose-400 font-medium"
+              )}
+            >
               {openSpots} {openSpots === 1 ? "spot open" : "spots open"}
             </span>
           </div>
         </div>
 
-        {/* Granular Sub-score breakdown preview on hover (if recommended) */}
+        {/* Granular Sub-score breakdown preview (if recommended) */}
         {role.compatibility && isRecommended && (
           <div className="bg-primary/5 rounded-xl p-2.5 border border-primary/10 text-xs space-y-1.5">
             <div className="flex justify-between text-muted-foreground">
@@ -788,13 +1295,17 @@ function ProjectRoleCard({
         {/* Action Button */}
         <div className="pt-3 flex items-center gap-2">
           <Link href={`/projects/${role.project.id}`} tabIndex={-1}>
-            <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 focus-visible:ring-2 focus-visible:ring-primary/50" aria-label={`View details for ${role.project.title}`}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-xs gap-1 focus-visible:ring-2 focus-visible:ring-primary/50"
+              aria-label={`View details for ${role.project.title}`}
+            >
               <span>Details</span>
               <ChevronRight className="w-3 h-3" aria-hidden="true" />
             </Button>
           </Link>
 
-          {/* Apply button — hidden for role owners */}
           {!isOwner && (
             <Button
               size="sm"
@@ -817,8 +1328,8 @@ function ProjectRoleCard({
                 </>
               ) : applied ? (
                 <>
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Applied!</span>
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  <span>Applied</span>
                 </>
               ) : (
                 <>

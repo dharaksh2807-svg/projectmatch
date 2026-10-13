@@ -92,6 +92,7 @@ model User {
   ownedProjects  Project[]
   applications   Application[]
   notifications  Notification[]
+  roleBookmarks  RoleBookmark[]
 
   // Relations — Direct Messaging
   conversationsAsUserOne DirectConversation[] @relation("ConversationUserOne")
@@ -313,12 +314,28 @@ model Role {
   isOpen                 Boolean @default(true)
 
   applications Application[]
+  bookmarks    RoleBookmark[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([projectId])
   @@index([isOpen])
+}
+
+/// A bookmarked/saved role by a user
+model RoleBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
 }
 
 /// An application from a user to a specific Role

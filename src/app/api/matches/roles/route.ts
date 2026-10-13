@@ -6,92 +6,110 @@ import { prisma } from "@/lib/prisma";
 /**
  * GET /api/matches/roles
  *
- * Returns open roles from published projects.
- * For authenticated users: attaches a compatibility score based on profile.
- * For guests: returns a plain role list (no scores).
- *
  * Query params:
- *   type     — project type (e.g. "Hackathon")
- *   duration — project duration (e.g. "1-3 months")
- *   exp      — required experience level (e.g. "Intermediate")
- *   skill    — a single required skill (exact match)
- *   q        — free-text keyword search across role/project title+description
- *   minScore — (0–90) minimum compatibility percentage; only applied for authed users
+ *   type        — project type (e.g. "Hackathon")
+ *   duration    — project duration (e.g. "1-3 months")
+ *   exp         — required experience level (e.g. "Intermediate", "Any")
+ *   skill       — required skill
+ *   tech        — project tech stack item
+ *   q           — search query
+ *   minScore    — minimum match score (0-90)
+ *   openOnly    — "true" | "false" (spots available only)
+ *   hideApplied — "true" | "false" (hide roles user already applied for)
+ *   bookmarkedOnly — "true" | "false" (show only saved roles)
+ *   sort        — "match" | "newest" | "spots" | "title"
+ *   cursor      — pagination cursor (role ID)
+ *   limit       — page size (default: 12)
  */
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id;
 
-    // Fetch user's profile if logged in
+    // Fetch user's profile and applications if logged in
     let userSkills: string[] = [];
     let userExperienceLevel: string | null = null;
     let userAvailability: string | null = null;
+    let appliedRoleIds: string[] = [];
+    let bookmarkedRoleIds: string[] = [];
 
     if (userId) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { skills: true, experienceLevel: true, availability: true, reputationScore: true },
-      });
+      const [user, applications, bookmarks] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: { skills: true, experienceLevel: true, availability: true, reputationScore: true },
+        }),
+        prisma.application.findMany({
+          where: { userId },
+          select: { roleId: true },
+        }),
+        prisma.roleBookmark.findMany({
+          where: { userId },
+          select: { roleId: true },
+        }),
+      ]);
+
       if (user) {
         userSkills = user.skills;
         userExperienceLevel = user.experienceLevel ?? null;
         userAvailability = user.availability ?? null;
       }
+      appliedRoleIds = applications.map((a) => a.roleId);
+      bookmarkedRoleIds = bookmarks.map((b) => b.roleId);
     }
 
     const searchParams = req.nextUrl.searchParams;
     const typeFilter = searchParams.get("type");
     const durationFilter = searchParams.get("duration");
-    // "exp" filter: "All" means no filter; actual experience level values are
-    // "Beginner" | "Intermediate" | "Advanced" | "Expert" | "Any"
-    // "Any" from the FILTER means the user wants roles that require ANY level.
-    // We carefully distinguish below.
     const expFilter = searchParams.get("exp");
     const skillFilter = searchParams.get("skill");
+    const techFilter = searchParams.get("tech");
     const query = searchParams.get("q")?.trim();
     const minScoreParam = searchParams.get("minScore");
     const minScoreThreshold = minScoreParam ? parseInt(minScoreParam, 10) / 100 : 0;
+    const openOnly = searchParams.get("openOnly") === "true";
+    const hideApplied = searchParams.get("hideApplied") === "true";
+    const bookmarkedOnly = searchParams.get("bookmarkedOnly") === "true";
+    const sortBy = searchParams.get("sort") || (userId ? "match" : "newest");
+    const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "12", 10), 1), 50);
+    const cursor = searchParams.get("cursor");
 
     // ─── Build WHERE clause ─────────────────────────────────────────────────
-    // We compose the top-level AND conditions manually so we can safely combine
-    // project-relation filters with an OR block without Prisma conflicts.
-    const andConditions: object[] = [
+    const andConditions: any[] = [
       { isOpen: true },
       { project: { isPublished: true } },
     ];
 
-    // Project type
     if (typeFilter && typeFilter !== "All") {
       andConditions.push({
         project: { projectType: { equals: typeFilter, mode: "insensitive" } },
       });
     }
 
-    // Project duration
     if (durationFilter && durationFilter !== "All") {
       andConditions.push({
         project: { duration: { equals: durationFilter, mode: "insensitive" } },
       });
     }
 
-    // Experience level
-    // "All" from the UI = no filter (show every level)
-    // Any other value (including the literal "Any") = filter the DB column
     if (expFilter && expFilter !== "All") {
       andConditions.push({
         requiredExperienceLevel: { equals: expFilter, mode: "insensitive" },
       });
     }
 
-    // Skill filter (exact, case-sensitive array containment — Postgres @> operator)
     if (skillFilter && skillFilter.trim()) {
       andConditions.push({
         requiredSkills: { has: skillFilter.trim() },
       });
     }
 
-    // Free-text keyword search
+    if (techFilter && techFilter.trim()) {
+      andConditions.push({
+        project: { techStack: { has: techFilter.trim() } },
+      });
+    }
+
     if (query) {
       andConditions.push({
         OR: [
@@ -103,6 +121,30 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    if (hideApplied && appliedRoleIds.length > 0) {
+      andConditions.push({
+        id: { notIn: appliedRoleIds },
+      });
+    }
+
+    if (bookmarkedOnly) {
+      if (!userId || bookmarkedRoleIds.length === 0) {
+        return NextResponse.json({
+          results: [],
+          nextCursor: null,
+          hasMore: false,
+          totalAvailable: 0,
+          appliedRoleIds,
+          bookmarkedRoleIds,
+          allUniqueTechs: [],
+        });
+      }
+      andConditions.push({
+        id: { in: bookmarkedRoleIds },
+      });
+    }
+
+    // Fetch roles
     const roles = await prisma.role.findMany({
       where: { AND: andConditions },
       include: {
@@ -113,6 +155,7 @@ export async function GET(req: NextRequest) {
             description: true,
             projectType: true,
             duration: true,
+            techStack: true,
             ownerId: true,
             owner: {
               select: { name: true, image: true, reputationScore: true },
@@ -121,12 +164,21 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: { createdAt: "desc" },
-      // Guard against returning massive payloads on an unfiltered public browse
-      take: 200,
     });
 
-    // ─── Compatibility scoring (authenticated users only) ───────────────────
-    const results = roles.map((role) => {
+    // Extract all unique techStack items across published projects for the filter UI
+    const allUniqueTechsSet = new Set<string>();
+    roles.forEach((r) => {
+      r.project.techStack?.forEach((t) => allUniqueTechsSet.add(t));
+    });
+    const allUniqueTechs = Array.from(allUniqueTechsSet).slice(0, 20);
+
+    // Compute compatibility and open spots
+    let results = roles.map((role) => {
+      const openSpots = Math.max(role.headcount - role.filledCount, 0);
+      const isApplied = appliedRoleIds.includes(role.id);
+      const isBookmarked = bookmarkedRoleIds.includes(role.id);
+
       let compatibility:
         | {
             score: number;
@@ -141,7 +193,6 @@ export async function GET(req: NextRequest) {
         | undefined = undefined;
 
       if (userId) {
-        // Skill overlap: ratio of role skills that the user has
         const roleSkills = role.requiredSkills;
         const matchingSkills = roleSkills.filter((s) =>
           userSkills.some((us) => us.toLowerCase() === s.toLowerCase())
@@ -149,21 +200,19 @@ export async function GET(req: NextRequest) {
         const skillOverlap =
           roleSkills.length > 0
             ? matchingSkills.length / roleSkills.length
-            : 0.5; // no required skills → neutral
+            : 0.5;
 
-        // Experience fit
         const levels = ["Beginner", "Intermediate", "Advanced", "Expert"];
         const userLevelIdx = levels.indexOf(userExperienceLevel ?? "");
         const roleLevelIdx = levels.indexOf(role.requiredExperienceLevel);
         let experienceFit = 0.5;
         if (role.requiredExperienceLevel === "Any") {
-          experienceFit = 1.0; // role accepts everyone
+          experienceFit = 1.0;
         } else if (userLevelIdx >= 0 && roleLevelIdx >= 0) {
           const diff = Math.abs(userLevelIdx - roleLevelIdx);
           experienceFit = diff === 0 ? 1.0 : diff === 1 ? 0.7 : 0.3;
         }
 
-        // Availability fit: loose string containment
         let availabilityFit = 0.5;
         if (userAvailability && role.timeCommitment) {
           const userAv = userAvailability.toLowerCase();
@@ -175,10 +224,7 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // Interest alignment: proxy via skill overlap
         const interestAlignment = skillOverlap > 0 ? 0.75 : 0.5;
-
-        // Reputation factor (production: use actual review data)
         const reputationScore = 0.7;
 
         const score =
@@ -200,27 +246,67 @@ export async function GET(req: NextRequest) {
         };
       }
 
-      return { ...role, compatibility };
+      return {
+        ...role,
+        openSpots,
+        isApplied,
+        isBookmarked,
+        compatibility,
+      };
     });
 
-    // ─── Apply minimum score filter (server-side for authenticated users) ───
-    const filtered =
-      userId && minScoreThreshold > 0
-        ? results.filter(
-            (r) => !r.compatibility || r.compatibility.score >= minScoreThreshold
-          )
-        : results;
-
-    // ─── Sort: highest compatibility first for authed users ─────────────────
-    if (userId) {
-      filtered.sort((a, b) => {
-        const sa = a.compatibility?.score ?? 0;
-        const sb = b.compatibility?.score ?? 0;
-        return sb - sa;
-      });
+    // Filter "Spots available"
+    if (openOnly) {
+      results = results.filter((r) => r.openSpots > 0);
     }
 
-    return NextResponse.json({ results: filtered });
+    // Filter "minScore"
+    if (userId && minScoreThreshold > 0) {
+      results = results.filter(
+        (r) => !r.compatibility || r.compatibility.score >= minScoreThreshold
+      );
+    }
+
+    // Sorting
+    results.sort((a, b) => {
+      if (sortBy === "match" && userId) {
+        const sa = a.compatibility?.score ?? 0;
+        const sb = b.compatibility?.score ?? 0;
+        if (sb !== sa) return sb - sa;
+      } else if (sortBy === "spots") {
+        if (b.openSpots !== a.openSpots) return b.openSpots - a.openSpots;
+      } else if (sortBy === "title") {
+        return a.title.localeCompare(b.title);
+      }
+      // default: newest
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    const totalAvailable = results.length;
+
+    // Cursor pagination
+    let startIndex = 0;
+    if (cursor) {
+      const foundIdx = results.findIndex((r) => r.id === cursor);
+      if (foundIdx >= 0) {
+        startIndex = foundIdx + 1;
+      }
+    }
+
+    const paginated = results.slice(startIndex, startIndex + limit);
+    const nextItem = results[startIndex + limit];
+    const nextCursor = nextItem ? paginated[paginated.length - 1]?.id || null : null;
+    const hasMore = startIndex + limit < results.length;
+
+    return NextResponse.json({
+      results: paginated,
+      nextCursor,
+      hasMore,
+      totalAvailable,
+      appliedRoleIds,
+      bookmarkedRoleIds,
+      allUniqueTechs,
+    });
   } catch (err) {
     console.error("GET /api/matches/roles failed:", err);
     return NextResponse.json({ error: "Failed to fetch roles" }, { status: 500 });
