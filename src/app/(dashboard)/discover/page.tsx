@@ -24,6 +24,7 @@ import {
   Code2,
   ArrowUpDown,
   ChevronDown,
+  X,
 } from "lucide-react";
 import {
   Card,
@@ -87,6 +88,8 @@ interface MatchedRole {
       experienceFit: number;
       reputationScore: number;
     };
+    factorsMatched?: number;
+    totalFactors?: number;
   };
 }
 
@@ -144,8 +147,11 @@ export default function DiscoverPage() {
   const [selectedType, setSelectedType] = useState("All");
   const [selectedDuration, setSelectedDuration] = useState("All");
   const [selectedExp, setSelectedExp] = useState("All");
-  const [selectedSkill, setSelectedSkill] = useState("");
-  const [selectedTech, setSelectedTech] = useState("");
+
+  // Multi-select state for Skills and Tech Stack
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
+
   const [minScoreFilter, setMinScoreFilter] = useState<number>(0);
   const [openOnly, setOpenOnly] = useState(false);
   const [hideApplied, setHideApplied] = useState(false);
@@ -166,6 +172,19 @@ export default function DiscoverPage() {
     }
   }, [isGuest, sortBy]);
 
+  // Multi-select toggle helpers
+  const toggleTech = (tech: string) => {
+    setSelectedTechs((prev) =>
+      prev.includes(tech) ? prev.filter((t) => t !== tech) : [...prev, tech]
+    );
+  };
+
+  const toggleSkill = (skill: string) => {
+    setSelectedSkills((prev) =>
+      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
+    );
+  };
+
   // Main Fetch function
   const fetchRoles = useCallback(
     async (isLoadMore = false, cursorToUse?: string | null) => {
@@ -180,8 +199,17 @@ export default function DiscoverPage() {
         if (selectedType !== "All") queryParams.append("type", selectedType);
         if (selectedDuration !== "All") queryParams.append("duration", selectedDuration);
         if (selectedExp !== "All") queryParams.append("exp", selectedExp);
-        if (selectedSkill) queryParams.append("skill", selectedSkill);
-        if (selectedTech) queryParams.append("tech", selectedTech);
+
+        // Append multi-select skills
+        if (selectedSkills.length > 0) {
+          selectedSkills.forEach((s) => queryParams.append("skill", s));
+        }
+
+        // Append multi-select techs
+        if (selectedTechs.length > 0) {
+          selectedTechs.forEach((t) => queryParams.append("tech", t));
+        }
+
         if (searchQuery.trim()) queryParams.append("q", searchQuery.trim());
         if (minScoreFilter > 0) queryParams.append("minScore", String(minScoreFilter));
         if (openOnly) queryParams.append("openOnly", "true");
@@ -229,8 +257,8 @@ export default function DiscoverPage() {
       selectedType,
       selectedDuration,
       selectedExp,
-      selectedSkill,
-      selectedTech,
+      selectedSkills,
+      selectedTechs,
       searchQuery,
       minScoreFilter,
       openOnly,
@@ -255,8 +283,8 @@ export default function DiscoverPage() {
     selectedType,
     selectedDuration,
     selectedExp,
-    selectedSkill,
-    selectedTech,
+    selectedSkills,
+    selectedTechs,
     searchQuery,
     minScoreFilter,
     openOnly,
@@ -272,12 +300,11 @@ export default function DiscoverPage() {
     roles.forEach((r) => {
       r.requiredSkills.forEach((s) => skillSet.add(s));
     });
-    return Array.from(skillSet).slice(0, 15);
+    return Array.from(skillSet).slice(0, 20);
   }, [roles]);
 
   // Separate Recommended (score >= 0.5) vs All Open Roles
   const { recommendedRoles, otherRoles } = useMemo(() => {
-    // When sorting by match, show recommended block if authed
     if (sortBy === "match" && !isGuest) {
       const recommended = roles.filter(
         (r) => r.compatibility && r.compatibility.score >= 0.5
@@ -295,8 +322,8 @@ export default function DiscoverPage() {
     setSelectedType("All");
     setSelectedDuration("All");
     setSelectedExp("All");
-    setSelectedSkill("");
-    setSelectedTech("");
+    setSelectedSkills([]);
+    setSelectedTechs([]);
     setMinScoreFilter(0);
     setOpenOnly(false);
     setHideApplied(false);
@@ -305,9 +332,10 @@ export default function DiscoverPage() {
   };
 
   const getScoreColor = (score: number) => {
-    const percent = score * 100;
-    if (percent >= 80) return "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
-    if (percent >= 50) return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+    const percent = Math.round(score * 100);
+    if (percent >= 75) return "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
+    if (percent >= 40) return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+    if (percent > 0) return "text-blue-400 bg-blue-500/10 border-blue-500/30";
     return "text-slate-400 bg-slate-500/10 border-slate-500/30";
   };
 
@@ -403,7 +431,7 @@ export default function DiscoverPage() {
           <p className="text-muted-foreground text-sm mt-1">
             {isGuest
               ? "Browse open team roles. Sign in to see your personalised match scores and save opportunities."
-              : "Browse open team roles scored and matched against your skills, interests, and availability."}
+              : "Browse open team roles scored proportionally against your skills, interests, and availability."}
           </p>
         </div>
 
@@ -555,39 +583,46 @@ export default function DiscoverPage() {
             </div>
           </div>
 
-          {/* Tech Stack Filter (New Feature) */}
+          {/* Tech Stack Multi-Select Filter */}
           {availableTechs.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-border/40">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <Code2 className="w-3.5 h-3.5 text-primary" />
                   Tech Stack
+                  {selectedTechs.length > 0 && (
+                    <span className="text-primary font-bold">({selectedTechs.length})</span>
+                  )}
                 </label>
-                {selectedTech && (
+                {selectedTechs.length > 0 && (
                   <button
-                    onClick={() => setSelectedTech("")}
+                    onClick={() => setSelectedTechs([])}
                     className="text-[11px] text-primary hover:underline"
                   >
-                    Clear
+                    Clear all
                   </button>
                 )}
               </div>
               <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
-                {availableTechs.map((tech) => (
-                  <button
-                    key={tech}
-                    onClick={() => setSelectedTech(selectedTech === tech ? "" : tech)}
-                    aria-pressed={selectedTech === tech}
-                    className={cn(
-                      "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                      selectedTech === tech
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                        : "bg-secondary/40 text-muted-foreground border-border/40 hover:bg-accent hover:text-foreground"
-                    )}
-                  >
-                    {tech}
-                  </button>
-                ))}
+                {availableTechs.map((tech) => {
+                  const isSelected = selectedTechs.includes(tech);
+                  return (
+                    <button
+                      key={tech}
+                      onClick={() => toggleTech(tech)}
+                      aria-pressed={isSelected}
+                      className={cn(
+                        "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 flex items-center gap-1",
+                        isSelected
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                          : "bg-secondary/40 text-muted-foreground border-border/40 hover:bg-accent hover:text-foreground"
+                      )}
+                    >
+                      <span>{tech}</span>
+                      {isSelected && <X className="w-3 h-3 ml-0.5" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -640,38 +675,45 @@ export default function DiscoverPage() {
             </div>
           </div>
 
-          {/* Popular Skills Filter */}
+          {/* Popular Skills Multi-Select Filter */}
           {allUniqueSkills.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-border/40">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Filter by Skill
+                  Filter by Skills
+                  {selectedSkills.length > 0 && (
+                    <span className="text-primary font-bold ml-1">({selectedSkills.length})</span>
+                  )}
                 </label>
-                {selectedSkill && (
+                {selectedSkills.length > 0 && (
                   <button
-                    onClick={() => setSelectedSkill("")}
+                    onClick={() => setSelectedSkills([])}
                     className="text-[11px] text-primary hover:underline"
                   >
-                    Clear
+                    Clear all
                   </button>
                 )}
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {allUniqueSkills.map((skill) => (
-                  <button
-                    key={skill}
-                    onClick={() => setSelectedSkill(selectedSkill === skill ? "" : skill)}
-                    aria-pressed={selectedSkill === skill}
-                    className={cn(
-                      "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                      selectedSkill === skill
-                        ? "bg-primary/20 text-primary border-primary/50 shadow-sm"
-                        : "bg-secondary/30 text-muted-foreground border-border/30 hover:bg-accent hover:text-foreground"
-                    )}
-                  >
-                    {skill}
-                  </button>
-                ))}
+                {allUniqueSkills.map((skill) => {
+                  const isSelected = selectedSkills.includes(skill);
+                  return (
+                    <button
+                      key={skill}
+                      onClick={() => toggleSkill(skill)}
+                      aria-pressed={isSelected}
+                      className={cn(
+                        "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 flex items-center gap-1",
+                        isSelected
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-secondary/30 text-muted-foreground border-border/30 hover:bg-accent hover:text-foreground"
+                      )}
+                    >
+                      <span>{skill}</span>
+                      {isSelected && <X className="w-3 h-3 ml-0.5" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -702,49 +744,86 @@ export default function DiscoverPage() {
         {/* Main Content Area */}
         <div className="lg:col-span-3 space-y-6">
           {/* Top Control Bar: Sort Options & Results Count */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card/40 backdrop-blur-sm p-4 rounded-xl border border-border/50">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold">
-                {bookmarkedOnly
-                  ? `Saved Roles (${totalCount})`
-                  : `All Roles (${totalCount})`}
-              </span>
-              {openOnly && (
-                <Badge variant="secondary" className="text-[11px] bg-primary/10 text-primary">
-                  Spots Open Only
-                </Badge>
-              )}
-              {selectedTech && (
-                <Badge variant="outline" className="text-[11px]">
-                  Tech: {selectedTech}
-                </Badge>
-              )}
-            </div>
+          <div className="flex flex-col gap-3 bg-card/40 backdrop-blur-sm p-4 rounded-xl border border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold">
+                  {bookmarkedOnly
+                    ? `Saved Roles (${totalCount})`
+                    : `All Roles (${totalCount})`}
+                </span>
+                {openOnly && (
+                  <Badge variant="secondary" className="text-[11px] bg-primary/10 text-primary">
+                    Spots Open Only
+                  </Badge>
+                )}
+              </div>
 
-            {/* Sort Control Dropdown */}
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Sort by:</span>
-              <div className="flex flex-wrap gap-1">
-                {SORT_OPTIONS.map((opt) => {
-                  if (opt.value === "match" && isGuest) return null;
-                  return (
-                    <button
-                      key={opt.value}
-                      onClick={() => setSortBy(opt.value)}
-                      className={cn(
-                        "text-xs px-2.5 py-1 rounded-md font-medium transition-all",
-                        sortBy === opt.value
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
+              {/* Sort Control Dropdown */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Sort by:</span>
+                <div className="flex flex-wrap gap-1">
+                  {SORT_OPTIONS.map((opt) => {
+                    if (opt.value === "match" && isGuest) return null;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => setSortBy(opt.value)}
+                        className={cn(
+                          "text-xs px-2.5 py-1 rounded-md font-medium transition-all",
+                          sortBy === opt.value
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
+
+            {/* Active Multi-Select Filters Badges */}
+            {(selectedTechs.length > 0 || selectedSkills.length > 0) && (
+              <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-border/40 text-xs">
+                <span className="text-muted-foreground mr-1 text-[11px]">Active Filters:</span>
+                {selectedTechs.map((tech) => (
+                  <Badge
+                    key={tech}
+                    variant="secondary"
+                    className="text-[11px] gap-1 cursor-pointer bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20"
+                    onClick={() => toggleTech(tech)}
+                    title="Click to remove"
+                  >
+                    Tech: {tech}
+                    <X className="w-3 h-3" />
+                  </Badge>
+                ))}
+                {selectedSkills.map((skill) => (
+                  <Badge
+                    key={skill}
+                    variant="secondary"
+                    className="text-[11px] gap-1 cursor-pointer bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                    onClick={() => toggleSkill(skill)}
+                    title="Click to remove"
+                  >
+                    Skill: {skill}
+                    <X className="w-3 h-3" />
+                  </Badge>
+                ))}
+                <button
+                  onClick={() => {
+                    setSelectedTechs([]);
+                    setSelectedSkills([]);
+                  }}
+                  className="text-[11px] text-muted-foreground hover:text-primary ml-1 underline"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Loading Skeleton */}
@@ -800,7 +879,7 @@ export default function DiscoverPage() {
                       <div>
                         <h2 className="text-xl font-bold tracking-tight">Recommended for You</h2>
                         <p className="text-xs text-muted-foreground">
-                          Highest compatibility based on your skills & profile preferences
+                          Highest proportional match based on criteria satisfied
                         </p>
                       </div>
                     </div>
@@ -947,7 +1026,7 @@ export default function DiscoverPage() {
                   <Clock className="w-3 h-3 mr-1 inline" />
                   {previewRole.project.duration}
                 </Badge>
-                {previewRole.compatibility && previewRole.compatibility.score > 0 && (
+                {previewRole.compatibility && (
                   <Badge className={cn("text-xs font-bold ml-auto", getScoreColor(previewRole.compatibility.score))}>
                     <Zap className="w-3 h-3 mr-1 inline fill-current" />
                     {Math.round(previewRole.compatibility.score * 100)}% Match
@@ -969,6 +1048,16 @@ export default function DiscoverPage() {
             </DialogHeader>
 
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-sm">
+              {/* Factor Match breakdown if available */}
+              {previewRole.compatibility && previewRole.compatibility.totalFactors && (
+                <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 flex justify-between items-center text-xs">
+                  <span className="font-semibold text-foreground">Requirements Matched</span>
+                  <span className="font-bold text-primary">
+                    {previewRole.compatibility.factorsMatched} / {previewRole.compatibility.totalFactors} factors ({Math.round(previewRole.compatibility.score * 100)}%)
+                  </span>
+                </div>
+              )}
+
               {/* Role Description */}
               {previewRole.description ? (
                 <div className="space-y-1 bg-secondary/30 p-3 rounded-xl border border-border/40">
@@ -1142,7 +1231,7 @@ function ProjectRoleCard({
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* Prominent Match Score in Top-Right */}
-            {role.compatibility && role.compatibility.score > 0 && (
+            {role.compatibility && (
               <div
                 className={cn(
                   "flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border shadow-sm transition-transform group-hover:scale-105",
@@ -1216,15 +1305,19 @@ function ProjectRoleCard({
             Required Skills
           </span>
           <div className="flex flex-wrap gap-1.5">
-            {role.requiredSkills.map((skill) => (
-              <Badge
-                key={skill}
-                variant="secondary"
-                className="text-xs font-medium px-2 py-0.5 bg-secondary/60 hover:bg-secondary border-border/40"
-              >
-                {skill}
-              </Badge>
-            ))}
+            {role.requiredSkills.length > 0 ? (
+              role.requiredSkills.map((skill) => (
+                <Badge
+                  key={skill}
+                  variant="secondary"
+                  className="text-xs font-medium px-2 py-0.5 bg-secondary/60 hover:bg-secondary border-border/40"
+                >
+                  {skill}
+                </Badge>
+              ))
+            ) : (
+              <span className="text-xs text-muted-foreground italic">None explicitly required</span>
+            )}
           </div>
         </div>
 
@@ -1274,6 +1367,14 @@ function ProjectRoleCard({
         {/* Granular Sub-score breakdown preview (if recommended) */}
         {role.compatibility && isRecommended && (
           <div className="bg-primary/5 rounded-xl p-2.5 border border-primary/10 text-xs space-y-1.5">
+            {role.compatibility.factorsMatched !== undefined && role.compatibility.totalFactors && (
+              <div className="flex justify-between font-semibold pb-1 border-b border-primary/10 text-foreground">
+                <span>Factors Matched</span>
+                <span className="text-primary font-bold">
+                  {role.compatibility.factorsMatched} / {role.compatibility.totalFactors} criteria
+                </span>
+              </div>
+            )}
             <div className="flex justify-between text-muted-foreground">
               <span>Skills Overlap</span>
               <span className="font-semibold text-foreground">
