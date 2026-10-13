@@ -81,15 +81,19 @@ interface MatchedRole {
   };
   compatibility?: {
     score: number;
+    factorsMatched: number;
+    totalFactors: number;
+    hasActiveFilters?: boolean;
     breakdown: {
       skillOverlap: number;
-      availabilityFit: number;
-      interestAlignment: number;
+      techOverlap?: number;
+      typeFit?: number;
+      durationFit?: number;
       experienceFit: number;
-      reputationScore: number;
+      availabilityFit?: number;
+      interestAlignment?: number;
+      reputationScore?: number;
     };
-    factorsMatched?: number;
-    totalFactors?: number;
   };
 }
 
@@ -140,7 +144,6 @@ export default function DiscoverPage() {
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [userHasSkills, setUserHasSkills] = useState<boolean | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -237,9 +240,6 @@ export default function DiscoverPage() {
           setHasMore(Boolean(data.hasMore));
           setTotalCount(data.totalAvailable ?? fetchedResults.length);
 
-          if (typeof data.userHasSkills === "boolean") {
-            setUserHasSkills(data.userHasSkills);
-          }
 
           if (data.allUniqueTechs && data.allUniqueTechs.length > 0) {
             setAvailableTechs(data.allUniqueTechs);
@@ -303,19 +303,31 @@ export default function DiscoverPage() {
     return Array.from(skillSet).slice(0, 20);
   }, [roles]);
 
-  // Separate Recommended (score >= 0.5) vs All Open Roles
+  // Active Filter Factors Count
+  const activeFilterFactorsCount = useMemo(() => {
+    let count = 0;
+    if (selectedType !== "All") count += 1;
+    if (selectedDuration !== "All") count += 1;
+    if (selectedExp !== "All") count += 1;
+    if (selectedTechs.length > 0) count += selectedTechs.length;
+    if (selectedSkills.length > 0) count += selectedSkills.length;
+    if (searchQuery.trim()) count += 1;
+    return count;
+  }, [selectedType, selectedDuration, selectedExp, selectedTechs, selectedSkills, searchQuery]);
+
+  // Separate Recommended (score >= 0.5) vs All Open Roles when filters are active
   const { recommendedRoles, otherRoles } = useMemo(() => {
-    if (sortBy === "match" && !isGuest) {
+    if (sortBy === "match" && activeFilterFactorsCount > 0) {
       const recommended = roles.filter(
-        (r) => r.compatibility && r.compatibility.score >= 0.5
+        (r) => r.compatibility && r.compatibility.hasActiveFilters && r.compatibility.score >= 0.5
       );
       const others = roles.filter(
-        (r) => !r.compatibility || r.compatibility.score < 0.5
+        (r) => !r.compatibility || !r.compatibility.hasActiveFilters || r.compatibility.score < 0.5
       );
       return { recommendedRoles: recommended, otherRoles: others };
     }
     return { recommendedRoles: [], otherRoles: roles };
-  }, [roles, sortBy, isGuest]);
+  }, [roles, sortBy, activeFilterFactorsCount]);
 
   const resetFilters = () => {
     setSearchQuery("");
@@ -718,27 +730,25 @@ export default function DiscoverPage() {
             </div>
           )}
 
-          {/* Minimum Compatibility Threshold (if logged in) */}
-          {!isGuest && (
-            <div className="space-y-2 pt-2 border-t border-border/40">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-medium text-muted-foreground uppercase tracking-wider">
-                  Min Match Score
-                </span>
-                <span className="font-bold text-primary">{minScoreFilter}%</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="90"
-                step="5"
-                aria-label="Minimum Match Score"
-                value={minScoreFilter}
-                onChange={(e) => setMinScoreFilter(parseInt(e.target.value))}
-                className="w-full accent-primary h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              />
+          {/* Minimum Compatibility Threshold */}
+          <div className="space-y-2 pt-2 border-t border-border/40">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-medium text-muted-foreground uppercase tracking-wider">
+                Min Match Score
+              </span>
+              <span className="font-bold text-primary">{minScoreFilter}%</span>
             </div>
-          )}
+            <input
+              type="range"
+              min="0"
+              max="90"
+              step="5"
+              aria-label="Minimum Match Score"
+              value={minScoreFilter}
+              onChange={(e) => setMinScoreFilter(parseInt(e.target.value))}
+              className="w-full accent-primary h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            />
+          </div>
         </aside>
 
         {/* Main Content Area */}
@@ -757,6 +767,11 @@ export default function DiscoverPage() {
                     Spots Open Only
                   </Badge>
                 )}
+                {activeFilterFactorsCount > 0 && (
+                  <Badge variant="outline" className="text-[11px] bg-primary/5 text-primary border-primary/30 font-semibold">
+                    {activeFilterFactorsCount} Active {activeFilterFactorsCount === 1 ? "Filter Factor" : "Filter Factors"}
+                  </Badge>
+                )}
               </div>
 
               {/* Sort Control Dropdown */}
@@ -765,7 +780,6 @@ export default function DiscoverPage() {
                 <span className="text-xs text-muted-foreground">Sort by:</span>
                 <div className="flex flex-wrap gap-1">
                   {SORT_OPTIONS.map((opt) => {
-                    if (opt.value === "match" && isGuest) return null;
                     return (
                       <button
                         key={opt.value}
@@ -785,17 +799,52 @@ export default function DiscoverPage() {
               </div>
             </div>
 
-            {/* Active Multi-Select Filters Badges */}
-            {(selectedTechs.length > 0 || selectedSkills.length > 0) && (
+            {/* Active Filters Badges for all active criteria */}
+            {activeFilterFactorsCount > 0 && (
               <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-border/40 text-xs">
-                <span className="text-muted-foreground mr-1 text-[11px]">Active Filters:</span>
+                <span className="text-muted-foreground mr-1 text-[11px] font-medium">
+                  Active Filters ({activeFilterFactorsCount}):
+                </span>
+                {selectedType !== "All" && (
+                  <Badge
+                    variant="secondary"
+                    className="text-[11px] gap-1 cursor-pointer bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                    onClick={() => setSelectedType("All")}
+                    title="Click to remove type filter"
+                  >
+                    Type: {selectedType}
+                    <X className="w-3 h-3" />
+                  </Badge>
+                )}
+                {selectedDuration !== "All" && (
+                  <Badge
+                    variant="secondary"
+                    className="text-[11px] gap-1 cursor-pointer bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                    onClick={() => setSelectedDuration("All")}
+                    title="Click to remove duration filter"
+                  >
+                    Duration: {selectedDuration}
+                    <X className="w-3 h-3" />
+                  </Badge>
+                )}
+                {selectedExp !== "All" && (
+                  <Badge
+                    variant="secondary"
+                    className="text-[11px] gap-1 cursor-pointer bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                    onClick={() => setSelectedExp("All")}
+                    title="Click to remove experience filter"
+                  >
+                    Exp: {selectedExp}
+                    <X className="w-3 h-3" />
+                  </Badge>
+                )}
                 {selectedTechs.map((tech) => (
                   <Badge
                     key={tech}
                     variant="secondary"
                     className="text-[11px] gap-1 cursor-pointer bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20"
                     onClick={() => toggleTech(tech)}
-                    title="Click to remove"
+                    title="Click to remove tech"
                   >
                     Tech: {tech}
                     <X className="w-3 h-3" />
@@ -807,17 +856,25 @@ export default function DiscoverPage() {
                     variant="secondary"
                     className="text-[11px] gap-1 cursor-pointer bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
                     onClick={() => toggleSkill(skill)}
-                    title="Click to remove"
+                    title="Click to remove skill"
                   >
                     Skill: {skill}
                     <X className="w-3 h-3" />
                   </Badge>
                 ))}
+                {searchQuery.trim() && (
+                  <Badge
+                    variant="secondary"
+                    className="text-[11px] gap-1 cursor-pointer bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
+                    onClick={() => setSearchQuery("")}
+                    title="Click to clear search"
+                  >
+                    Query: &quot;{searchQuery.trim()}&quot;
+                    <X className="w-3 h-3" />
+                  </Badge>
+                )}
                 <button
-                  onClick={() => {
-                    setSelectedTechs([]);
-                    setSelectedSkills([]);
-                  }}
+                  onClick={resetFilters}
                   className="text-[11px] text-muted-foreground hover:text-primary ml-1 underline"
                 >
                   Clear all
@@ -868,7 +925,7 @@ export default function DiscoverPage() {
 
           {!loading && roles.length > 0 && (
             <>
-              {/* SECTION 1: "Recommended for You" (when sorting by match & authed) */}
+              {/* SECTION 1: "Top Filter Matches" (when sorting by match and filters are active) */}
               {recommendedRoles.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -877,9 +934,9 @@ export default function DiscoverPage() {
                         <Sparkles className="w-4 h-4" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold tracking-tight">Recommended for You</h2>
+                        <h2 className="text-xl font-bold tracking-tight">Top Filter Matches</h2>
                         <p className="text-xs text-muted-foreground">
-                          Highest proportional match based on criteria satisfied
+                          Roles satisfying 50% or more of your {activeFilterFactorsCount} active filter criteria
                         </p>
                       </div>
                     </div>
@@ -903,48 +960,6 @@ export default function DiscoverPage() {
                       />
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Guest banner */}
-              {isGuest && (
-                <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl brand-gradient flex items-center justify-center text-white flex-shrink-0">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">See your personalised match scores</p>
-                      <p className="text-xs text-muted-foreground">Sign in to unlock AI-powered recommendations & save roles.</p>
-                    </div>
-                  </div>
-                  <Link href="/login">
-                    <Button size="sm" className="brand-gradient text-white shadow-sm flex-shrink-0">
-                      Sign In
-                    </Button>
-                  </Link>
-                </div>
-              )}
-
-              {/* User missing skills profile banner */}
-              {!isGuest && userHasSkills === false && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-foreground">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 flex-shrink-0">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-amber-300">Unlock Personalized Match Scores</p>
-                      <p className="text-xs text-muted-foreground">
-                        You haven&apos;t added any skills to your profile yet. Add your skills to compute real compatibility scores.
-                      </p>
-                    </div>
-                  </div>
-                  <Link href="/profile">
-                    <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-300 hover:bg-amber-500/20 flex-shrink-0">
-                      Add Skills in Profile →
-                    </Button>
-                  </Link>
                 </div>
               )}
 
@@ -1026,7 +1041,7 @@ export default function DiscoverPage() {
                   <Clock className="w-3 h-3 mr-1 inline" />
                   {previewRole.project.duration}
                 </Badge>
-                {previewRole.compatibility && (
+                {previewRole.compatibility && previewRole.compatibility.hasActiveFilters && (
                   <Badge className={cn("text-xs font-bold ml-auto", getScoreColor(previewRole.compatibility.score))}>
                     <Zap className="w-3 h-3 mr-1 inline fill-current" />
                     {Math.round(previewRole.compatibility.score * 100)}% Match
@@ -1048,12 +1063,12 @@ export default function DiscoverPage() {
             </DialogHeader>
 
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-sm">
-              {/* Factor Match breakdown if available */}
-              {previewRole.compatibility && previewRole.compatibility.totalFactors && (
+              {/* Active Filter Match breakdown if available */}
+              {previewRole.compatibility && previewRole.compatibility.hasActiveFilters && previewRole.compatibility.totalFactors > 0 && (
                 <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 flex justify-between items-center text-xs">
-                  <span className="font-semibold text-foreground">Requirements Matched</span>
+                  <span className="font-semibold text-foreground">Active Filters Matched</span>
                   <span className="font-bold text-primary">
-                    {previewRole.compatibility.factorsMatched} / {previewRole.compatibility.totalFactors} factors ({Math.round(previewRole.compatibility.score * 100)}%)
+                    {previewRole.compatibility.factorsMatched} / {previewRole.compatibility.totalFactors} active filters ({Math.round(previewRole.compatibility.score * 100)}%)
                   </span>
                 </div>
               )}
@@ -1230,13 +1245,14 @@ function ProjectRoleCard({
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {/* Prominent Match Score in Top-Right */}
-            {role.compatibility && (
+            {/* Prominent Match Score in Top-Right: Shown ONLY when active filters exist */}
+            {role.compatibility && role.compatibility.hasActiveFilters && (
               <div
                 className={cn(
                   "flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border shadow-sm transition-transform group-hover:scale-105",
                   scoreColor
                 )}
+                title={`Matched ${role.compatibility.factorsMatched} of ${role.compatibility.totalFactors} active filters (${Math.round(role.compatibility.score * 100)}%)`}
               >
                 <Zap className="w-3 h-3 fill-current" />
                 <span>{scoreText}</span>
@@ -1364,35 +1380,53 @@ function ProjectRoleCard({
           </div>
         </div>
 
-        {/* Granular Sub-score breakdown preview (if recommended) */}
-        {role.compatibility && isRecommended && (
+        {/* Granular Active Filters match breakdown preview */}
+        {role.compatibility && role.compatibility.hasActiveFilters && role.compatibility.totalFactors > 0 && (
           <div className="bg-primary/5 rounded-xl p-2.5 border border-primary/10 text-xs space-y-1.5">
-            {role.compatibility.factorsMatched !== undefined && role.compatibility.totalFactors && (
-              <div className="flex justify-between font-semibold pb-1 border-b border-primary/10 text-foreground">
-                <span>Factors Matched</span>
-                <span className="text-primary font-bold">
-                  {role.compatibility.factorsMatched} / {role.compatibility.totalFactors} criteria
-                </span>
+            <div className="flex justify-between font-semibold pb-1 border-b border-primary/10 text-foreground">
+              <span>Filters Matched</span>
+              <span className="text-primary font-bold">
+                {role.compatibility.factorsMatched} / {role.compatibility.totalFactors} {role.compatibility.totalFactors === 1 ? "factor" : "factors"} ({Math.round(role.compatibility.score * 100)}%)
+              </span>
+            </div>
+            {role.compatibility.totalFactors > 1 && (
+              <div className="space-y-1 text-muted-foreground pt-0.5">
+                {role.compatibility.breakdown.techOverlap !== undefined && role.compatibility.breakdown.techOverlap > 0 && (
+                  <div className="flex justify-between">
+                    <span>Tech Stack Fit</span>
+                    <span className="font-semibold text-foreground">
+                      {Math.round(role.compatibility.breakdown.techOverlap * 100)}%
+                    </span>
+                  </div>
+                )}
+                {role.compatibility.breakdown.skillOverlap > 0 && (
+                  <div className="flex justify-between">
+                    <span>Skills Fit</span>
+                    <span className="font-semibold text-foreground">
+                      {Math.round(role.compatibility.breakdown.skillOverlap * 100)}%
+                    </span>
+                  </div>
+                )}
+                {role.compatibility.breakdown.typeFit !== undefined && role.compatibility.breakdown.typeFit > 0 && (
+                  <div className="flex justify-between">
+                    <span>Project Type</span>
+                    <span className="font-semibold text-emerald-400">Match</span>
+                  </div>
+                )}
+                {role.compatibility.breakdown.durationFit !== undefined && role.compatibility.breakdown.durationFit > 0 && (
+                  <div className="flex justify-between">
+                    <span>Project Duration</span>
+                    <span className="font-semibold text-emerald-400">Match</span>
+                  </div>
+                )}
+                {role.compatibility.breakdown.experienceFit > 0 && (
+                  <div className="flex justify-between">
+                    <span>Experience Level</span>
+                    <span className="font-semibold text-emerald-400">Match</span>
+                  </div>
+                )}
               </div>
             )}
-            <div className="flex justify-between text-muted-foreground">
-              <span>Skills Overlap</span>
-              <span className="font-semibold text-foreground">
-                {Math.round(role.compatibility.breakdown.skillOverlap * 100)}%
-              </span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Availability Fit</span>
-              <span className="font-semibold text-foreground">
-                {Math.round(role.compatibility.breakdown.availabilityFit * 100)}%
-              </span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Experience Fit</span>
-              <span className="font-semibold text-foreground">
-                {Math.round(role.compatibility.breakdown.experienceFit * 100)}%
-              </span>
-            </div>
           </div>
         )}
       </CardContent>

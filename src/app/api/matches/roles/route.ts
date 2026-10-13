@@ -3,34 +3,19 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+
 /**
- * Helper to compute real text token intersection for interest alignment
+ * Helper to match tags with normalization and punctuation removal
  */
-function computeTextOverlapScore(text1: string, text2: string): number {
-  if (!text1.trim() || !text2.trim()) return 0;
-  const stopWords = new Set([
-    "the", "and", "a", "an", "in", "on", "for", "with", "to", "of", "at", "by", "from", "is", "it", "or", "as", "be", "this", "that"
-  ]);
-
-  const extractWords = (str: string) =>
-    str
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 2 && !stopWords.has(w));
-
-  const words1 = new Set(extractWords(text1));
-  const words2 = new Set(extractWords(text2));
-
-  if (words1.size === 0 || words2.size === 0) return 0;
-
-  let common = 0;
-  for (const w of words1) {
-    if (words2.has(w)) common++;
-  }
-
-  const union = new Set([...words1, ...words2]).size;
-  return union > 0 ? common / union : 0;
+function tagMatches(candidate: string, target: string): boolean {
+  const c = candidate.toLowerCase().trim();
+  const t = target.toLowerCase().trim();
+  if (c === t) return true;
+  if (c.includes(t) || t.includes(c)) return true;
+  const cClean = c.replace(/[^a-z0-9]/g, "");
+  const tClean = t.replace(/[^a-z0-9]/g, "");
+  if (cClean && tClean && (cClean === tClean || cClean.includes(tClean) || tClean.includes(cClean))) return true;
+  return false;
 }
 
 /**
@@ -43,10 +28,6 @@ export async function GET(req: NextRequest) {
 
     // Fetch user profile and applications/bookmarks
     let userSkills: string[] = [];
-    let userExperienceLevel: string | null = null;
-    let userAvailability: string | null = null;
-    let userBio: string = "";
-    let userReputationScore = 0;
     let appliedRoleIds: string[] = [];
     let bookmarkedRoleIds: string[] = [];
 
@@ -56,10 +37,6 @@ export async function GET(req: NextRequest) {
           where: { id: userId },
           select: {
             skills: true,
-            experienceLevel: true,
-            availability: true,
-            reputationScore: true,
-            bio: true,
           },
         }),
         prisma.application.findMany({
@@ -74,10 +51,6 @@ export async function GET(req: NextRequest) {
 
       if (user) {
         userSkills = user.skills || [];
-        userExperienceLevel = user.experienceLevel ?? null;
-        userAvailability = user.availability ?? null;
-        userBio = user.bio ?? "";
-        userReputationScore = typeof user.reputationScore === "number" ? user.reputationScore : 0;
       }
       appliedRoleIds = applications.map((a) => a.roleId);
       bookmarkedRoleIds = bookmarks.map((b) => b.roleId);
@@ -107,58 +80,35 @@ export async function GET(req: NextRequest) {
     const openOnly = searchParams.get("openOnly") === "true";
     const hideApplied = searchParams.get("hideApplied") === "true";
     const bookmarkedOnly = searchParams.get("bookmarkedOnly") === "true";
-    const sortBy = searchParams.get("sort") || (userId ? "match" : "newest");
+    const sortBy = searchParams.get("sort") || "match";
     const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "12", 10), 1), 50);
     const cursor = searchParams.get("cursor");
 
+    // ─── Active Filter Factors Calculation ──────────────────────────────────
+    // Every chosen filter element is exactly 1 factor:
+    // - Project Type (if !== "All"): 1 factor
+    // - Duration (if !== "All"): 1 factor
+    // - Experience Level (if !== "All"): 1 factor
+    // - Each selected Tech Stack tag: 1 factor
+    // - Each selected Skill tag: 1 factor
+    // - Search query keyword (if non-empty): 1 factor
+    let totalFilterFactors = 0;
+    if (typeFilter && typeFilter !== "All") totalFilterFactors += 1;
+    if (durationFilter && durationFilter !== "All") totalFilterFactors += 1;
+    if (expFilter && expFilter !== "All") totalFilterFactors += 1;
+    if (techList.length > 0) totalFilterFactors += techList.length;
+    if (skillList.length > 0) totalFilterFactors += skillList.length;
+    if (query) totalFilterFactors += 1;
+
+    const hasActiveFilters = totalFilterFactors > 0;
+
     // ─── Build WHERE clause ─────────────────────────────────────────────────
+    // Soft scoring is used for filter criteria so roles are ranked by match %
+    // rather than abruptly discarded by SQL where clauses.
     const andConditions: any[] = [
       { isOpen: true },
       { project: { isPublished: true } },
     ];
-
-    if (typeFilter && typeFilter !== "All") {
-      andConditions.push({
-        project: { projectType: { equals: typeFilter, mode: "insensitive" } },
-      });
-    }
-
-    if (durationFilter && durationFilter !== "All") {
-      andConditions.push({
-        project: { duration: { equals: durationFilter, mode: "insensitive" } },
-      });
-    }
-
-    if (expFilter && expFilter !== "All") {
-      andConditions.push({
-        requiredExperienceLevel: { equals: expFilter, mode: "insensitive" },
-      });
-    }
-
-    // Multi-select skill filter using hasSome
-    if (skillList.length > 0) {
-      andConditions.push({
-        requiredSkills: { hasSome: skillList },
-      });
-    }
-
-    // Multi-select tech stack filter using hasSome
-    if (techList.length > 0) {
-      andConditions.push({
-        project: { techStack: { hasSome: techList } },
-      });
-    }
-
-    if (query) {
-      andConditions.push({
-        OR: [
-          { title: { contains: query, mode: "insensitive" } },
-          { description: { contains: query, mode: "insensitive" } },
-          { project: { title: { contains: query, mode: "insensitive" } } },
-          { project: { description: { contains: query, mode: "insensitive" } } },
-        ],
-      });
-    }
 
     if (hideApplied && appliedRoleIds.length > 0) {
       andConditions.push({
@@ -177,6 +127,7 @@ export async function GET(req: NextRequest) {
           bookmarkedRoleIds,
           allUniqueTechs: [],
           userHasSkills: userSkills.length > 0,
+          activeFilterCount: 0,
         });
       }
       andConditions.push({
@@ -184,7 +135,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Fetch roles
+    // Fetch all open published roles
     const roles = await prisma.role.findMany({
       where: { AND: andConditions },
       include: {
@@ -213,19 +164,12 @@ export async function GET(req: NextRequest) {
     });
     const allUniqueTechs = Array.from(allUniqueTechsSet).slice(0, 30);
 
-    const userHasSkills = userSkills.length > 0;
-    const userNormalizedSkills = userSkills.map((s) => s.toLowerCase().trim());
-
-    // ─── Proportional Factor Matching Engine ────────────────────────────────
-    // Every role has a defined set of requirements/factors:
-    // 1. Each required skill (or project tech item) = 1 factor
-    // 2. Experience level requirement = 1 factor
-    // 3. Availability commitment = 1 factor
-    // 4. Project domain & interest alignment = 1 factor
-    //
-    // Total Match % = (Total Matched Factors / Total Role Factors) * 100
-    // - If the user has not selected anything: 0 factors matched => 0% Match.
-    // - If there are 10 factors and user matches 4: 4 / 10 => 40% Match.
+    // ─── Exact Filter Matching Engine ───────────────────────────────────────
+    // If hasActiveFilters:
+    //   Total Match % = (Matched Factors / Total Active Filter Factors) * 100%
+    //   e.g. 4 matches out of 10 active filters = 40% Match.
+    // If NO active filters:
+    //   compatibility hasActiveFilters is false (Match % badge is hidden in UI).
     let results = roles.map((role) => {
       const openSpots = Math.max(role.headcount - role.filledCount, 0);
       const isApplied = appliedRoleIds.includes(role.id);
@@ -234,117 +178,108 @@ export async function GET(req: NextRequest) {
       let compatibility:
         | {
             score: number;
+            factorsMatched: number;
+            totalFactors: number;
+            hasActiveFilters: boolean;
             breakdown: {
               skillOverlap: number;
-              availabilityFit: number;
-              interestAlignment: number;
+              techOverlap: number;
+              typeFit: number;
+              durationFit: number;
               experienceFit: number;
-              reputationScore: number;
             };
-            factorsMatched?: number;
-            totalFactors?: number;
           }
         | undefined = undefined;
 
-      if (userId) {
-        // Target skills list
-        const targetSkills =
-          role.requiredSkills.length > 0
-            ? role.requiredSkills
-            : (role.project.techStack.length > 0 ? role.project.techStack : []);
+      if (hasActiveFilters) {
+        let matchedCount = 0;
+        let matchedType = 0;
+        let matchedDuration = 0;
+        let matchedExp = 0;
+        let matchedTechs = 0;
+        let matchedSkills = 0;
 
-        const totalSkillFactors = targetSkills.length;
-        let matchedSkillsCount = 0;
-
-        if (totalSkillFactors > 0 && userSkills.length > 0) {
-          matchedSkillsCount = targetSkills.filter((reqSkill) => {
-            const reqNorm = reqSkill.toLowerCase().trim();
-            return userNormalizedSkills.some(
-              (uNorm) =>
-                uNorm === reqNorm ||
-                uNorm.includes(reqNorm) ||
-                reqNorm.includes(uNorm)
-            );
-          }).length;
+        // 1. Project Type
+        if (typeFilter && typeFilter !== "All") {
+          if (role.project.projectType.toLowerCase().trim() === typeFilter.toLowerCase().trim()) {
+            matchedCount += 1;
+            matchedType = 1;
+          }
         }
 
-        // Experience Level Factor (1 factor)
-        const totalExpFactors = 1;
-        let matchedExpCount = 0;
-        if (userExperienceLevel) {
-          if (role.requiredExperienceLevel === "Any") {
-            // Role welcomes any experience and user provided a level
-            matchedExpCount = 1;
-          } else if (
-            userExperienceLevel.toLowerCase() ===
-            role.requiredExperienceLevel.toLowerCase()
-          ) {
-            matchedExpCount = 1;
-          } else {
-            const levels = ["beginner", "intermediate", "advanced", "expert"];
-            const uIdx = levels.indexOf(userExperienceLevel.toLowerCase());
-            const rIdx = levels.indexOf(role.requiredExperienceLevel.toLowerCase());
-            if (uIdx >= 0 && rIdx >= 0 && Math.abs(uIdx - rIdx) === 1) {
-              matchedExpCount = 0.5; // close match partial credit
+        // 2. Project Duration
+        if (durationFilter && durationFilter !== "All") {
+          if (role.project.duration.toLowerCase().trim() === durationFilter.toLowerCase().trim()) {
+            matchedCount += 1;
+            matchedDuration = 1;
+          }
+        }
+
+        // 3. Experience Level
+        if (expFilter && expFilter !== "All") {
+          const rExp = role.requiredExperienceLevel.toLowerCase().trim();
+          const fExp = expFilter.toLowerCase().trim();
+          if (rExp === fExp || rExp === "any") {
+            matchedCount += 1;
+            matchedExp = 1;
+          }
+        }
+
+        // 4. Tech Stack (Each selected tech = 1 factor)
+        if (techList.length > 0) {
+          const roleTechs = role.project.techStack || [];
+          for (const selectedTech of techList) {
+            if (roleTechs.some((t) => tagMatches(t, selectedTech))) {
+              matchedCount += 1;
+              matchedTechs += 1;
             }
           }
         }
 
-        // Availability Factor (1 factor)
-        const totalAvailFactors = 1;
-        let matchedAvailCount = 0;
-        if (userAvailability && role.timeCommitment) {
-          const uAv = userAvailability.toLowerCase();
-          const rTime = role.timeCommitment.toLowerCase();
-          if (uAv === "flexible") {
-            matchedAvailCount = 1;
-          } else if (rTime.includes(uAv) || uAv.includes(rTime)) {
-            matchedAvailCount = 1;
-          } else if (uAv.includes("part-time") && rTime.includes("10-15h")) {
-            matchedAvailCount = 1;
-          } else if (uAv.includes("full-time") && rTime.includes("part-time")) {
-            matchedAvailCount = 1;
+        // 5. Skills (Each selected skill = 1 factor)
+        if (skillList.length > 0) {
+          const roleSkills = role.requiredSkills || [];
+          const roleTechs = role.project.techStack || [];
+          for (const selectedSkill of skillList) {
+            if (
+              roleSkills.some((s) => tagMatches(s, selectedSkill)) ||
+              roleTechs.some((t) => tagMatches(t, selectedSkill))
+            ) {
+              matchedCount += 1;
+              matchedSkills += 1;
+            }
           }
         }
 
-        // Domain / Project Interest Factor (1 factor)
-        const totalDomainFactors = 1;
-        let matchedDomainCount = 0;
-        if (userBio || userSkills.length > 0) {
-          const userText = `${userBio} ${userSkills.join(" ")}`;
-          const projectText = `${role.project.title} ${role.project.projectType} ${role.project.description}`;
-          const overlap = computeTextOverlapScore(userText, projectText);
-          if (overlap >= 0.05) {
-            matchedDomainCount = 1;
+        // 6. Search Query (1 factor if provided)
+        if (query) {
+          const q = query.toLowerCase().trim();
+          const inRoleTitle = role.title.toLowerCase().includes(q);
+          const inRoleDesc = (role.description || "").toLowerCase().includes(q);
+          const inProjTitle = role.project.title.toLowerCase().includes(q);
+          const inProjDesc = (role.project.description || "").toLowerCase().includes(q);
+          const inSkills = (role.requiredSkills || []).some((s) => s.toLowerCase().includes(q));
+          const inTechs = (role.project.techStack || []).some((t) => t.toLowerCase().includes(q));
+
+          if (inRoleTitle || inRoleDesc || inProjTitle || inProjDesc || inSkills || inTechs) {
+            matchedCount += 1;
           }
         }
 
-        // Proportional total calculation
-        const totalFactors =
-          totalSkillFactors + totalExpFactors + totalAvailFactors + totalDomainFactors;
-        const matchedFactors =
-          matchedSkillsCount + matchedExpCount + matchedAvailCount + matchedDomainCount;
-
-        // If user has not selected anything (0 skills, no exp, no avail), score is exactly 0%
-        const score =
-          totalFactors > 0
-            ? Math.round((matchedFactors / totalFactors) * 100) / 100
-            : 0;
+        const score = Math.round((matchedCount / totalFilterFactors) * 100) / 100;
 
         compatibility = {
           score,
+          factorsMatched: matchedCount,
+          totalFactors: totalFilterFactors,
+          hasActiveFilters: true,
           breakdown: {
-            skillOverlap:
-              totalSkillFactors > 0
-                ? Math.round((matchedSkillsCount / totalSkillFactors) * 100) / 100
-                : 0,
-            availabilityFit: matchedAvailCount >= 1 ? 1 : matchedAvailCount,
-            interestAlignment: matchedDomainCount,
-            experienceFit: matchedExpCount >= 1 ? 1 : matchedExpCount,
-            reputationScore: userReputationScore > 0 ? Math.min(userReputationScore / 100, 1) : 0,
+            skillOverlap: skillList.length > 0 ? Math.round((matchedSkills / skillList.length) * 100) / 100 : 0,
+            techOverlap: techList.length > 0 ? Math.round((matchedTechs / techList.length) * 100) / 100 : 0,
+            typeFit: matchedType,
+            durationFit: matchedDuration,
+            experienceFit: matchedExp,
           },
-          factorsMatched: Math.round(matchedFactors * 10) / 10,
-          totalFactors,
         };
       }
 
@@ -362,16 +297,16 @@ export async function GET(req: NextRequest) {
       results = results.filter((r) => r.openSpots > 0);
     }
 
-    // Filter "minScore"
-    if (userId && minScoreThreshold > 0) {
+    // Filter "minScore" (if user adjusted slider and filters are active)
+    if (hasActiveFilters && minScoreThreshold > 0) {
       results = results.filter(
-        (r) => !r.compatibility || r.compatibility.score >= minScoreThreshold
+        (r) => r.compatibility && r.compatibility.score >= minScoreThreshold
       );
     }
 
-    // Sorting
+    // Sorting: Best Match sorts highest score first when filters are active
     results.sort((a, b) => {
-      if (sortBy === "match" && userId) {
+      if (sortBy === "match" && hasActiveFilters) {
         const sa = a.compatibility?.score ?? 0;
         const sb = b.compatibility?.score ?? 0;
         if (sb !== sa) return sb - sa;
@@ -407,10 +342,12 @@ export async function GET(req: NextRequest) {
       appliedRoleIds,
       bookmarkedRoleIds,
       allUniqueTechs,
-      userHasSkills,
+      userHasSkills: userSkills.length > 0,
+      activeFilterCount: totalFilterFactors,
     });
   } catch (err) {
     console.error("GET /api/matches/roles failed:", err);
     return NextResponse.json({ error: "Failed to fetch roles" }, { status: 500 });
   }
 }
+
