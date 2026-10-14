@@ -18,10 +18,18 @@ import {
   X,
   MessageSquare,
   Search,
-  ExternalLink,
   Globe,
   Users,
 } from "lucide-react";
+import {
+  GithubIcon,
+  LinkedinIcon,
+  LeetCodeIcon,
+  CodeforcesIcon,
+  HackerRankIcon,
+  KaggleIcon,
+  GoogleDriveIcon,
+} from "@/components/shared/social-icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +55,12 @@ interface ReceivedApplicant {
     bio: string | null;
     portfolioUrl: string | null;
     linkedinUrl: string | null;
+    githubUrl?: string | null;
+    leetcodeUrl?: string | null;
+    codeforcesUrl?: string | null;
+    hackerrankUrl?: string | null;
+    kaggleUrl?: string | null;
+    resumeUrl?: string | null;
     twitterHandle: string | null;
     instagramHandle: string | null;
     phoneNumber: string | null;
@@ -612,6 +626,83 @@ export default function ApplicationsPage() {
                       {/* Bio & Social Links */}
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/40">
                         <div className="flex items-center gap-2">
+                          {app.user.resumeUrl && (
+                            <a
+                              href={app.user.resumeUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20"
+                            >
+                              <GoogleDriveIcon className="w-3.5 h-3.5" />
+                              Resume / CV
+                            </a>
+                          )}
+                          {app.user.githubUrl && (
+                            <a
+                              href={app.user.githubUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                            >
+                              <GithubIcon className="w-3.5 h-3.5" />
+                              GitHub
+                            </a>
+                          )}
+                          {app.user.linkedinUrl && (
+                            <a
+                              href={app.user.linkedinUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-blue-500 hover:text-blue-400 flex items-center gap-1"
+                            >
+                              <LinkedinIcon className="w-3.5 h-3.5" />
+                              LinkedIn
+                            </a>
+                          )}
+                          {app.user.leetcodeUrl && (
+                            <a
+                              href={app.user.leetcodeUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-amber-500 hover:text-amber-400 flex items-center gap-1"
+                            >
+                              <LeetCodeIcon className="w-3.5 h-3.5" />
+                              LeetCode
+                            </a>
+                          )}
+                          {app.user.codeforcesUrl && (
+                            <a
+                              href={app.user.codeforcesUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-rose-500 hover:text-rose-400 flex items-center gap-1"
+                            >
+                              <CodeforcesIcon className="w-3.5 h-3.5" />
+                              Codeforces
+                            </a>
+                          )}
+                          {app.user.hackerrankUrl && (
+                            <a
+                              href={app.user.hackerrankUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-emerald-500 hover:text-emerald-400 flex items-center gap-1"
+                            >
+                              <HackerRankIcon className="w-3.5 h-3.5" />
+                              HackerRank
+                            </a>
+                          )}
+                          {app.user.kaggleUrl && (
+                            <a
+                              href={app.user.kaggleUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-cyan-500 hover:text-cyan-400 flex items-center gap-1"
+                            >
+                              <KaggleIcon className="w-3.5 h-3.5" />
+                              Kaggle
+                            </a>
+                          )}
                           {app.user.portfolioUrl && (
                             <a
                               href={app.user.portfolioUrl}
@@ -621,17 +712,6 @@ export default function ApplicationsPage() {
                             >
                               <Globe className="w-3.5 h-3.5" />
                               Portfolio
-                            </a>
-                          )}
-                          {app.user.linkedinUrl && (
-                            <a
-                              href={app.user.linkedinUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                              LinkedIn
                             </a>
                           )}
                           {app.user.twitterHandle && (

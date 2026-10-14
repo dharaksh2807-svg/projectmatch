@@ -73,6 +73,12 @@ model User {
   reputationScore  Float    @default(0)            // 0-100, computed from activity & peer feedback
   portfolioUrl     String?
   linkedinUrl      String?
+  githubUrl        String?
+  leetcodeUrl      String?
+  codeforcesUrl    String?
+  hackerrankUrl    String?
+  kaggleUrl        String?
+  resumeUrl        String?
   twitterHandle    String?
   instagramHandle  String?
   phoneNumber      String?

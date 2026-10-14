@@ -5,7 +5,16 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Star, Link as LinkIcon, CheckCircle2, Calendar, MessageSquare } from "lucide-react";
+import { Star, Link as LinkIcon, CheckCircle2, Calendar, MessageSquare, Globe, ExternalLink } from "lucide-react";
+import {
+  GithubIcon,
+  LinkedinIcon,
+  LeetCodeIcon,
+  CodeforcesIcon,
+  HackerRankIcon,
+  KaggleIcon,
+  GoogleDriveIcon,
+} from "@/components/shared/social-icons";
 import { formatDistanceToNow } from "date-fns";
 import sanitizeHtml from "sanitize-html";
 import { Button } from "@/components/ui/button";
@@ -115,24 +124,34 @@ export default async function PublicProfilePage({
               </div>
             </div>
             
-            {loggedInUserId && loggedInUserId !== profile.id && (
-              <div className="flex gap-2 pb-2">
-                 <Link href={`/messages`}>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <MessageSquare className="w-4 h-4" /> Message
+            <div className="flex flex-wrap gap-2 pb-2">
+              {profile.resumeUrl && (
+                <a href={profile.resumeUrl} target="_blank" rel="noreferrer">
+                  <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary hover:text-white shadow-sm">
+                    <GoogleDriveIcon className="w-4 h-4" /> View Resume / CV
+                    <ExternalLink className="w-3 h-3 opacity-60" />
                   </Button>
-                </Link>
-                {canReview && (
-                  <ReviewModal
-                    revieweeId={profile.id}
-                    revieweeName={profile.name || "User"}
-                    projects={eligibleProjects}
-                    skills={profile.skills}
-                  />
-                )}
-                <ReportModal reportedUserId={profile.id} targetName={profile.name || "User"} />
-              </div>
-            )}
+                </a>
+              )}
+              {loggedInUserId && loggedInUserId !== profile.id && (
+                <>
+                  <Link href={`/messages`}>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <MessageSquare className="w-4 h-4" /> Message
+                    </Button>
+                  </Link>
+                  {canReview && (
+                    <ReviewModal
+                      revieweeId={profile.id}
+                      revieweeName={profile.name || "User"}
+                      projects={eligibleProjects}
+                      skills={profile.skills}
+                    />
+                  )}
+                  <ReportModal reportedUserId={profile.id} targetName={profile.name || "User"} />
+                </>
+              )}
+            </div>
           </div>
 
           {profile.bio && (
@@ -161,24 +180,66 @@ export default async function PublicProfilePage({
             </div>
 
             <div className="space-y-4">
-               <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
-                Links
+              <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
+                Profiles & Links
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
+                {profile.resumeUrl && (
+                  <a href={profile.resumeUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary font-medium hover:underline">
+                    <GoogleDriveIcon className="w-4 h-4 text-primary" /> Resume / CV (Google Drive)
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" />
+                  </a>
+                )}
+                {profile.githubUrl && (
+                  <a href={profile.githubUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-foreground/90 hover:text-primary hover:underline">
+                    <GithubIcon className="w-4 h-4 text-foreground/80" /> GitHub
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" />
+                  </a>
+                )}
+                {profile.linkedinUrl && (
+                  <a href={profile.linkedinUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-blue-500 hover:underline">
+                    <LinkedinIcon className="w-4 h-4 text-blue-500" /> LinkedIn
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" />
+                  </a>
+                )}
+                {profile.leetcodeUrl && (
+                  <a href={profile.leetcodeUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-amber-500 hover:underline">
+                    <LeetCodeIcon className="w-4 h-4 text-amber-500" /> LeetCode
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" />
+                  </a>
+                )}
+                {profile.codeforcesUrl && (
+                  <a href={profile.codeforcesUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-rose-500 hover:underline">
+                    <CodeforcesIcon className="w-4 h-4 text-rose-500" /> Codeforces
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" />
+                  </a>
+                )}
+                {profile.hackerrankUrl && (
+                  <a href={profile.hackerrankUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-emerald-500 hover:underline">
+                    <HackerRankIcon className="w-4 h-4 text-emerald-500" /> HackerRank
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" />
+                  </a>
+                )}
+                {profile.kaggleUrl && (
+                  <a href={profile.kaggleUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-cyan-500 hover:underline">
+                    <KaggleIcon className="w-4 h-4 text-cyan-500" /> Kaggle
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" />
+                  </a>
+                )}
                 {profile.portfolioUrl && (
                   <a href={profile.portfolioUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                    <LinkIcon className="w-4 h-4" /> Portfolio
+                    <Globe className="w-4 h-4 text-primary" /> Portfolio Website
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" />
                   </a>
                 )}
-                 {profile.linkedinUrl && (
-                  <a href={profile.linkedinUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                    <LinkIcon className="w-4 h-4" /> LinkedIn
+                {profile.twitterHandle && (
+                  <a href={`https://twitter.com/${profile.twitterHandle.replace("@", "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-foreground/80 hover:text-primary hover:underline">
+                    <LinkIcon className="w-4 h-4" /> X / Twitter (@{profile.twitterHandle.replace("@", "")})
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" />
                   </a>
                 )}
-                 {profile.twitterHandle && (
-                  <a href={`https://twitter.com/${profile.twitterHandle}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                    <LinkIcon className="w-4 h-4" /> Twitter (@{profile.twitterHandle})
-                  </a>
+                {!profile.resumeUrl && !profile.githubUrl && !profile.linkedinUrl && !profile.leetcodeUrl && !profile.codeforcesUrl && !profile.hackerrankUrl && !profile.kaggleUrl && !profile.portfolioUrl && !profile.twitterHandle && (
+                  <span className="text-sm text-muted-foreground italic">No links added yet.</span>
                 )}
               </div>
             </div>

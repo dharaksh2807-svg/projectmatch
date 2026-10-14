@@ -19,6 +19,12 @@ export interface ReceivedApplicantItem {
     bio: string | null;
     portfolioUrl: string | null;
     linkedinUrl: string | null;
+    githubUrl?: string | null;
+    leetcodeUrl?: string | null;
+    codeforcesUrl?: string | null;
+    hackerrankUrl?: string | null;
+    kaggleUrl?: string | null;
+    resumeUrl?: string | null;
     twitterHandle: string | null;
     reputationScore: number;
   };
