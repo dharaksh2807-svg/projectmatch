@@ -936,7 +936,7 @@ export default function DiscoverPage() {
                       <div>
                         <h2 className="text-xl font-bold tracking-tight">Top Filter Matches</h2>
                         <p className="text-xs text-muted-foreground">
-                          Roles satisfying 50% or more of your {activeFilterFactorsCount} active filter criteria
+                          Roles satisfying 50% or more of the requirements
                         </p>
                       </div>
                     </div>
@@ -1066,9 +1066,9 @@ export default function DiscoverPage() {
               {/* Active Filter Match breakdown if available */}
               {previewRole.compatibility && previewRole.compatibility.hasActiveFilters && previewRole.compatibility.totalFactors > 0 && (
                 <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 flex justify-between items-center text-xs">
-                  <span className="font-semibold text-foreground">Active Filters Matched</span>
+                  <span className="font-semibold text-foreground">Requirements Matched</span>
                   <span className="font-bold text-primary">
-                    {previewRole.compatibility.factorsMatched} / {previewRole.compatibility.totalFactors} active filters ({Math.round(previewRole.compatibility.score * 100)}%)
+                    {previewRole.compatibility.factorsMatched} / {previewRole.compatibility.totalFactors} requirements ({Math.round(previewRole.compatibility.score * 100)}%)
                   </span>
                 </div>
               )}
@@ -1252,7 +1252,7 @@ function ProjectRoleCard({
                   "flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border shadow-sm transition-transform group-hover:scale-105",
                   scoreColor
                 )}
-                title={`Matched ${role.compatibility.factorsMatched} of ${role.compatibility.totalFactors} active filters (${Math.round(role.compatibility.score * 100)}%)`}
+                title={`Matched ${role.compatibility.factorsMatched} of ${role.compatibility.totalFactors} requirements (${Math.round(role.compatibility.score * 100)}%)`}
               >
                 <Zap className="w-3 h-3 fill-current" />
                 <span>{scoreText}</span>
@@ -1384,9 +1384,9 @@ function ProjectRoleCard({
         {role.compatibility && role.compatibility.hasActiveFilters && role.compatibility.totalFactors > 0 && (
           <div className="bg-primary/5 rounded-xl p-2.5 border border-primary/10 text-xs space-y-1.5">
             <div className="flex justify-between font-semibold pb-1 border-b border-primary/10 text-foreground">
-              <span>Filters Matched</span>
+              <span>Requirements Matched</span>
               <span className="text-primary font-bold">
-                {role.compatibility.factorsMatched} / {role.compatibility.totalFactors} {role.compatibility.totalFactors === 1 ? "factor" : "factors"} ({Math.round(role.compatibility.score * 100)}%)
+                {role.compatibility.factorsMatched} / {role.compatibility.totalFactors} ({Math.round(role.compatibility.score * 100)}%)
               </span>
             </div>
             {role.compatibility.totalFactors > 1 && (

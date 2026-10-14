@@ -84,23 +84,30 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "12", 10), 1), 50);
     const cursor = searchParams.get("cursor");
 
-    // ─── Active Filter Factors Calculation ──────────────────────────────────
-    // Every chosen filter element is exactly 1 factor:
-    // - Project Type (if !== "All"): 1 factor
-    // - Duration (if !== "All"): 1 factor
-    // - Experience Level (if !== "All"): 1 factor
-    // - Each selected Tech Stack tag: 1 factor
-    // - Each selected Skill tag: 1 factor
-    // - Search query keyword (if non-empty): 1 factor
-    let totalFilterFactors = 0;
-    if (typeFilter && typeFilter !== "All") totalFilterFactors += 1;
-    if (durationFilter && durationFilter !== "All") totalFilterFactors += 1;
-    if (expFilter && expFilter !== "All") totalFilterFactors += 1;
-    if (techList.length > 0) totalFilterFactors += techList.length;
-    if (skillList.length > 0) totalFilterFactors += skillList.length;
-    if (query) totalFilterFactors += 1;
+    // ─── Candidate Skills Pool ──────────────────────────────────────────────
+    // Combine active sidebar filter selections (Tech Stack & Skills) with saved profile skills
+    const candidateSkillsSet = new Set<string>();
+    userSkills.forEach((s) => {
+      if (s.trim()) candidateSkillsSet.add(s.trim());
+    });
+    techList.forEach((t) => {
+      if (t.trim()) candidateSkillsSet.add(t.trim());
+    });
+    skillList.forEach((s) => {
+      if (s.trim()) candidateSkillsSet.add(s.trim());
+    });
+    const candidateSkills = Array.from(candidateSkillsSet);
 
-    const hasActiveFilters = totalFilterFactors > 0;
+    // Active sidebar filters count (to know if filters are actively set)
+    let activeFilterCount = 0;
+    if (typeFilter && typeFilter !== "All") activeFilterCount += 1;
+    if (durationFilter && durationFilter !== "All") activeFilterCount += 1;
+    if (expFilter && expFilter !== "All") activeFilterCount += 1;
+    if (techList.length > 0) activeFilterCount += techList.length;
+    if (skillList.length > 0) activeFilterCount += skillList.length;
+    if (query) activeFilterCount += 1;
+
+    const hasActiveFilters = activeFilterCount > 0;
 
     // ─── Build WHERE clause ─────────────────────────────────────────────────
     // Soft scoring is used for filter criteria so roles are ranked by match %
@@ -164,12 +171,13 @@ export async function GET(req: NextRequest) {
     });
     const allUniqueTechs = Array.from(allUniqueTechsSet).slice(0, 30);
 
-    // ─── Exact Filter Matching Engine ───────────────────────────────────────
-    // If hasActiveFilters:
-    //   Total Match % = (Matched Factors / Total Active Filter Factors) * 100%
-    //   e.g. 4 matches out of 10 active filters = 40% Match.
-    // If NO active filters:
-    //   compatibility hasActiveFilters is false (Match % badge is hidden in UI).
+    // ─── Role Requirements Coverage Matching Engine ─────────────────────────
+    // Denominator is the role's requirements (what the lead requires):
+    // - Each required skill specified for the role = 1 factor
+    // - Non-skill filters (Type, Duration, Experience level, Query) add 1 factor
+    //   each to the role's requirements when selected by the user.
+    // If the lead requires 4 skills and the candidate only has 2 of them:
+    //   Score = 2 / 4 = 50% Match (NOT 100%!).
     let results = roles.map((role) => {
       const openSpots = Math.max(role.headcount - role.filledCount, 0);
       const isApplied = appliedRoleIds.includes(role.id);
@@ -192,67 +200,61 @@ export async function GET(req: NextRequest) {
         | undefined = undefined;
 
       if (hasActiveFilters) {
-        let matchedCount = 0;
+        // 1. Required Skills (What the lead requires)
+        const targetSkills =
+          role.requiredSkills.length > 0
+            ? role.requiredSkills
+            : (role.project.techStack.length > 0 ? role.project.techStack : []);
+
+        const totalRoleSkills = targetSkills.length;
+        let matchedSkillsCount = 0;
+
+        if (totalRoleSkills > 0 && candidateSkills.length > 0) {
+          for (const reqSkill of targetSkills) {
+            const hasMatch = candidateSkills.some((candSkill) =>
+              tagMatches(candSkill, reqSkill)
+            );
+            if (hasMatch) {
+              matchedSkillsCount += 1;
+            }
+          }
+        }
+
+        // 2. Non-skill requirements selected in sidebar
+        let nonSkillRequirementsCount = 0;
+        let nonSkillMatchedCount = 0;
         let matchedType = 0;
         let matchedDuration = 0;
         let matchedExp = 0;
-        let matchedTechs = 0;
-        let matchedSkills = 0;
 
-        // 1. Project Type
         if (typeFilter && typeFilter !== "All") {
+          nonSkillRequirementsCount += 1;
           if (role.project.projectType.toLowerCase().trim() === typeFilter.toLowerCase().trim()) {
-            matchedCount += 1;
+            nonSkillMatchedCount += 1;
             matchedType = 1;
           }
         }
 
-        // 2. Project Duration
         if (durationFilter && durationFilter !== "All") {
+          nonSkillRequirementsCount += 1;
           if (role.project.duration.toLowerCase().trim() === durationFilter.toLowerCase().trim()) {
-            matchedCount += 1;
+            nonSkillMatchedCount += 1;
             matchedDuration = 1;
           }
         }
 
-        // 3. Experience Level
         if (expFilter && expFilter !== "All") {
+          nonSkillRequirementsCount += 1;
           const rExp = role.requiredExperienceLevel.toLowerCase().trim();
           const fExp = expFilter.toLowerCase().trim();
           if (rExp === fExp || rExp === "any") {
-            matchedCount += 1;
+            nonSkillMatchedCount += 1;
             matchedExp = 1;
           }
         }
 
-        // 4. Tech Stack (Each selected tech = 1 factor)
-        if (techList.length > 0) {
-          const roleTechs = role.project.techStack || [];
-          for (const selectedTech of techList) {
-            if (roleTechs.some((t) => tagMatches(t, selectedTech))) {
-              matchedCount += 1;
-              matchedTechs += 1;
-            }
-          }
-        }
-
-        // 5. Skills (Each selected skill = 1 factor)
-        if (skillList.length > 0) {
-          const roleSkills = role.requiredSkills || [];
-          const roleTechs = role.project.techStack || [];
-          for (const selectedSkill of skillList) {
-            if (
-              roleSkills.some((s) => tagMatches(s, selectedSkill)) ||
-              roleTechs.some((t) => tagMatches(t, selectedSkill))
-            ) {
-              matchedCount += 1;
-              matchedSkills += 1;
-            }
-          }
-        }
-
-        // 6. Search Query (1 factor if provided)
         if (query) {
+          nonSkillRequirementsCount += 1;
           const q = query.toLowerCase().trim();
           const inRoleTitle = role.title.toLowerCase().includes(q);
           const inRoleDesc = (role.description || "").toLowerCase().includes(q);
@@ -262,20 +264,27 @@ export async function GET(req: NextRequest) {
           const inTechs = (role.project.techStack || []).some((t) => t.toLowerCase().includes(q));
 
           if (inRoleTitle || inRoleDesc || inProjTitle || inProjDesc || inSkills || inTechs) {
-            matchedCount += 1;
+            nonSkillMatchedCount += 1;
           }
         }
 
-        const score = Math.round((matchedCount / totalFilterFactors) * 100) / 100;
+        // Denominator is the role's requirements
+        const totalRoleRequirements = totalRoleSkills + nonSkillRequirementsCount;
+        const totalMatchedRequirements = matchedSkillsCount + nonSkillMatchedCount;
+
+        const score =
+          totalRoleRequirements > 0
+            ? Math.round((totalMatchedRequirements / totalRoleRequirements) * 100) / 100
+            : 0;
 
         compatibility = {
           score,
-          factorsMatched: matchedCount,
-          totalFactors: totalFilterFactors,
+          factorsMatched: totalMatchedRequirements,
+          totalFactors: totalRoleRequirements,
           hasActiveFilters: true,
           breakdown: {
-            skillOverlap: skillList.length > 0 ? Math.round((matchedSkills / skillList.length) * 100) / 100 : 0,
-            techOverlap: techList.length > 0 ? Math.round((matchedTechs / techList.length) * 100) / 100 : 0,
+            skillOverlap: totalRoleSkills > 0 ? Math.round((matchedSkillsCount / totalRoleSkills) * 100) / 100 : 0,
+            techOverlap: 0,
             typeFit: matchedType,
             durationFit: matchedDuration,
             experienceFit: matchedExp,
@@ -343,7 +352,7 @@ export async function GET(req: NextRequest) {
       bookmarkedRoleIds,
       allUniqueTechs,
       userHasSkills: userSkills.length > 0,
-      activeFilterCount: totalFilterFactors,
+      activeFilterCount,
     });
   } catch (err) {
     console.error("GET /api/matches/roles failed:", err);
