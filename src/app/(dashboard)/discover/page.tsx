@@ -315,19 +315,7 @@ export default function DiscoverPage() {
     return count;
   }, [selectedType, selectedDuration, selectedExp, selectedTechs, selectedSkills, searchQuery]);
 
-  // Separate Recommended (score >= 0.5) vs All Open Roles when filters are active
-  const { recommendedRoles, otherRoles } = useMemo(() => {
-    if (sortBy === "match" && activeFilterFactorsCount > 0) {
-      const recommended = roles.filter(
-        (r) => r.compatibility && r.compatibility.hasActiveFilters && r.compatibility.score >= 0.5
-      );
-      const others = roles.filter(
-        (r) => !r.compatibility || !r.compatibility.hasActiveFilters || r.compatibility.score < 0.5
-      );
-      return { recommendedRoles: recommended, otherRoles: others };
-    }
-    return { recommendedRoles: [], otherRoles: roles };
-  }, [roles, sortBy, activeFilterFactorsCount]);
+
 
   const resetFilters = () => {
     setSearchQuery("");
@@ -924,80 +912,50 @@ export default function DiscoverPage() {
           )}
 
           {!loading && roles.length > 0 && (
-            <>
-              {/* SECTION 1: "Top Filter Matches" (when sorting by match and filters are active) */}
-              {recommendedRoles.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl brand-gradient flex items-center justify-center text-white glow-sm">
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold tracking-tight">Top Filter Matches</h2>
-                        <p className="text-xs text-muted-foreground">
-                          Roles satisfying 50% or more of the requirements
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary" className="text-xs font-semibold px-2.5 py-1 bg-primary/10 text-primary border-primary/20">
-                      {recommendedRoles.length} Top {recommendedRoles.length === 1 ? "Match" : "Matches"}
-                    </Badge>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl brand-gradient flex items-center justify-center text-white glow-sm">
+                    {activeFilterFactorsCount > 0 ? (
+                      <Sparkles className="w-4 h-4" />
+                    ) : (
+                      <Layers className="w-4 h-4" />
+                    )}
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {recommendedRoles.map((role) => (
-                      <ProjectRoleCard
-                        key={role.id}
-                        role={role}
-                        isRecommended={true}
-                        scoreColor={getScoreColor(role.compatibility?.score || 0)}
-                        scoreText={getScoreBadgeText(role.compatibility?.score || 0)}
-                        currentUserId={currentUserId}
-                        onToggleBookmark={handleToggleBookmark}
-                        onPreviewRole={(r) => setPreviewRole(r)}
-                        onApplied={handleRoleApplied}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* SECTION 2: All Explore Roles */}
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-primary" />
+                  <div>
                     <h2 className="text-xl font-bold tracking-tight">
-                      {recommendedRoles.length > 0 ? "Other Opportunities" : "Browse Projects"}
+                      {activeFilterFactorsCount > 0 ? "Matched Roles" : "Browse Projects"}
                     </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {activeFilterFactorsCount > 0
+                        ? `Showing all roles ranked by best match (highest skills overlap first)`
+                        : "Explore all open roles and projects across hackathons, startups, and open source"}
+                    </p>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    Showing {otherRoles.length} of {totalCount} roles
-                  </span>
                 </div>
+                <Badge variant="secondary" className="text-xs font-semibold px-2.5 py-1 bg-primary/10 text-primary border-primary/20">
+                  Showing {roles.length} of {totalCount} {totalCount === 1 ? "role" : "roles"}
+                </Badge>
+              </div>
 
-                {otherRoles.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {otherRoles.map((role) => (
-                      <ProjectRoleCard
-                        key={role.id}
-                        role={role}
-                        isRecommended={false}
-                        scoreColor={getScoreColor(role.compatibility?.score || 0)}
-                        scoreText={getScoreBadgeText(role.compatibility?.score || 0)}
-                        currentUserId={currentUserId}
-                        onToggleBookmark={handleToggleBookmark}
-                        onPreviewRole={(r) => setPreviewRole(r)}
-                        onApplied={handleRoleApplied}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground py-6 text-center">
-                    All matching open roles are listed in your recommendations above!
-                  </p>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {roles.map((role) => (
+                  <ProjectRoleCard
+                    key={role.id}
+                    role={role}
+                    isRecommended={Boolean(
+                      role.compatibility &&
+                        role.compatibility.hasActiveFilters &&
+                        role.compatibility.score >= 0.5
+                    )}
+                    scoreColor={getScoreColor(role.compatibility?.score || 0)}
+                    scoreText={getScoreBadgeText(role.compatibility?.score || 0)}
+                    currentUserId={currentUserId}
+                    onToggleBookmark={handleToggleBookmark}
+                    onPreviewRole={(r) => setPreviewRole(r)}
+                    onApplied={handleRoleApplied}
+                  />
+                ))}
               </div>
 
               {/* Infinite Scroll / Load More Button */}
@@ -1023,7 +981,7 @@ export default function DiscoverPage() {
                   </Button>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

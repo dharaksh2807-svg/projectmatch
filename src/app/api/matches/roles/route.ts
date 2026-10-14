@@ -335,6 +335,11 @@ export async function GET(req: NextRequest) {
         const sa = a.compatibility?.score ?? 0;
         const sb = b.compatibility?.score ?? 0;
         if (sb !== sa) return sb - sa;
+
+        // Tie-breaker: roles with more total factors/skills matched rank higher
+        const fa = a.compatibility?.factorsMatched ?? 0;
+        const fb = b.compatibility?.factorsMatched ?? 0;
+        if (fb !== fa) return fb - fa;
       } else if (sortBy === "spots") {
         if (b.openSpots !== a.openSpots) return b.openSpots - a.openSpots;
       } else if (sortBy === "title") {
