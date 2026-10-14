@@ -341,13 +341,13 @@ export default function ApplicationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 max-w-6xl mx-auto space-y-8 animate-fade-in font-sans">
+    <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-8 animate-fade-in font-sans min-w-0 overflow-x-hidden">
       {/* ─────────────────────────────────────────────────────────────
           HEADER & NAVIGATION
           ───────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
             <Link href="/dashboard" className="hover:text-primary flex items-center gap-1">
               <FolderOpen className="w-3.5 h-3.5" />
               Dashboard
@@ -356,21 +356,21 @@ export default function ApplicationsPage() {
             <span className="text-foreground font-medium">Applications & Review</span>
           </div>
 
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
-            <UserCheck className="w-7 h-7 text-emerald-500" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
+            <UserCheck className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-500 shrink-0" />
             Applications Hub
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Review candidate applications for your projects and track applications you’ve submitted.
           </p>
         </div>
 
         {/* Primary Tabs Toggle */}
-        <div className="flex items-center p-1 rounded-xl bg-muted/60 border border-border/60 shrink-0 self-start sm:self-auto">
+        <div className="flex items-center p-1 rounded-xl bg-muted/60 border border-border/60 shrink-0 self-stretch sm:self-auto overflow-x-auto">
           <button
             onClick={() => setActiveTab("received")}
             className={cn(
-              "px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2",
+              "flex-1 sm:flex-none px-3.5 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap",
               activeTab === "received"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -388,7 +388,7 @@ export default function ApplicationsPage() {
           <button
             onClick={() => setActiveTab("sent")}
             className={cn(
-              "px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2",
+              "flex-1 sm:flex-none px-3.5 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap",
               activeTab === "sent"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -406,29 +406,29 @@ export default function ApplicationsPage() {
       {activeTab === "received" && (
         <div className="space-y-6">
           {/* Summary Metrics Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-4 space-y-1">
-              <span className="text-xs text-muted-foreground">Total Applicants</span>
-              <p className="text-2xl font-bold text-foreground">{metrics.total}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+            <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-3.5 sm:p-4 space-y-1 min-w-0">
+              <span className="text-xs text-muted-foreground truncate block">Total Applicants</span>
+              <p className="text-xl sm:text-2xl font-bold text-foreground">{metrics.total}</p>
             </Card>
 
-            <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-4 space-y-1">
-              <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
-                <Clock className="w-3 h-3" /> Pending Review
+            <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-3.5 sm:p-4 space-y-1 min-w-0">
+              <span className="text-xs text-amber-400 font-medium flex items-center gap-1 truncate">
+                <Clock className="w-3 h-3 shrink-0" /> Pending Review
               </span>
-              <p className="text-2xl font-bold text-amber-400">{metrics.pending}</p>
+              <p className="text-xl sm:text-2xl font-bold text-amber-400">{metrics.pending}</p>
             </Card>
 
-            <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-4 space-y-1">
-              <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Accepted Teammates
+            <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-3.5 sm:p-4 space-y-1 min-w-0">
+              <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 truncate">
+                <CheckCircle2 className="w-3 h-3 shrink-0" /> Accepted Teammates
               </span>
-              <p className="text-2xl font-bold text-emerald-400">{metrics.accepted}</p>
+              <p className="text-xl sm:text-2xl font-bold text-emerald-400">{metrics.accepted}</p>
             </Card>
 
-            <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-4 space-y-1">
-              <span className="text-xs text-muted-foreground">Acceptance Rate</span>
-              <p className="text-2xl font-bold text-foreground">
+            <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-3.5 sm:p-4 space-y-1 min-w-0">
+              <span className="text-xs text-muted-foreground truncate block">Acceptance Rate</span>
+              <p className="text-xl sm:text-2xl font-bold text-foreground">
                 {metrics.total > 0
                   ? `${Math.round((metrics.accepted / metrics.total) * 100)}%`
                   : "0%"}
@@ -437,14 +437,14 @@ export default function ApplicationsPage() {
           </div>
 
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card/40 p-3.5 rounded-2xl border border-border/60">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card/40 p-3 sm:p-3.5 rounded-2xl border border-border/60">
             <div className="relative flex-1 max-w-sm">
               <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 placeholder="Search applicants, roles, or skills..."
-                className="pl-9 h-9 text-xs bg-background/80"
+                className="pl-9 h-10 md:h-9 text-base md:text-xs bg-background/80"
               />
             </div>
 
@@ -454,7 +454,7 @@ export default function ApplicationsPage() {
                 <select
                   value={projectFilter}
                   onChange={(e) => setProjectFilter(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-lg bg-background border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="h-10 md:h-9 px-3 text-base md:text-xs rounded-lg bg-background border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary flex-1 sm:flex-none"
                 >
                   <option value="ALL">All Projects</option>
                   {uniqueProjects.map(([id, title]) => (
@@ -466,13 +466,13 @@ export default function ApplicationsPage() {
               )}
 
               {/* Status Filter */}
-              <div className="flex items-center rounded-lg bg-muted/60 p-0.5 border border-border/60">
+              <div className="flex items-center rounded-lg bg-muted/60 p-0.5 border border-border/60 overflow-x-auto">
                 {["ALL", "PENDING", "ACCEPTED", "REJECTED"].map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
                     className={cn(
-                      "px-2.5 py-1 rounded-md text-[11px] font-medium transition-all",
+                      "px-2.5 py-1 rounded-md text-[11px] font-medium transition-all shrink-0",
                       statusFilter === st
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
@@ -747,7 +747,7 @@ export default function ApplicationsPage() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex items-center gap-2 flex-wrap ml-auto">
+                        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto sm:ml-auto justify-end pt-1 sm:pt-0">
                           {/* Chat with Applicant */}
                           <Button
                             variant="outline"
@@ -863,7 +863,7 @@ export default function ApplicationsPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap self-start sm:self-auto">
                         <Badge
                           variant="outline"
                           className={cn("text-xs px-2.5 py-1 border gap-1.5", cfg.className)}

@@ -250,44 +250,44 @@ export function DashboardView({
   const displayName = user.name?.split(" ")[0] || "Builder";
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <div className="p-3.5 sm:p-5 md:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-in min-w-0 overflow-x-hidden">
       {/* ─────────────────────────────────────────────────────────────
           1. WELCOME HERO & ACTION BAR
           ───────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-border/40">
-        <div className="flex items-start gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-3 border-b border-border/40">
+        <div className="flex flex-col sm:flex-row items-start gap-3.5 sm:gap-4">
           <Avatar
             src={user.image}
             alt={user.name || "User"}
             fallback={(user.name || "U")[0]}
             size="xl"
-            className="ring-2 ring-primary/20 shadow-md"
+            className="ring-2 ring-primary/20 shadow-md shrink-0"
           />
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground break-words">
                 Welcome back, {displayName} 👋
               </h1>
               <ReputationBadge score={stats.reputationScore} showLabel size="md" />
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl">
               Track your projects, team applications, active hackathons, and AI-matched collaboration opportunities.
             </p>
             {/* Quick Profile completeness meter */}
-            <div className="flex items-center gap-3 pt-1 text-xs">
-              <div className="w-28 h-2 rounded-full bg-secondary overflow-hidden border border-border/40">
+            <div className="flex items-center gap-2.5 sm:gap-3 pt-1 text-xs flex-wrap">
+              <div className="w-24 sm:w-28 h-2 rounded-full bg-secondary overflow-hidden border border-border/40 shrink-0">
                 <div
                   className="h-full brand-gradient transition-all duration-500 rounded-full"
                   style={{ width: `${stats.profileCompleteness}%` }}
                 />
               </div>
-              <span className="font-medium text-foreground/90">
+              <span className="font-medium text-foreground/90 whitespace-nowrap">
                 {stats.profileCompleteness}% profile complete
               </span>
               {stats.profileCompleteness < 100 && (
                 <Link
                   href="/profile"
-                  className="text-primary hover:underline font-semibold flex items-center gap-0.5"
+                  className="text-primary hover:underline font-semibold flex items-center gap-0.5 whitespace-nowrap"
                 >
                   Boost matches <ChevronRight className="w-3 h-3" />
                 </Link>
@@ -297,14 +297,14 @@ export function DashboardView({
         </div>
 
         {/* Primary CTA Buttons */}
-        <div className="flex items-center gap-2.5 flex-wrap self-start md:self-center">
-          <Link href="/projects/new">
-            <Button className="brand-gradient text-white gap-2 font-medium shadow-sm hover:opacity-95 transition-all">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto self-stretch sm:self-start md:self-center">
+          <Link href="/projects/new" className="flex-1 sm:flex-none">
+            <Button className="w-full sm:w-auto brand-gradient text-white gap-2 font-medium shadow-sm hover:opacity-95 transition-all text-xs sm:text-sm">
               <Plus className="w-4 h-4" /> Post a Project
             </Button>
           </Link>
-          <Link href="/discover">
-            <Button variant="outline" className="gap-2 border-primary/30 text-primary hover:bg-primary/10">
+          <Link href="/discover" className="flex-1 sm:flex-none">
+            <Button variant="outline" className="w-full sm:w-auto gap-2 border-primary/30 text-primary hover:bg-primary/10 text-xs sm:text-sm">
               <Sparkles className="w-4 h-4" /> Find Roles
             </Button>
           </Link>
@@ -329,8 +329,8 @@ export function DashboardView({
               </p>
             </div>
           </div>
-          <Link href="/applications" className="flex-shrink-0">
-            <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 font-medium shadow-sm">
+          <Link href="/applications" className="flex-shrink-0 w-full sm:w-auto">
+            <Button size="sm" className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white gap-1.5 font-medium shadow-sm">
               <UserCheck className="w-3.5 h-3.5" /> Review Applications
             </Button>
           </Link>
@@ -370,7 +370,7 @@ export function DashboardView({
                     </p>
                   </div>
                 </div>
-                <Link href="/applications">
+                <Link href="/applications" className="shrink-0">
                   <Button size="xs" className="bg-amber-600 hover:bg-amber-700 text-white font-medium">
                     Review
                   </Button>
@@ -384,19 +384,19 @@ export function DashboardView({
       {/* ─────────────────────────────────────────────────────────────
           3. REAL STATS GRID (6 Key Data Points)
           ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5">
         {/* Projects Owned */}
         <Link
           href="#my-projects"
           onClick={() => setActiveTab("projects")}
-          className="glass-card rounded-2xl p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer"
+          className="glass-card rounded-2xl p-3 sm:p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer min-w-0"
         >
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs font-medium">Projects</span>
-            <FolderGit2 className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5 sm:mb-2">
+            <span className="text-xs font-medium truncate">Projects</span>
+            <FolderGit2 className="w-4 h-4 text-primary group-hover:scale-110 transition-transform shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-foreground">{stats.ownedProjectsCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+          <div className="text-xl sm:text-2xl font-bold text-foreground">{stats.ownedProjectsCount}</div>
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">
             {stats.activeRolesCount} open role{stats.activeRolesCount !== 1 ? "s" : ""}
           </p>
         </Link>
@@ -404,14 +404,14 @@ export function DashboardView({
         {/* Applications Sent */}
         <Link
           href="/applications"
-          className="glass-card rounded-2xl p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer"
+          className="glass-card rounded-2xl p-3 sm:p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer min-w-0"
         >
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs font-medium">Applied</span>
-            <Briefcase className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5 sm:mb-2">
+            <span className="text-xs font-medium truncate">Applied</span>
+            <Briefcase className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-foreground">{stats.applicationsSentCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+          <div className="text-xl sm:text-2xl font-bold text-foreground">{stats.applicationsSentCount}</div>
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">
             {stats.acceptedApplicationsCount} accepted • {stats.pendingApplicationsCount} pending
           </p>
         </Link>
@@ -419,14 +419,14 @@ export function DashboardView({
         {/* Inbound Applicants */}
         <Link
           href="/applications"
-          className="glass-card rounded-2xl p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer"
+          className="glass-card rounded-2xl p-3 sm:p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer min-w-0"
         >
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs font-medium">Applicants</span>
-            <Users className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5 sm:mb-2">
+            <span className="text-xs font-medium truncate">Applicants</span>
+            <Users className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-foreground">{stats.inboundPendingCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+          <div className="text-xl sm:text-2xl font-bold text-foreground">{stats.inboundPendingCount}</div>
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">
             {stats.inboundPendingCount > 0 ? "Pending review" : "Up to date"}
           </p>
         </Link>
@@ -434,27 +434,27 @@ export function DashboardView({
         {/* Reputation Score */}
         <Link
           href="/profile"
-          className="glass-card rounded-2xl p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer"
+          className="glass-card rounded-2xl p-3 sm:p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer min-w-0"
         >
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs font-medium">Reputation</span>
-            <TrendingUp className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5 sm:mb-2">
+            <span className="text-xs font-medium truncate">Reputation</span>
+            <TrendingUp className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-foreground">{stats.reputationScore.toFixed(0)}<span className="text-xs font-normal text-muted-foreground">/100</span></div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Peer feedback score</p>
+          <div className="text-xl sm:text-2xl font-bold text-foreground">{stats.reputationScore.toFixed(0)}<span className="text-xs font-normal text-muted-foreground">/100</span></div>
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">Peer feedback score</p>
         </Link>
 
         {/* Team Messages */}
         <Link
           href="/messages"
-          className="glass-card rounded-2xl p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer"
+          className="glass-card rounded-2xl p-3 sm:p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer min-w-0"
         >
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs font-medium">Messages</span>
-            <MessageSquare className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5 sm:mb-2">
+            <span className="text-xs font-medium truncate">Messages</span>
+            <MessageSquare className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-foreground">{stats.unreadMessagesCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+          <div className="text-xl sm:text-2xl font-bold text-foreground">{stats.unreadMessagesCount}</div>
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">
             {stats.unreadMessagesCount > 0 ? "Unread chats" : "All chats read"}
           </p>
         </Link>
@@ -462,14 +462,14 @@ export function DashboardView({
         {/* Hackathons Active */}
         <Link
           href="/hackathons"
-          className="glass-card rounded-2xl p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer"
+          className="glass-card rounded-2xl p-3 sm:p-4 border border-border/50 hover:border-primary/30 hover:-translate-y-0.5 transition-all group cursor-pointer min-w-0"
         >
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs font-medium">Hackathons</span>
-            <Trophy className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5 sm:mb-2">
+            <span className="text-xs font-medium truncate">Hackathons</span>
+            <Trophy className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-foreground">{stats.activeHackathonsCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Active events</p>
+          <div className="text-xl sm:text-2xl font-bold text-foreground">{stats.activeHackathonsCount}</div>
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">Active events</p>
         </Link>
       </div>
 
@@ -480,7 +480,7 @@ export function DashboardView({
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 px-1">
           Quick Launchpads
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
           {[
             {
               href: "/discover",
@@ -534,26 +534,26 @@ export function DashboardView({
             <Link
               key={item.href}
               href={item.href}
-              className="glass-card rounded-xl p-3.5 border border-border/50 hover:border-primary/40 hover:-translate-y-0.5 transition-all group flex flex-col justify-between"
+              className="glass-card rounded-xl p-3 border border-border/50 hover:border-primary/40 hover:-translate-y-0.5 transition-all group flex flex-col justify-between min-w-0"
             >
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110", item.bg, item.color)}>
-                  <item.icon className="w-4 h-4" />
+              <div className="flex items-center gap-2 mb-1.5 min-w-0">
+                <div className={cn("w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", item.bg, item.color)}>
+                  <item.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
                 <span className="font-semibold text-xs text-foreground truncate group-hover:text-primary transition-colors">
                   {item.title}
                 </span>
               </div>
-              <span className="text-[11px] text-muted-foreground truncate">{item.desc}</span>
+              <span className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{item.desc}</span>
             </Link>
           ))}
         </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          5. INTERACTIVE VIEW TABS
+          5. INTERACTIVE VIEW TABS (Scrollable on Mobile)
           ───────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-border/50 pb-2 overflow-x-auto no-scrollbar whitespace-nowrap -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
         {(
           [
             { id: "overview", label: "Dashboard Overview" },
@@ -566,7 +566,7 @@ export function DashboardView({
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 shrink-0",
               activeTab === tab.id
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -580,9 +580,9 @@ export function DashboardView({
       {/* ─────────────────────────────────────────────────────────────
           6. MAIN CONTENT LAYOUT (2 Cols Left, 1 Col Right)
           ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
         {/* ── LEFT 2 COLUMNS ── */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6 sm:space-y-8 min-w-0">
           {/* TAB: OVERVIEW or PROJECTS: My Projects Section */}
           {(activeTab === "overview" || activeTab === "projects") && (
             <div id="my-projects" className="space-y-4">

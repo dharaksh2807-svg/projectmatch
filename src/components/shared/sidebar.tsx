@@ -17,6 +17,7 @@ import {
   UserCheck,
   Menu,
   ShieldAlert,
+  FolderGit2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -30,9 +31,18 @@ const navItems = [
   { href: "/messages", icon: MessageSquare, label: "Messages" },
   { href: "/applications", icon: UserCheck, label: "Applications" },
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/projects", icon: FolderGit2, label: "My Projects" },
   { href: "/chat", icon: Sparkles, label: "Agent Chat" },
   { href: "/prompt-battles", icon: Swords, label: "Prompt Battles" },
   { href: "/profile", icon: User, label: "My Profile" },
+];
+
+const mobileBottomNavItems = [
+  { href: "/discover", icon: Sparkles, label: "Discover" },
+  { href: "/hackathons", icon: Trophy, label: "Hackathons" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/messages", icon: MessageSquare, label: "Messages", showBadge: true },
+  { href: "/applications", icon: UserCheck, label: "Apps" },
 ];
 
 export function Sidebar() {
@@ -67,7 +77,12 @@ export function Sidebar() {
               aria-hidden="true"
             />
             <span>{label}</span>
-            {isActive && (
+            {label === "Messages" && unreadCount > 0 && (
+              <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+            {isActive && label !== "Messages" && (
               <ChevronRight
                 className="w-3 h-3 ml-auto text-primary/60"
                 aria-hidden="true"
@@ -134,16 +149,20 @@ export function Sidebar() {
         </div>
       ) : session?.user ? (
         <>
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl">
+          <Link
+            href="/profile"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-accent transition-all"
+          >
             {session.user.image ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={session.user.image}
                 alt={session.user.name || "User"}
-                className="w-8 h-8 rounded-full ring-2 ring-primary/20"
+                className="w-8 h-8 rounded-full ring-2 ring-primary/20 shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {(session.user.name || session.user.email || "U")[0].toUpperCase()}
               </div>
             )}
@@ -151,7 +170,7 @@ export function Sidebar() {
               <p className="text-sm font-medium truncate">{session.user.name || "User"}</p>
               <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
             </div>
-          </div>
+          </Link>
 
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
@@ -181,7 +200,7 @@ export function Sidebar() {
       {/* ─────────────────────────────────────────────────────────────
           MOBILE TOP NAVBAR (< md)
           ───────────────────────────────────────────────────────────── */}
-      <header className="flex md:hidden h-14 items-center justify-between px-4 border-b border-border/50 bg-sidebar/95 backdrop-blur-md shrink-0 z-30">
+      <header className="flex md:hidden h-14 items-center justify-between px-3 sm:px-4 border-b border-border/50 bg-sidebar/95 backdrop-blur-md shrink-0 z-30">
         <div className="flex items-center gap-2">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger render={
@@ -221,10 +240,96 @@ export function Sidebar() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right side controls in mobile header */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* Notifications icon with unread badge */}
+          <Link
+            href="/notifications"
+            className="relative p-2 rounded-lg text-sidebar-foreground hover:bg-accent transition-colors"
+            aria-label="View notifications"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+              </span>
+            )}
+          </Link>
+
           <ModeToggle />
+
+          {/* User Profile Avatar Link */}
+          {session?.user && (
+            <Link
+              href="/profile"
+              className="p-1 rounded-full hover:ring-2 hover:ring-primary/40 transition-all shrink-0"
+              aria-label="My Profile"
+            >
+              {session.user.image ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={session.user.image}
+                  alt={session.user.name || "User"}
+                  className="w-7 h-7 rounded-full ring-1 ring-border"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full brand-gradient flex items-center justify-center text-white text-[11px] font-bold">
+                  {(session.user.name || session.user.email || "U")[0].toUpperCase()}
+                </div>
+              )}
+            </Link>
+          )}
         </div>
       </header>
+
+      {/* ─────────────────────────────────────────────────────────────
+          MOBILE BOTTOM NAVIGATION BAR (< md)
+          Fixed primary destination toolbar for thumb-friendly mobile UX
+          ───────────────────────────────────────────────────────────── */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-40 h-16 bg-sidebar/95 backdrop-blur-md border-t border-border/50 flex md:hidden items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)]"
+        aria-label="Mobile primary navigation"
+      >
+        {mobileBottomNavItems.map(({ href, icon: Icon, label, showBadge }) => {
+          const isActive =
+            pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-xs font-medium transition-all relative min-w-[48px] min-h-[44px]",
+                isActive
+                  ? "text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <div className="relative">
+                <Icon
+                  className={cn(
+                    "w-5 h-5 transition-transform",
+                    isActive && "scale-110 text-primary"
+                  )}
+                  aria-hidden="true"
+                />
+                {showBadge && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-2 bg-destructive text-destructive-foreground text-[9px] font-bold px-1 rounded-full min-w-[14px] text-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </div>
+              <span className={cn("text-[10px] mt-0.5", isActive && "font-bold text-primary")}>
+                {label}
+              </span>
+              {isActive && (
+                <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
 
       {/* ─────────────────────────────────────────────────────────────
           DESKTOP SIDEBAR (>= md)

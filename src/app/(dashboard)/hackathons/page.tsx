@@ -188,11 +188,11 @@ export default function HackathonsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in font-sans">
+    <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-in font-sans min-w-0 overflow-x-hidden">
       {/* ─────────────────────────────────────────────────────────────
           HERO BANNER
           ───────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950/40 p-6 md:p-10 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950/40 p-4 sm:p-6 md:p-10 shadow-2xl">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 -mb-12 w-64 h-64 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -202,27 +202,27 @@ export default function HackathonsPage() {
             Hackathon Arena
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
             Find Your Winning Hackathon Team
           </h1>
 
-          <p className="text-zinc-300 text-sm sm:text-base leading-relaxed">
+          <p className="text-zinc-300 text-xs sm:text-sm md:text-base leading-relaxed">
             Browse upcoming premier hackathons, discover projects actively seeking builders, or launch your own squad to win together.
           </p>
 
-          <div className="pt-2 flex flex-wrap items-center gap-3">
+          <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
             <Button
               onClick={handleLoadAiMatches}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs sm:text-sm gap-2 shadow-lg shadow-emerald-900/20"
+              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs sm:text-sm gap-2 shadow-lg shadow-emerald-900/20"
             >
               <Sparkles className="w-4 h-4 text-emerald-200" />
               {loadingAi ? "Analyzing Skills with Gemini..." : "AI Hackathon Matchmaker"}
             </Button>
 
-            <Link href="/projects/new">
+            <Link href="/projects/new" className="w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 text-xs sm:text-sm gap-1.5"
+                className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 text-xs sm:text-sm gap-1.5"
               >
                 <Plus className="w-4 h-4" />
                 Pitch a Project
@@ -327,7 +327,7 @@ export default function HackathonsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by hackathon name, city, or topic..."
-            className="pl-9 bg-card/60 text-sm h-10 border-border/70 rounded-xl"
+            className="pl-9 bg-card/60 text-base md:text-sm h-10 border-border/70 rounded-xl"
           />
         </div>
 
@@ -447,7 +447,7 @@ export default function HackathonsPage() {
                   )}
                 </CardContent>
 
-                <CardFooter className="p-5 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                <CardFooter className="p-4 sm:p-5 pt-3 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-1">
                     {h.websiteUrl && (
                       <a

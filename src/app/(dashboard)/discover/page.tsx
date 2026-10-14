@@ -419,30 +419,30 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 space-y-8 animate-fade-in">
+    <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 space-y-6 sm:space-y-8 animate-fade-in min-w-0 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50 pb-5">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-2">
             <Sparkles className="w-3.5 h-3.5" />
             AI-Powered Discovery
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Discover Opportunities</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Discover Opportunities</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
             {isGuest
               ? "Browse open team roles. Sign in to see your personalised match scores and save opportunities."
               : "Browse open team roles scored proportionally against your skills, interests, and availability."}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Quick Bookmark View toggle if logged in */}
           {!isGuest && (
             <Button
               variant={bookmarkedOnly ? "default" : "outline"}
               size="sm"
               onClick={() => setBookmarkedOnly(!bookmarkedOnly)}
-              className="flex items-center gap-1.5"
+              className="flex items-center gap-1.5 text-xs sm:text-sm"
             >
               <Heart
                 className={cn(
@@ -458,22 +458,25 @@ export default function DiscoverPage() {
             variant="outline"
             size="sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden flex items-center gap-2"
+            className="lg:hidden flex items-center gap-2 text-xs sm:text-sm"
             aria-label="Toggle filter sidebar"
           >
             <SlidersHorizontal className="w-4 h-4" />
-            Filters
+            <span>Filters</span>
+            {activeFilterFactorsCount > 0 && (
+              <span className="w-2 h-2 rounded-full bg-primary" />
+            )}
           </Button>
 
           {isGuest ? (
             <Link href="/login" tabIndex={-1}>
-              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm">
+              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm text-xs sm:text-sm">
                 Sign In to Post
               </Button>
             </Link>
           ) : (
             <Link href="/projects/new" tabIndex={-1}>
-              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm">
+              <Button size="sm" className="brand-gradient text-white shadow-lg glow-sm text-xs sm:text-sm">
                 Post a Project
               </Button>
             </Link>
@@ -482,11 +485,11 @@ export default function DiscoverPage() {
       </div>
 
       {/* Main Layout: Sidebar Filters + Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8 items-start">
         {/* Left-hand Sidebar for Filters */}
         <aside
           className={cn(
-            "lg:col-span-1 space-y-6 bg-card/60 backdrop-blur-md p-6 rounded-2xl border border-border/60 shadow-sm sticky top-6",
+            "lg:col-span-1 space-y-6 bg-card/60 backdrop-blur-md p-4 sm:p-6 rounded-2xl border border-border/60 shadow-sm sticky top-4 sm:top-6 z-20",
             !sidebarOpen && "hidden lg:block"
           )}
         >
@@ -495,14 +498,23 @@ export default function DiscoverPage() {
               <Filter className="w-4 h-4 text-primary" />
               <span>Filters</span>
             </div>
-            <button
-              onClick={resetFilters}
-              aria-label="Reset all filters"
-              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded px-1"
-            >
-              <RotateCcw className="w-3 h-3" aria-hidden="true" />
-              Reset
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={resetFilters}
+                aria-label="Reset all filters"
+                className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded px-1"
+              >
+                <RotateCcw className="w-3 h-3" aria-hidden="true" />
+                Reset
+              </button>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden text-xs text-muted-foreground hover:text-foreground p-1 rounded-md"
+                aria-label="Close filters"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Search by keyword */}
@@ -517,7 +529,7 @@ export default function DiscoverPage() {
                 value={searchQuery}
                 aria-label="Search roles and projects"
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-background/50 text-sm h-9 focus-visible:ring-primary/50"
+                className="pl-9 bg-background/50 text-base md:text-sm h-10 md:h-9 focus-visible:ring-primary/50"
               />
             </div>
           </div>
@@ -1389,9 +1401,9 @@ function ProjectRoleCard({
         )}
       </CardContent>
 
-      <CardFooter className="p-5 pt-0 border-t border-border/40 mt-auto flex items-center justify-between">
+      <CardFooter className="p-4 sm:p-5 pt-0 border-t border-border/40 mt-auto flex items-center justify-between flex-wrap gap-2">
         {/* Owner Info */}
-        <div className="flex items-center gap-2 pt-3">
+        <div className="flex items-center gap-2 pt-2 sm:pt-3">
           <Link href={`/profile/${role.project.ownerId}`}>
             <Avatar
               src={role.project.owner.image}
@@ -1413,7 +1425,7 @@ function ProjectRoleCard({
         </div>
 
         {/* Action Button */}
-        <div className="pt-3 flex items-center gap-2">
+        <div className="pt-2 sm:pt-3 flex items-center gap-2 flex-wrap">
           <Link href={`/projects/${role.project.id}`} tabIndex={-1}>
             <Button
               size="sm"

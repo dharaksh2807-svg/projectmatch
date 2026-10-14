@@ -76,25 +76,25 @@ export default async function ProjectsPage({
   const projectsToDisplay = tab === "all" ? allProjects : myProjects;
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-in min-w-0 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <FolderGit2 className="w-7 h-7 text-primary" /> Projects
+            <FolderGit2 className="w-6 h-6 sm:w-7 sm:h-7 text-primary shrink-0" /> Projects
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage your recruitment listings or explore collaborative projects across the community.
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
-          <Link href="/projects/new">
-            <Button className="brand-gradient text-white gap-2 font-medium shadow-sm hover:opacity-95">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link href="/projects/new" className="w-full sm:w-auto">
+            <Button className="brand-gradient text-white gap-2 font-medium shadow-sm hover:opacity-95 w-full sm:w-auto min-h-[44px]">
               <Plus className="w-4 h-4" /> Post a Project
             </Button>
           </Link>
-          <Link href="/discover">
-            <Button variant="outline" className="gap-2">
+          <Link href="/discover" className="w-full sm:w-auto">
+            <Button variant="outline" className="gap-2 w-full sm:w-auto min-h-[44px]">
               <Sparkles className="w-4 h-4 text-primary" /> Discover Roles
             </Button>
           </Link>
@@ -102,10 +102,10 @@ export default async function ProjectsPage({
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+      <div className="flex items-center gap-2 border-b border-border/50 pb-2 overflow-x-auto no-scrollbar whitespace-nowrap -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
         <Link
           href="/projects?tab=mine"
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             tab === "mine"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -115,7 +115,7 @@ export default async function ProjectsPage({
         </Link>
         <Link
           href="/projects?tab=all"
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             tab === "all"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"

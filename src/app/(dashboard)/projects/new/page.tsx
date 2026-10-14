@@ -78,24 +78,24 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 max-w-4xl mx-auto space-y-8 animate-fade-in">
+    <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-fade-in min-w-0 overflow-x-hidden">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Post a New Project</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Post a New Project</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Share your idea and find the right teammates to bring it to life.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-12">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 sm:space-y-12">
         {/* Basic Details */}
-        <div className="space-y-6 bg-card p-6 rounded-2xl border shadow-sm">
-          <h2 className="text-xl font-semibold">Project Details</h2>
+        <div className="space-y-5 sm:space-y-6 bg-card p-4 sm:p-6 rounded-2xl border shadow-sm">
+          <h2 className="text-lg sm:text-xl font-semibold">Project Details</h2>
           
           <div className="space-y-2">
             <label className="text-sm font-medium">Title *</label>
             <input
               {...register("title")}
-              className="w-full h-11 px-4 rounded-xl border bg-transparent text-sm focus:ring-2 focus:ring-primary/20"
+              className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
               placeholder="e.g. AI Content Generator"
             />
             {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
@@ -105,7 +105,7 @@ export default function NewProjectPage() {
             <label className="text-sm font-medium">Description *</label>
             <textarea
               {...register("description")}
-              className="w-full h-32 px-4 py-3 rounded-xl border bg-transparent text-sm focus:ring-2 focus:ring-primary/20 resize-none"
+              className="w-full h-32 px-4 py-3 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20 resize-none"
               placeholder="What are you building? Why does it matter?"
             />
             {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
@@ -116,7 +116,7 @@ export default function NewProjectPage() {
               <label className="text-sm font-medium">Project Type</label>
               <select
                 {...register("projectType")}
-                className="w-full h-11 px-4 rounded-xl border bg-background text-sm focus:ring-2 focus:ring-primary/20"
+                className="w-full h-11 px-4 rounded-xl border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
               >
                 {["Hackathon", "Startup", "Research", "Open Source", "Side Project", "Competition"].map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -127,7 +127,7 @@ export default function NewProjectPage() {
               <label className="text-sm font-medium">Expected Duration</label>
               <select
                 {...register("duration")}
-                className="w-full h-11 px-4 rounded-xl border bg-background text-sm focus:ring-2 focus:ring-primary/20"
+                className="w-full h-11 px-4 rounded-xl border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
               >
                 {["< 1 week", "1-4 weeks", "1-3 months", "3-6 months", "6+ months"].map((d) => (
                   <option key={d} value={d}>{d}</option>
@@ -154,7 +154,7 @@ export default function NewProjectPage() {
               <input
                 type="url"
                 {...register("repoUrl")}
-                className="w-full h-11 px-4 rounded-xl border bg-transparent text-sm focus:ring-2 focus:ring-primary/20"
+                className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
                 placeholder="https://github.com/..."
               />
             </div>
@@ -163,7 +163,7 @@ export default function NewProjectPage() {
               <input
                 type="url"
                 {...register("websiteUrl")}
-                className="w-full h-11 px-4 rounded-xl border bg-transparent text-sm focus:ring-2 focus:ring-primary/20"
+                className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
                 placeholder="https://..."
               />
             </div>
@@ -191,12 +191,13 @@ export default function NewProjectPage() {
 
           <div className="space-y-4">
             {fields.map((field, index) => (
-              <div key={field.id} className="relative bg-secondary/20 p-5 rounded-2xl border shadow-sm">
+              <div key={field.id} className="relative bg-secondary/20 p-4 sm:p-5 rounded-2xl border shadow-sm">
                 {fields.length > 1 && (
                   <button
                     type="button"
                     onClick={() => remove(index)}
-                    className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors"
+                    className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors p-1"
+                    aria-label={`Remove role ${index + 1}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -209,7 +210,7 @@ export default function NewProjectPage() {
                     <label className="text-xs font-medium">Role Title *</label>
                     <input
                       {...register(`roles.${index}.title` as const)}
-                      className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3 rounded-lg border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
                       placeholder="e.g. Frontend Dev"
                     />
                     {(errors.roles as any)?.[index]?.title && <p className="text-xs text-destructive">{(errors.roles as any)[index]?.title?.message}</p>}
@@ -218,7 +219,7 @@ export default function NewProjectPage() {
                     <label className="text-xs font-medium">Time Commitment</label>
                     <input
                       {...register(`roles.${index}.timeCommitment` as const)}
-                      className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3 rounded-lg border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
                       placeholder="e.g. 10hrs/week"
                     />
                   </div>
@@ -229,7 +230,7 @@ export default function NewProjectPage() {
                     <label className="text-xs font-medium">Experience Level</label>
                     <select
                       {...register(`roles.${index}.requiredExperienceLevel` as const)}
-                      className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3 rounded-lg border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
                     >
                       {["Any", "Beginner", "Intermediate", "Advanced", "Expert"].map((l) => (
                         <option key={l} value={l}>{l}</option>
@@ -242,7 +243,7 @@ export default function NewProjectPage() {
                       type="number"
                       min={1}
                       {...register(`roles.${index}.headcount` as const)}
-                      className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3 rounded-lg border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
@@ -264,29 +265,29 @@ export default function NewProjectPage() {
         </div>
 
         {/* Submit */}
-        <div className="pt-4 border-t flex items-center justify-between">
+        <div className="pt-4 border-t flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="isPublished"
               {...register("isPublished")}
-              className="rounded border-input text-primary focus:ring-primary/20"
+              className="rounded border-input text-primary focus:ring-primary/20 w-4 h-4"
             />
-            <label htmlFor="isPublished" className="text-sm cursor-pointer">
+            <label htmlFor="isPublished" className="text-sm cursor-pointer select-none">
               Publish immediately (uncheck to save as draft)
             </label>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {status === "error" && (
               <span className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" /> {errorMessage}
+                <AlertCircle className="w-4 h-4 shrink-0" /> {errorMessage}
               </span>
             )}
             <Button
               type="submit"
               disabled={status === "submitting"}
-              className="brand-gradient text-white gap-2 shadow-sm min-w-32"
+              className="brand-gradient text-white gap-2 shadow-sm min-w-32 min-h-[44px] w-full sm:w-auto"
             >
               {status === "submitting" ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

@@ -367,7 +367,7 @@ export function WhatsAppChatInterface({ initialConversationId }: Props) {
   };
 
   return (
-    <div className="relative flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-zinc-950 text-zinc-100 font-sans">
+    <div className="relative flex h-[calc(100dvh-7.5rem)] md:h-[100dvh] w-full overflow-hidden bg-zinc-950 text-zinc-100 font-sans">
       {/* ─────────────────────────────────────────────────────────────
           LEFT PANE: WhatsApp-style conversation list
           Hidden on mobile if a conversation is selected
@@ -734,7 +734,7 @@ export function WhatsAppChatInterface({ initialConversationId }: Props) {
                     }
                   }}
                   placeholder="Type a message... (Press Enter to send)"
-                  className="bg-zinc-950 border-zinc-800 focus-visible:ring-emerald-500/60 text-sm h-10 rounded-full px-4 text-zinc-100 placeholder:text-zinc-500"
+                  className="bg-zinc-950 border-zinc-800 focus-visible:ring-emerald-500/60 text-base md:text-sm h-10 rounded-full px-4 text-zinc-100 placeholder:text-zinc-500"
                 />
               </div>
 

@@ -136,8 +136,8 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 max-w-3xl mx-auto space-y-8 animate-fade-in">
-      <div className="flex items-center justify-between border-b border-border/50 pb-6">
+    <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 max-w-3xl mx-auto space-y-6 sm:space-y-8 animate-fade-in min-w-0 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Notifications</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -150,7 +150,7 @@ export default function NotificationsPage() {
             size="sm"
             onClick={markAllAsRead}
             disabled={markingRead}
-            className="text-xs h-8"
+            className="text-xs h-9 sm:h-8 w-full sm:w-auto"
           >
             {markingRead ? (
               <Loader2 className="w-3 h-3 mr-2 animate-spin" />
@@ -177,23 +177,23 @@ export default function NotificationsPage() {
             const content = (
               <Card
                 className={cn(
-                  "p-4 transition-all border",
+                  "p-3.5 sm:p-4 transition-all border",
                   n.isRead
                     ? "bg-card/40 border-transparent"
                     : "bg-card border-primary/20 shadow-sm"
                 )}
               >
-                <div className="flex gap-4">
+                <div className="flex gap-3 sm:gap-4">
                   <div
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
+                      "w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
                       cfg.color
                     )}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-4">
                       <h3
                         className={cn(
                           "font-semibold text-sm",
@@ -202,7 +202,7 @@ export default function NotificationsPage() {
                       >
                         {n.title}
                       </h3>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      <span className="text-[11px] sm:text-xs text-muted-foreground shrink-0">
                         {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
                       </span>
                     </div>

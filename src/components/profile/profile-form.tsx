@@ -100,7 +100,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         <input
           id="name"
           {...register("name")}
-          className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+          className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
           placeholder="Your full name"
         />
         {errors.name && (
@@ -151,7 +151,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           <select
             id="experienceLevel"
             {...register("experienceLevel")}
-            className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+            className="w-full h-11 px-4 rounded-xl border border-input bg-background text-base sm:text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
           >
             <option value="">Select Level</option>
             {["Beginner", "Intermediate", "Advanced", "Expert"].map((l) => (
@@ -167,7 +167,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           <select
             id="availability"
             {...register("availability")}
-            className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+            className="w-full h-11 px-4 rounded-xl border border-input bg-background text-base sm:text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
           >
             <option value="">Select Availability</option>
             {["Full-time", "Part-time", "Flexible", "Weekends"].map((d) => (
@@ -185,7 +185,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         <select
           id="timezone"
           {...register("timezone")}
-          className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+          className="w-full h-11 px-4 rounded-xl border border-input bg-background text-base sm:text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
         >
           {TIMEZONES.map((tz) => (
             <option key={tz} value={tz}>{tz}</option>
@@ -209,7 +209,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             id="resumeUrl"
             type="url"
             {...register("resumeUrl")}
-            className="w-full h-11 px-4 rounded-xl border border-input bg-background/80 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-xs"
+            className="w-full h-11 px-4 rounded-xl border border-input bg-background/80 text-base sm:text-xs placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-mono"
             placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
           />
           {errors.resumeUrl && (
@@ -236,7 +236,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               id="githubUrl"
               type="url"
               {...register("githubUrl")}
-              className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
               placeholder="https://github.com/username"
             />
             {errors.githubUrl && (
@@ -252,7 +252,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               id="linkedinUrl"
               type="url"
               {...register("linkedinUrl")}
-              className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              className="w-full h-11 px-4 rounded-xl border border-input bg-transparent text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
               placeholder="https://linkedin.com/in/username"
             />
             {errors.linkedinUrl && (
@@ -388,12 +388,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       </div>
 
       {/* Submit */}
-      <div className="flex items-center gap-4 pt-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
         <button
           id="save-profile"
           type="submit"
           disabled={status === "saving" || status === "success"}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl brand-gradient text-white font-medium text-sm hover:opacity-90 transition-all disabled:opacity-50 glow-sm"
+          className="w-full sm:w-auto justify-center flex items-center gap-2 px-6 py-3 sm:py-2.5 rounded-xl brand-gradient text-white font-medium text-sm hover:opacity-90 transition-all disabled:opacity-50 glow-sm min-h-[44px]"
         >
           {status === "saving" ? (
             <>

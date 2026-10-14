@@ -81,7 +81,7 @@ export function TagInput({
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
           onFocus={() => setShowSuggestions(inputValue.length > 0)}
           placeholder={value.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[120px] bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+          className="flex-1 min-w-[120px] bg-transparent outline-none text-base sm:text-sm placeholder:text-muted-foreground"
           disabled={value.length >= maxTags}
         />
       </div>

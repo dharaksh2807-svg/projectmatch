@@ -140,7 +140,7 @@ export default function ProjectDetailPage() {
   const isOwner = session?.user?.id === project.ownerId;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 animate-fade-in pb-20">
+    <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 animate-fade-in pb-20 min-w-0 overflow-x-hidden">
       <div className="max-w-5xl mx-auto">
         <Link href="/discover" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6">
           <ChevronLeft className="w-4 h-4" /> Back to Discover
@@ -159,7 +159,7 @@ export default function ProjectDetailPage() {
                   <Badge variant="secondary" className="bg-amber-500/10 text-amber-500">Draft</Badge>
                 )}
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">{project.title}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-4">{project.title}</h1>
               <div 
                 className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap prose-p:my-1 prose-ul:my-1"
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.description) }}
@@ -186,10 +186,10 @@ export default function ProjectDetailPage() {
               <div className="space-y-4">
                 {project.roles.map(role => (
                   <Card key={role.id} className="border-border/60 bg-card/40">
-                    <CardContent className="p-5 flex flex-col md:flex-row md:items-start justify-between gap-6">
-                      <div className="space-y-3 flex-1">
+                    <CardContent className="p-4 sm:p-5 flex flex-col md:flex-row md:items-start justify-between gap-4 sm:gap-6">
+                      <div className="space-y-3 flex-1 min-w-0">
                         <div>
-                          <h4 className="text-lg font-semibold">{role.title}</h4>
+                          <h4 className="text-base sm:text-lg font-semibold">{role.title}</h4>
                           <p className="text-sm text-muted-foreground mt-1">
                             {role.requiredExperienceLevel} • {role.timeCommitment}
                           </p>
@@ -209,18 +209,18 @@ export default function ProjectDetailPage() {
                         </div>
                       </div>
                       
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 w-full md:w-auto">
                         {isOwner ? (
-                          <Link href={`/projects/${project.id}/applications`}>
-                            <Button variant="outline" size="sm">
+                          <Link href={`/projects/${project.id}/applications`} className="block w-full md:w-auto">
+                            <Button variant="outline" size="sm" className="w-full md:w-auto min-h-[44px]">
                               View Apps
                             </Button>
                           </Link>
                         ) : !role.isOpen || role.filledCount >= role.headcount ? (
-                          <Badge variant="secondary" className="px-3 py-1 bg-muted">Role Filled</Badge>
+                          <Badge variant="secondary" className="px-3 py-1 bg-muted w-full md:w-auto text-center justify-center">Role Filled</Badge>
                         ) : (
                           <Button 
-                            className="brand-gradient text-white gap-2"
+                            className="brand-gradient text-white gap-2 w-full md:w-auto min-h-[44px]"
                             disabled={applyingTo === role.id}
                             onClick={() => handleApply(role.id)}
                           >

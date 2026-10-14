@@ -22,10 +22,10 @@ export default async function ProfilePage() {
   const safeUser = JSON.parse(JSON.stringify(user));
 
   return (
-    <div className="p-8 max-w-3xl mx-auto animate-fade-in">
+    <div className="p-3.5 sm:p-6 md:p-8 max-w-3xl mx-auto animate-fade-in min-w-0 overflow-x-hidden">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
           {safeUser.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

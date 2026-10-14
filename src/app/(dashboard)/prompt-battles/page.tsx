@@ -83,29 +83,29 @@ export default function PromptBattlesPage() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-zinc-950 p-6">
-      <div className="max-w-6xl w-full mx-auto flex flex-col h-full gap-6">
+    <div className="flex flex-col min-h-full overflow-y-auto bg-zinc-950 p-3.5 sm:p-6 pb-20 md:pb-6">
+      <div className="max-w-6xl w-full mx-auto flex flex-col gap-6">
         
         {/* Header */}
-        <div className="flex items-center gap-4 border-b border-white/10 pb-4 shrink-0">
-          <div className="w-12 h-12 rounded-xl brand-gradient flex items-center justify-center glow">
-            <Swords className="w-6 h-6 text-white" />
+        <div className="flex items-center gap-3.5 sm:gap-4 border-b border-white/10 pb-4 shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl brand-gradient flex items-center justify-center glow shrink-0">
+            <Swords className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Prompt Battles</h1>
-            <p className="text-zinc-400 text-sm">Test and compare AI models head-to-head</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Prompt Battles</h1>
+            <p className="text-zinc-400 text-xs sm:text-sm">Test and compare AI models head-to-head</p>
           </div>
         </div>
 
         {/* Input Section */}
-        <div className="glass-card rounded-2xl p-4 border border-border/50 shadow-xl shrink-0">
+        <div className="glass-card rounded-2xl p-4 sm:p-5 border border-border/50 shadow-xl shrink-0">
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="flex-1 space-y-1">
               <label className="text-xs font-semibold text-zinc-400 uppercase">Model A (Left)</label>
               <select 
                 value={modelA} 
                 onChange={(e) => setModelA(e.target.value)}
-                className="w-full bg-zinc-900 border border-white/10 rounded-lg p-2 text-white text-sm"
+                className="w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-white text-base md:text-sm"
               >
                 {models.map(m => <option key={`a-${m.id}`} value={m.id}>{m.name} ({m.provider})</option>)}
               </select>
@@ -118,7 +118,7 @@ export default function PromptBattlesPage() {
               <select 
                 value={modelB} 
                 onChange={(e) => setModelB(e.target.value)}
-                className="w-full bg-zinc-900 border border-white/10 rounded-lg p-2 text-white text-sm"
+                className="w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-white text-base md:text-sm"
               >
                 {models.map(m => <option key={`b-${m.id}`} value={m.id}>{m.name} ({m.provider})</option>)}
               </select>
@@ -129,7 +129,7 @@ export default function PromptBattlesPage() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Enter a prompt to test both models..."
-            className="bg-zinc-900/50 border-white/10 text-white min-h-[100px] mb-4 resize-none focus-visible:ring-primary"
+            className="bg-zinc-900/50 border-white/10 text-white min-h-[100px] mb-4 resize-none focus-visible:ring-primary text-base md:text-sm"
             disabled={isBattling}
           />
           
@@ -137,7 +137,7 @@ export default function PromptBattlesPage() {
             <Button 
               onClick={startBattle} 
               disabled={isBattling || !prompt}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {isBattling ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Battling...</>
@@ -149,11 +149,11 @@ export default function PromptBattlesPage() {
         </div>
 
         {/* Results Section */}
-        <div className="flex-1 min-h-0 flex gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
           {currentBattle ? (
             <>
               {/* Model A */}
-              <div className="flex-1 flex flex-col min-w-0 border border-white/10 rounded-2xl bg-zinc-950 overflow-hidden">
+              <div className="flex-1 flex flex-col min-w-0 min-h-[300px] border border-white/10 rounded-2xl bg-zinc-950 overflow-hidden">
                 <div className="p-3 bg-zinc-900 border-b border-white/10 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
                     <Bot className="w-4 h-4 text-zinc-400" />

@@ -93,7 +93,7 @@ export default function HomePage() {
             <span>AI-Powered Team Formation</span>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-tight mb-6">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight mb-6">
             Find your{" "}
             <span className="brand-gradient-text">perfect team.</span>
             <br />
@@ -101,17 +101,17 @@ export default function HomePage() {
             <span className="brand-gradient-text">great.</span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed px-2">
             ProjectMatch connects builders, designers, and researchers with the right
             projects — matched algorithmically on skills, availability, and experience.
             No more relying on who you already know.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto sm:max-w-none">
             <Link
               href="/login"
               id="hero-cta-primary"
-              className="group flex items-center gap-2 px-8 py-4 rounded-xl brand-gradient text-white font-semibold text-lg hover:opacity-90 transition-all glow hover:scale-[1.02] active:scale-[0.98]"
+              className="group flex items-center justify-center gap-2 px-8 py-4 rounded-xl brand-gradient text-white font-semibold text-base sm:text-lg hover:opacity-90 transition-all glow hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-h-[48px]"
             >
               Start Matching
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -119,7 +119,7 @@ export default function HomePage() {
             <Link
               href="/hackathons"
               id="hero-cta-secondary"
-              className="flex items-center gap-2 px-8 py-4 rounded-xl glass border border-border hover:border-primary/30 text-foreground font-semibold text-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl glass border border-border hover:border-primary/30 text-foreground font-semibold text-base sm:text-lg transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-h-[48px]"
             >
               Browse Projects
             </Link>
