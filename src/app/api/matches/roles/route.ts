@@ -10,11 +10,23 @@ import { prisma } from "@/lib/prisma";
 function tagMatches(candidate: string, target: string): boolean {
   const c = candidate.toLowerCase().trim();
   const t = target.toLowerCase().trim();
+  if (!c || !t) return false;
   if (c === t) return true;
-  if (c.includes(t) || t.includes(c)) return true;
+
   const cClean = c.replace(/[^a-z0-9]/g, "");
   const tClean = t.replace(/[^a-z0-9]/g, "");
-  if (cClean && tClean && (cClean === tClean || cClean.includes(tClean) || tClean.includes(cClean))) return true;
+  if (cClean && tClean && cClean === tClean) return true;
+
+  // Handle word boundaries (e.g., "tailwind" vs "tailwind css")
+  const cWords = c.split(/[\s\-_/.]+/).filter(Boolean);
+  const tWords = t.split(/[\s\-_/.]+/).filter(Boolean);
+  if (cWords.includes(t) || tWords.includes(c)) return true;
+
+  // Handle common extensions like "react" vs "reactjs" or "next" vs "nextjs"
+  if (cClean.length >= 3 && tClean.length >= 3) {
+    if (cClean === tClean + "js" || tClean === cClean + "js") return true;
+    if (cClean === tClean + "ts" || tClean === cClean + "ts") return true;
+  }
   return false;
 }
 
@@ -85,11 +97,10 @@ export async function GET(req: NextRequest) {
     const cursor = searchParams.get("cursor");
 
     // ─── Candidate Skills Pool ──────────────────────────────────────────────
-    // Combine active sidebar filter selections (Tech Stack & Skills) with saved profile skills
+    // Candidate skills from active sidebar filter selections ONLY.
+    // We do NOT inject DB profile skills here because the user is actively filtering
+    // in Discover and expects the calculation to reflect exactly the skills they selected.
     const candidateSkillsSet = new Set<string>();
-    userSkills.forEach((s) => {
-      if (s.trim()) candidateSkillsSet.add(s.trim());
-    });
     techList.forEach((t) => {
       if (t.trim()) candidateSkillsSet.add(t.trim());
     });
@@ -97,6 +108,7 @@ export async function GET(req: NextRequest) {
       if (s.trim()) candidateSkillsSet.add(s.trim());
     });
     const candidateSkills = Array.from(candidateSkillsSet);
+    const hasSkillFilters = candidateSkills.length > 0;
 
     // Active sidebar filters count (to know if filters are actively set)
     let activeFilterCount = 0;
@@ -201,21 +213,25 @@ export async function GET(req: NextRequest) {
 
       if (hasActiveFilters) {
         // 1. Required Skills (What the lead requires)
-        const targetSkills =
-          role.requiredSkills.length > 0
-            ? role.requiredSkills
-            : (role.project.techStack.length > 0 ? role.project.techStack : []);
-
-        const totalRoleSkills = targetSkills.length;
+        let totalRoleSkills = 0;
         let matchedSkillsCount = 0;
 
-        if (totalRoleSkills > 0 && candidateSkills.length > 0) {
-          for (const reqSkill of targetSkills) {
-            const hasMatch = candidateSkills.some((candSkill) =>
-              tagMatches(candSkill, reqSkill)
-            );
-            if (hasMatch) {
-              matchedSkillsCount += 1;
+        if (hasSkillFilters) {
+          const targetSkills =
+            role.requiredSkills.length > 0
+              ? role.requiredSkills
+              : (role.project.techStack.length > 0 ? role.project.techStack : []);
+
+          totalRoleSkills = targetSkills.length;
+
+          if (totalRoleSkills > 0) {
+            for (const reqSkill of targetSkills) {
+              const hasMatch = candidateSkills.some((candSkill) =>
+                tagMatches(candSkill, reqSkill)
+              );
+              if (hasMatch) {
+                matchedSkillsCount += 1;
+              }
             }
           }
         }
