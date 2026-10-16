@@ -278,6 +278,7 @@ export async function GET(req: NextRequest) {
         ...existingOrItems,
         { status: HackathonStatus.ENDED },
         { endDate: { lt: now } },
+        { registrationDeadline: { lte: now } },
       ];
       // If we had multiple OR groups merged to AND already, add the past filter directly
       if (whereClause.AND) {
@@ -296,10 +297,11 @@ export async function GET(req: NextRequest) {
       whereClause.status = {
         notIn: [HackathonStatus.CANCELLED, HackathonStatus.ENDED],
       };
-      // Exclude records whose endDate is unambiguously in the past
+      // Exclude records whose registration deadline or endDate has passed
       const dateOrItems: Prisma.HackathonWhereInput[] = [
-        { endDate: null },
-        { endDate: { gte: now } },
+        { registrationDeadline: { gt: now } },
+        { registrationDeadline: null, endDate: { gte: now } },
+        { registrationDeadline: null, endDate: null, startDate: { gte: now } },
       ];
       if (whereClause.AND) {
         const existingAnd = Array.isArray(whereClause.AND)

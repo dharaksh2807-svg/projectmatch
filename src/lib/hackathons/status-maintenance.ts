@@ -7,11 +7,17 @@ import {
   isStaleRecord,
 } from "./utils/status";
 
+export interface PurgeResult {
+  purgedCount: number;
+  cutoffDate: Date;
+}
+
 export interface StatusMaintenanceResult {
   processed: number;
   updated: number;
   flaggedStale: number;
   flaggedContradiction: number;
+  purged: number;
   errors: number;
   durationMs: number;
   ranAt: Date;
@@ -139,6 +145,15 @@ export async function runStatusMaintenance(): Promise<StatusMaintenanceResult> {
     }
   }
 
+  // Permanently purge community/organizer hackathons older than 7-day grace period
+  let purged = 0;
+  try {
+    const purgeOutcome = await purgeExpiredHackathons(7, startedAt);
+    purged = purgeOutcome.purgedCount;
+  } catch (purgeErr) {
+    console.error("[status-maintenance] Purge job failed:", purgeErr);
+  }
+
   const durationMs = Date.now() - startedAt.getTime();
 
   const result: StatusMaintenanceResult = {
@@ -146,6 +161,7 @@ export async function runStatusMaintenance(): Promise<StatusMaintenanceResult> {
     updated,
     flaggedStale,
     flaggedContradiction,
+    purged,
     errors,
     durationMs,
     ranAt: startedAt,
@@ -154,3 +170,46 @@ export async function runStatusMaintenance(): Promise<StatusMaintenanceResult> {
   console.log("[status-maintenance] Completed:", JSON.stringify(result));
   return result;
 }
+
+/**
+ * Permanently deletes expired community/organizer hackathons from PostgreSQL
+ * whose registrationDeadline passed more than `gracePeriodDays` ago.
+ * Default grace period: 7 days.
+ */
+export async function purgeExpiredHackathons(
+  gracePeriodDays: number = 7,
+  now: Date = new Date()
+): Promise<PurgeResult> {
+  const cutoffDate = new Date(now.getTime() - gracePeriodDays * 24 * 60 * 60 * 1000);
+
+  if (!prisma.hackathon?.deleteMany) {
+    return { purgedCount: 0, cutoffDate };
+  }
+
+  try {
+    const outcome = await prisma.hackathon.deleteMany({
+      where: {
+        registrationDeadline: { lt: cutoffDate },
+        OR: [
+          { isCommunitySubmitted: true },
+          { stream: "COMMUNITY_LOCAL" },
+        ],
+      },
+    });
+
+    if (outcome.count > 0) {
+      console.log(
+        `[purgeExpiredHackathons] Purged ${outcome.count} community hackathon(s) expired before ${cutoffDate.toISOString()}`
+      );
+    }
+
+    return {
+      purgedCount: outcome.count,
+      cutoffDate,
+    };
+  } catch (err) {
+    console.error("[purgeExpiredHackathons] Error deleting expired hackathons:", err);
+    return { purgedCount: 0, cutoffDate };
+  }
+}
+

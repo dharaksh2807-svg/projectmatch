@@ -171,6 +171,10 @@ export function useHackathons() {
       if (compStatus === "ENDED" || compStatus === "COMPLETED" || compStatus === "CANCELLED") {
         continue;
       }
+      // Invariant: NEVER include hackathons whose registration deadline has passed
+      if (h.registrationDeadline && new Date(h.registrationDeadline).getTime() <= Date.now()) {
+        continue;
+      }
       if (!map.has(h.id)) {
         map.set(h.id, h);
       }

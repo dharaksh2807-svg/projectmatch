@@ -244,6 +244,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (regDeadline <= now) {
+    return NextResponse.json(
+      {
+        error: "Invalid Date",
+        message: "registrationDeadline must be in the future.",
+      },
+      { status: 400 }
+    );
+  }
+
   if (endDate <= startDate) {
     return NextResponse.json(
       {

@@ -125,10 +125,20 @@ function matchesPrismaWhere(item: any, where: any): boolean {
         const targetDate = new Date(filterObj.gte as string | number | Date).getTime();
         if (itemDate < targetDate) return false;
       }
+      if ("gt" in filterObj) {
+        const itemDate = itemVal ? new Date(itemVal).getTime() : 0;
+        const targetDate = new Date(filterObj.gt as string | number | Date).getTime();
+        if (itemDate <= targetDate) return false;
+      }
       if ("lt" in filterObj) {
         const itemDate = itemVal ? new Date(itemVal).getTime() : 0;
         const targetDate = new Date(filterObj.lt as string | number | Date).getTime();
         if (itemDate >= targetDate) return false;
+      }
+      if ("lte" in filterObj) {
+        const itemDate = itemVal ? new Date(itemVal).getTime() : 0;
+        const targetDate = new Date(filterObj.lte as string | number | Date).getTime();
+        if (itemDate > targetDate) return false;
       }
     } else {
       if (itemVal !== val) return false;
@@ -167,6 +177,14 @@ vi.mock("@/lib/prisma", () => ({
       findMany: vi.fn().mockImplementation(async ({ where }) => {
         return inMemoryDb.filter((item) => matchesPrismaWhere(item, where));
       }),
+      deleteMany: vi.fn().mockImplementation(async ({ where }) => {
+        const initialCount = inMemoryDb.length;
+        inMemoryDb = inMemoryDb.filter((item) => !matchesPrismaWhere(item, where));
+        return { count: initialCount - inMemoryDb.length };
+      }),
+      findUnique: vi.fn().mockImplementation(async ({ where }) => {
+        return inMemoryDb.find((item) => matchesPrismaWhere(item, where)) || null;
+      }),
     },
   },
 }));
@@ -185,9 +203,11 @@ vi.mock("next-auth", () => ({
   }),
 }));
 
-// Import Route Handlers under test
+// Import Route Handlers and services under test
 import { POST as submitPost } from "@/app/api/hackathons/organizer/submit/route";
 import { GET as hackathonsGet } from "@/app/api/hackathons/route";
+import { GET as rankedGet } from "@/app/api/hackathons/ranked/route";
+import { purgeExpiredHackathons } from "@/lib/hackathons/status-maintenance";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TEST SUITE: Local & College Hackathon Integration Tests
@@ -685,6 +705,219 @@ describe("Local & College Hackathons Integration Test Suite", () => {
       const json = await res.json();
       expect(json.error).toBe("Invalid Date");
       expect(json.message).toContain("endDate must be after startDate");
+    });
+  });
+
+  // ── Scenario: Automatic Removal After Deadline & 7-Day Purge ──────────────
+  describe("Automatic Hackathon Removal & 7-Day Purge", () => {
+    it("rejects registrationDeadline in the past during organizer submission", async () => {
+      const pastDeadlinePayload = {
+        name: "Expired Deadline Hackathon",
+        description: "Hackathon with an already-passed registration deadline.",
+        collegeName: "SRMIST",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        participationMode: "OFFLINE",
+        eligibilityScope: "OPEN_TO_ALL",
+        startDate: new Date(Date.now() + 86400000 * 5).toISOString(),
+        endDate: new Date(Date.now() + 86400000 * 7).toISOString(),
+        registrationDeadline: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+        registrationUrl: "https://example.com/reg",
+        organizerClubName: "GDSC SRMIST",
+        organizerContact: "gdsc@srmist.edu.in",
+      };
+
+      const req = new NextRequest("http://localhost:3000/api/hackathons/organizer/submit", {
+        method: "POST",
+        body: JSON.stringify(pastDeadlinePayload),
+      });
+
+      const res = await submitPost(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toBe("Invalid Date");
+      expect(json.message).toContain("registrationDeadline must be in the future");
+    });
+
+    it("automatically excludes hackathons whose registrationDeadline has passed from ranked discovery", async () => {
+      const activeEvent: StoredHackathon = {
+        id: "active-hackathon-1",
+        name: "Active Campus Hackathon",
+        stream: HackathonStream.COMMUNITY_LOCAL,
+        isCommunitySubmitted: true,
+        isNational: false,
+        collegeName: "SRMIST",
+        collegeSlug: "srm-ist",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        participationMode: ParticipationMode.OFFLINE,
+        eligibilityScope: EligibilityScope.ANY_COLLEGE_STUDENT,
+        startDate: new Date(Date.now() + 86400000 * 10),
+        endDate: new Date(Date.now() + 86400000 * 12),
+        registrationDeadline: new Date(Date.now() + 86400000 * 5), // Future deadline: ACTIVE
+        status: HackathonStatus.UPCOMING,
+        registrationStatus: RegistrationStatus.OPEN,
+        verificationStatus: VerificationStatus.VERIFIED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const expiredEvent: StoredHackathon = {
+        id: "expired-hackathon-1",
+        name: "Expired Campus Hackathon",
+        stream: HackathonStream.COMMUNITY_LOCAL,
+        isCommunitySubmitted: true,
+        isNational: false,
+        collegeName: "SRMIST",
+        collegeSlug: "srm-ist",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        participationMode: ParticipationMode.OFFLINE,
+        eligibilityScope: EligibilityScope.ANY_COLLEGE_STUDENT,
+        startDate: new Date(Date.now() + 86400000 * 10),
+        endDate: new Date(Date.now() + 86400000 * 12),
+        registrationDeadline: new Date(Date.now() - 3600000 * 2), // 2 hours ago: EXPIRED
+        status: HackathonStatus.UPCOMING,
+        registrationStatus: RegistrationStatus.CLOSED,
+        verificationStatus: VerificationStatus.VERIFIED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      inMemoryDb = [activeEvent, expiredEvent];
+
+      const req = new NextRequest("http://localhost:3000/api/hackathons/ranked");
+      const res = await rankedGet(req);
+      expect(res.status).toBe(200);
+      const json = await res.json();
+
+      // Collect all hackathon IDs returned across all discovery sections
+      const returnedIds = [
+        ...json.sections.featured.map((item: any) => item.hackathon?.id || item.id),
+        ...json.sections.closingSoon.map((item: any) => item.hackathon?.id || item.id),
+        ...json.sections.localCampus.map((item: any) => item.hackathon?.id || item.id),
+        ...json.sections.upcoming.map((item: any) => item.hackathon?.id || item.id),
+        ...json.sections.other.map((item: any) => item.hackathon?.id || item.id),
+      ];
+
+      // Active event must be surfaced
+      expect(returnedIds).toContain("active-hackathon-1");
+      // Expired event must be AUTOMATICALLY removed / excluded
+      expect(returnedIds).not.toContain("expired-hackathon-1");
+    });
+
+    it("automatically excludes hackathons whose registrationDeadline has passed from general listing", async () => {
+      const activeEvent: StoredHackathon = {
+        id: "active-hackathon-2",
+        name: "Active General Hackathon",
+        stream: HackathonStream.COMMUNITY_LOCAL,
+        isCommunitySubmitted: true,
+        isNational: false,
+        collegeName: "Anna University",
+        collegeSlug: "anna-univ",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        participationMode: ParticipationMode.OFFLINE,
+        eligibilityScope: EligibilityScope.ANY_COLLEGE_STUDENT,
+        startDate: new Date(Date.now() + 86400000 * 10),
+        endDate: new Date(Date.now() + 86400000 * 12),
+        registrationDeadline: new Date(Date.now() + 86400000 * 5),
+        status: HackathonStatus.UPCOMING,
+        registrationStatus: RegistrationStatus.OPEN,
+        verificationStatus: VerificationStatus.VERIFIED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const expiredEvent: StoredHackathon = {
+        id: "expired-hackathon-2",
+        name: "Expired General Hackathon",
+        stream: HackathonStream.COMMUNITY_LOCAL,
+        isCommunitySubmitted: true,
+        isNational: false,
+        collegeName: "Anna University",
+        collegeSlug: "anna-univ",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        participationMode: ParticipationMode.OFFLINE,
+        eligibilityScope: EligibilityScope.ANY_COLLEGE_STUDENT,
+        startDate: new Date(Date.now() + 86400000 * 10),
+        endDate: new Date(Date.now() + 86400000 * 12),
+        registrationDeadline: new Date(Date.now() - 3600000 * 4), // 4 hours ago: EXPIRED
+        status: HackathonStatus.UPCOMING,
+        registrationStatus: RegistrationStatus.CLOSED,
+        verificationStatus: VerificationStatus.VERIFIED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      inMemoryDb = [activeEvent, expiredEvent];
+
+      const req = new NextRequest("http://localhost:3000/api/hackathons");
+      const res = await hackathonsGet(req);
+      expect(res.status).toBe(200);
+      const json = await res.json();
+
+      const returnedIds = (json.data || json.hackathons || []).map((h: any) => h.id);
+      expect(returnedIds).toContain("active-hackathon-2");
+      expect(returnedIds).not.toContain("expired-hackathon-2");
+    });
+
+    it("permanently deletes events older than the 7-day grace period while keeping events within grace period", async () => {
+      const gracePeriodEvent: StoredHackathon = {
+        id: "grace-period-event",
+        name: "Grace Period Event",
+        stream: HackathonStream.COMMUNITY_LOCAL,
+        isCommunitySubmitted: true,
+        isNational: false,
+        collegeName: "IIT Madras",
+        collegeSlug: "iit-madras",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        participationMode: ParticipationMode.OFFLINE,
+        eligibilityScope: EligibilityScope.OPEN_TO_ALL,
+        startDate: new Date(Date.now() + 86400000 * 5),
+        endDate: new Date(Date.now() + 86400000 * 7),
+        registrationDeadline: new Date(Date.now() - 86400000 * 3), // 3 days ago: within 7-day grace period
+        status: HackathonStatus.UPCOMING,
+        registrationStatus: RegistrationStatus.CLOSED,
+        verificationStatus: VerificationStatus.VERIFIED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const purgeableEvent: StoredHackathon = {
+        id: "purgeable-event",
+        name: "Old Expired Event",
+        stream: HackathonStream.COMMUNITY_LOCAL,
+        isCommunitySubmitted: true,
+        isNational: false,
+        collegeName: "IIT Madras",
+        collegeSlug: "iit-madras",
+        city: "Chennai",
+        state: "Tamil Nadu",
+        participationMode: ParticipationMode.OFFLINE,
+        eligibilityScope: EligibilityScope.OPEN_TO_ALL,
+        startDate: new Date(Date.now() - 86400000 * 2),
+        endDate: new Date(Date.now() - 86400000 * 1),
+        registrationDeadline: new Date(Date.now() - 86400000 * 9), // 9 days ago: older than 7 days
+        status: HackathonStatus.ENDED,
+        registrationStatus: RegistrationStatus.CLOSED,
+        verificationStatus: VerificationStatus.VERIFIED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      inMemoryDb = [gracePeriodEvent, purgeableEvent];
+
+      const purgeResult = await purgeExpiredHackathons(7);
+      expect(purgeResult.purgedCount).toBe(1);
+
+      // Event within grace period must still be in the database
+      const remainingIds = inMemoryDb.map((h) => h.id);
+      expect(remainingIds).toContain("grace-period-event");
+      // Event past 7 days must be permanently deleted
+      expect(remainingIds).not.toContain("purgeable-event");
     });
   });
 });

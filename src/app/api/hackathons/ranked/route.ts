@@ -138,6 +138,13 @@ export async function GET(req: NextRequest) {
     // ── Collect independent OR-groups to merge safely ─────────────────────────
     const orGroups: Prisma.HackathonWhereInput[][] = [];
 
+    // Active deadline guard: automatically remove hackathons whose registration deadline has passed
+    orGroups.push([
+      { registrationDeadline: { gt: now } },
+      { registrationDeadline: null, endDate: { gte: now } },
+      { registrationDeadline: null, endDate: null, startDate: { gte: now } },
+    ]);
+
     // 6. College filter (slug exact + name contains)
     if (college && college !== "ALL") {
       orGroups.push([
@@ -283,8 +290,8 @@ export async function GET(req: NextRequest) {
     // pool to highlight grassroots and institutional opportunities prominently.
     const localCampus = actionable.filter(
       (h) =>
-        h.isCommunitySubmitted === true ||
-        h.stream === "COMMUNITY_LOCAL"
+        (h.isCommunitySubmitted === true || h.stream === "COMMUNITY_LOCAL") &&
+        (!h.registrationDeadline || new Date(h.registrationDeadline).getTime() > now.getTime())
     );
     const localCampusIds = new Set(localCampus.map((h) => h.id));
 

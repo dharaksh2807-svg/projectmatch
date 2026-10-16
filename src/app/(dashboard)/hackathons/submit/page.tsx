@@ -293,6 +293,7 @@ export default function SubmitHackathonPage() {
     const deadline = new Date(registrationDeadline);
     const now = new Date();
 
+    if (deadline <= now) return "Registration deadline must be in the future.";
     if (start <= now) return "Event start date must be in the future.";
     if (end <= start) return "Event end date must be after the start date.";
     if (deadline > start) return "Registration deadline must be on or before start date.";
@@ -1113,6 +1114,10 @@ export default function SubmitHackathonPage() {
                       onChange={(e) => setRegistrationDeadline(e.target.value)}
                       className="text-xs"
                     />
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                      <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+                      Auto-removal: Automatically hidden from student discovery once closed; purged after 7 days.
+                    </p>
                   </div>
 
                   <div className="space-y-1.5">
