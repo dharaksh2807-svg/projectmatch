@@ -136,6 +136,8 @@ export async function GET(req: NextRequest) {
     const sourceId = searchParams.get("sourceId");
     const includeStale = searchParams.get("includeStale") === "true";
     const includeFlagged = searchParams.get("includeFlagged") === "true";
+    const nationalOnly = searchParams.get("nationalOnly") === "true";
+    const tag = searchParams.get("tag");
 
     // Auto-seed if empty
     const count = await prisma.hackathon.count();
@@ -156,6 +158,17 @@ export async function GET(req: NextRequest) {
       verificationStatus: { not: VerificationStatus.REJECTED },
     };
 
+    if (nationalOnly) {
+      whereClause.isNational = true;
+    }
+
+    if (tag) {
+      whereClause.OR = [
+        { tags: { has: tag } },
+        { themes: { has: tag } },
+      ];
+    }
+
     // Include / exclude FLAGGED based on caller preference
     if (!includeFlagged) {
       whereClause.NOT = { verificationStatus: VerificationStatus.FLAGGED };
@@ -173,14 +186,25 @@ export async function GET(req: NextRequest) {
 
     // Text search
     if (search && search.trim().length > 0) {
-      whereClause.OR = [
+      const searchConditions = [
         { name: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
+        { organizerName: { contains: search, mode: "insensitive" } },
         { location: { contains: search, mode: "insensitive" } },
         { city: { contains: search, mode: "insensitive" } },
         { country: { contains: search, mode: "insensitive" } },
         { themes: { has: search } },
       ];
+
+      if (whereClause.OR) {
+        whereClause.AND = [
+          { OR: whereClause.OR },
+          { OR: searchConditions },
+        ];
+        delete whereClause.OR;
+      } else {
+        whereClause.OR = searchConditions;
+      }
     }
 
     // Pre-filter by view at the DB level (broad, not exhaustive — runtime engine finalizes)

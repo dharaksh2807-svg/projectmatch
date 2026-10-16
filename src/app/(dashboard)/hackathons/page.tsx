@@ -1,57 +1,31 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Trophy,
-  Calendar,
-  ExternalLink,
-  Users,
-  Search,
   Sparkles,
-  ArrowRight,
   Plus,
   Loader2,
   Zap,
+  Clock,
+  Award,
+  ShieldCheck,
+  AlertTriangle,
+  RefreshCw,
+  Filter,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast-provider";
 import { cn } from "@/lib/utils";
 
-interface HackathonProject {
-  id: string;
-  title: string;
-  projectType: string;
-  owner: {
-    name: string | null;
-    image: string | null;
-  };
-  roles: {
-    id: string;
-    title: string;
-    requiredSkills: string[];
-  }[];
-}
-
-interface HackathonItem {
-  id: string;
-  name: string;
-  description: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  devpostUrl: string | null;
-  websiteUrl: string | null;
-  location: string | null;
-  _count: {
-    projects: number;
-  };
-  projects: HackathonProject[];
-}
+import { useHackathons } from "@/hooks/useHackathons";
+import { HackathonCard } from "@/components/hackathons/hackathon-card";
+import { HackathonSkeletonGrid } from "@/components/hackathons/hackathon-skeleton";
+import { HackathonFilters } from "@/components/hackathons/hackathon-filters";
 
 interface AIMatchItem {
   roleId: string;
@@ -69,41 +43,42 @@ interface AIMatchItem {
   };
 }
 
-const CATEGORY_FILTERS = ["All", "Virtual", "In-Person", "AI & ML", "Web3"];
-
 export default function HackathonsPage() {
   const { toast } = useToast();
-  const [hackathons, setHackathons] = useState<HackathonItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // AI Matchmaker State
+  const {
+    sections,
+    hackathons,
+    visibleHackathons,
+    visibleCount,
+    hasMore,
+    loadMore,
+    loading,
+    error,
+    isCuratedSectionsView,
+    hasActiveFilters,
+    searchQuery,
+    setSearchQuery,
+    selectedMode,
+    setSelectedMode,
+    nationalOnly,
+    setNationalOnly,
+    openRegOnly,
+    setOpenRegOnly,
+    selectedCategory,
+    setSelectedCategory,
+    sortBy,
+    setSortBy,
+    resetFilters,
+    refresh,
+  } = useHackathons();
+
+  // AI Matchmaker State (Preserved from existing UI)
   const [aiMatches, setAiMatches] = useState<AIMatchItem[]>([]);
   const [loadingAi, setLoadingAi] = useState(false);
   const [aiExpanded, setAiExpanded] = useState(false);
 
-  useEffect(() => {
-    async function loadHackathons() {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/hackathons");
-        if (res.ok) {
-          const data = await res.json();
-          setHackathons(data);
-        }
-      } catch (err) {
-        console.error("Failed to load hackathons:", err);
-        toast("Failed to load hackathons", "error");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadHackathons();
-  }, [toast]);
-
-  // Load AI Matches on Demand
+  // Load AI Matches on Demand via Gemini
   const handleLoadAiMatches = async () => {
     setLoadingAi(true);
     setAiExpanded(true);
@@ -123,74 +98,10 @@ export default function HackathonsPage() {
     }
   };
 
-  // Filter hackathons
-  const filteredHackathons = useMemo(() => {
-    return hackathons.filter((h) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        h.name.toLowerCase().includes(q) ||
-        (h.description && h.description.toLowerCase().includes(q)) ||
-        (h.location && h.location.toLowerCase().includes(q));
-
-      if (!matchesSearch) return false;
-
-      if (selectedCategory === "Virtual") {
-        return (
-          h.location?.toLowerCase().includes("virtual") ||
-          h.location?.toLowerCase().includes("online")
-        );
-      }
-      if (selectedCategory === "In-Person") {
-        return (
-          h.location &&
-          !h.location.toLowerCase().includes("virtual") &&
-          !h.location.toLowerCase().includes("online")
-        );
-      }
-      if (selectedCategory === "AI & ML") {
-        return (
-          h.name.toLowerCase().includes("ai") ||
-          h.name.toLowerCase().includes("genai") ||
-          (h.description && h.description.toLowerCase().includes("ai"))
-        );
-      }
-      if (selectedCategory === "Web3") {
-        return (
-          h.name.toLowerCase().includes("eth") ||
-          h.name.toLowerCase().includes("crypto") ||
-          (h.description && h.description.toLowerCase().includes("decentralized"))
-        );
-      }
-
-      return true;
-    });
-  }, [hackathons, searchQuery, selectedCategory]);
-
-  const formatDateRange = (startStr: string | null, endStr: string | null) => {
-    if (!startStr) return "Dates TBA";
-    const start = new Date(startStr);
-    const end = endStr ? new Date(endStr) : null;
-
-    const startFormatted = start.toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-    });
-
-    if (!end) return startFormatted;
-
-    const endFormatted = end.toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-
-    return `${startFormatted} – ${endFormatted}`;
-  };
-
   return (
     <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-in font-sans min-w-0 overflow-x-hidden">
       {/* ─────────────────────────────────────────────────────────────
-          HERO BANNER
+          1. HERO BANNER (Preserved ProjectMatch Visual Identity)
           ───────────────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950/40 p-4 sm:p-6 md:p-10 shadow-2xl">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -207,7 +118,7 @@ export default function HackathonsPage() {
           </h1>
 
           <p className="text-zinc-300 text-xs sm:text-sm md:text-base leading-relaxed">
-            Browse upcoming premier hackathons, discover projects actively seeking builders, or launch your own squad to win together.
+            Browse verified national competitions and student hackathons, find teammates with complementary skills, or pitch your squad project to win together.
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
@@ -228,12 +139,23 @@ export default function HackathonsPage() {
                 Pitch a Project
               </Button>
             </Link>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refresh}
+              className="text-zinc-400 hover:text-white hover:bg-white/5 text-xs gap-1.5 ml-auto hidden sm:inline-flex"
+              title="Refresh database feed"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+              Sync Feed
+            </Button>
           </div>
         </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          AI MATCHMAKER RECOMMENDATIONS (EXPANDABLE)
+          2. AI MATCHMAKER RECOMMENDATIONS (EXPANDABLE)
           ───────────────────────────────────────────────────────────── */}
       {aiExpanded && (
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-5 md:p-6 space-y-4 animate-fade-in shadow-xl">
@@ -245,7 +167,7 @@ export default function HackathonsPage() {
               <div>
                 <h3 className="font-bold text-sm text-white">AI-Recommended Hackathon Roles</h3>
                 <p className="text-xs text-emerald-300/80">
-                  Ranked by Gemini AI comparing your profile skills against project requirements
+                  Ranked by Gemini AI comparing your profile skills against open team roles
                 </p>
               </div>
             </div>
@@ -318,177 +240,257 @@ export default function HackathonsPage() {
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          SEARCH & CATEGORY FILTERS
+          3. ADVANCED SEARCH & FILTER CONTROLS
           ───────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by hackathon name, city, or topic..."
-            className="pl-9 bg-card/60 text-base md:text-sm h-10 border-border/70 rounded-xl"
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          {CATEGORY_FILTERS.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
-                selectedCategory === cat
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
+      <HackathonFilters
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        selectedMode={selectedMode}
+        onModeChange={setSelectedMode}
+        nationalOnly={nationalOnly}
+        onNationalChange={setNationalOnly}
+        openRegOnly={openRegOnly}
+        onOpenRegChange={setOpenRegOnly}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        onResetFilters={resetFilters}
+        hasActiveFilters={hasActiveFilters}
+        totalCount={hackathons.length}
+      />
 
       {/* ─────────────────────────────────────────────────────────────
-          HACKATHON GRID
+          4. ERROR STATE
+          ───────────────────────────────────────────────────────────── */}
+      {error && (
+        <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">Unable to load hackathons</p>
+              <p className="text-xs text-destructive/80">{error}</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={refresh}
+            className="border-destructive/40 hover:bg-destructive/10 text-xs shrink-0"
+          >
+            Try Again
+          </Button>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          5. CONTENT SECTION: LOADING, EMPTY, OR DISCOVERY GRIDS
           ───────────────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="border-border/60 p-5 space-y-4">
-              <Skeleton className="h-6 w-3/4 rounded" />
-              <Skeleton className="h-4 w-1/2 rounded" />
-              <Skeleton className="h-16 w-full rounded" />
-              <div className="flex justify-between items-center pt-2">
-                <Skeleton className="h-8 w-24 rounded-lg" />
-                <Skeleton className="h-8 w-24 rounded-lg" />
-              </div>
-            </Card>
-          ))}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+            <span>Loading database-backed hackathon opportunities...</span>
+          </div>
+          <HackathonSkeletonGrid count={6} />
         </div>
-      ) : filteredHackathons.length === 0 ? (
+      ) : hackathons.length === 0 ? (
+        /* ── EMPTY STATE ── */
         <EmptyState
-          icon={<Trophy />}
+          icon={<Trophy className="w-10 h-10 text-muted-foreground" />}
           title="No Hackathons Found"
-          description="Try clearing your search query or switching categories to discover other hackathons."
-          actionLabel="Clear Filters"
-          onAction={() => {
-            setSearchQuery("");
-            setSelectedCategory("All");
-          }}
+          description={
+            hasActiveFilters
+              ? "No events matched your current search and filter combination. Try clearing some filters or searching for broader terms."
+              : "No active hackathons are currently listed in the database. Check back soon for newly synchronized competitions."
+          }
+          actionLabel={hasActiveFilters ? "Clear All Filters" : "Refresh Data"}
+          onAction={hasActiveFilters ? resetFilters : refresh}
         />
+      ) : isCuratedSectionsView ? (
+        /* ─────────────────────────────────────────────────────────────
+            DEFAULT DISCOVERY FEED: 4 CURATED RANKED SECTIONS
+            Excludes completed and cancelled events strictly.
+            Distinguishes verified national flagships prominently.
+           ───────────────────────────────────────────────────────────── */
+        <div className="space-y-10">
+          {/* SECTION 1: Featured National Competitions */}
+          {sections.featured.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      Featured National Competitions
+                      <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[10px] font-semibold">
+                        Flagship
+                      </Badge>
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Verified high-impact national initiatives and premier institutional championships.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {sections.featured.length} {sections.featured.length === 1 ? "event" : "events"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {sections.featured.map((h) => (
+                  <HackathonCard key={h.id} hackathon={h} variant="featured" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* SECTION 2: Registration Closing Soon */}
+          {sections.closingSoon.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      Registration Closing Soon
+                      <Badge className="bg-red-500/20 text-red-300 border-red-500/40 text-[10px] font-semibold animate-pulse">
+                        Urgent
+                      </Badge>
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Registration deadlines expiring within 72 hours. Finalize your squad and register before spots close.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {sections.closingSoon.length} {sections.closingSoon.length === 1 ? "event" : "events"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {sections.closingSoon.map((h) => (
+                  <HackathonCard key={h.id} hackathon={h} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* SECTION 3: Upcoming Hackathons (Priority Ranked) */}
+          {sections.upcoming.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-foreground">
+                      Upcoming Hackathons
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Ranked deterministically by national credibility, student relevance, learning value, and timeline.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {sections.upcoming.length} {sections.upcoming.length === 1 ? "event" : "events"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {sections.upcoming.map((h) => (
+                  <HackathonCard key={h.id} hackathon={h} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* SECTION 4: Other Verified Opportunities */}
+          {sections.other.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-300">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-foreground">
+                      Other Verified Opportunities
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Additional verified competitions, upcoming registration announcements, and university sprints.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {sections.other.length} {sections.other.length === 1 ? "event" : "events"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {sections.other.map((h) => (
+                  <HackathonCard key={h.id} hackathon={h} />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredHackathons.map((h) => {
-            const hasRecruitingProjects = h.projects && h.projects.length > 0;
-            const projectCount = h._count?.projects || 0;
+        /* ─────────────────────────────────────────────────────────────
+            FILTERED / CUSTOM SORT VIEW
+            Displays unified filtered results with incremental loading.
+           ───────────────────────────────────────────────────────────── */
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Filter className="w-3.5 h-3.5 text-primary" />
+              <span>
+                Showing {Math.min(visibleCount, hackathons.length)} of {hackathons.length} active opportunities
+                {searchQuery && ` matching "${searchQuery}"`}
+                {selectedCategory !== "All" && ` in ${selectedCategory}`}
+                {selectedMode !== "ALL" && ` (${selectedMode.toLowerCase()})`}
+                {nationalOnly && " [National Level Only]"}
+                {openRegOnly && " [Open Registration]"}
+              </span>
+            </div>
 
-            return (
-              <Card
-                key={h.id}
-                className="flex flex-col justify-between border-border/70 bg-card/70 backdrop-blur-sm hover:border-emerald-500/40 hover:shadow-xl transition-all duration-200 group overflow-hidden"
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="text-xs text-muted-foreground hover:text-foreground h-7"
+            >
+              Reset Filters
+            </Button>
+          </div>
+
+          {/* Card Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {visibleHackathons.map((h) => (
+              <HackathonCard key={h.id} hackathon={h} />
+            ))}
+          </div>
+
+          {/* Incremental Loading / Pagination */}
+          {hasMore && (
+            <div className="pt-6 flex flex-col items-center justify-center space-y-2">
+              <Button
+                variant="outline"
+                onClick={loadMore}
+                className="px-6 py-2 border-border/80 text-xs sm:text-sm font-semibold rounded-xl hover:bg-muted/60 transition-all shadow-sm"
               >
-                {/* Decorative Top Accent Line */}
-                <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-primary group-hover:h-2 transition-all" />
-
-                <CardHeader className="p-5 pb-3 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <Badge
-                      variant="outline"
-                      className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[11px] px-2 py-0.5"
-                    >
-                      {h.location || "Global Virtual"}
-                    </Badge>
-
-                    {projectCount > 0 && (
-                      <span className="text-[11px] font-medium text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/40">
-                        <Users className="w-3 h-3" />
-                        {projectCount} {projectCount === 1 ? "Team" : "Teams"} Recruiting
-                      </span>
-                    )}
-                  </div>
-
-                  <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                    {h.name}
-                  </CardTitle>
-
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
-                    <Calendar className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
-                    <span>{formatDateRange(h.startDate, h.endDate)}</span>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="p-5 pt-0 space-y-4">
-                  <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                    {h.description || "Join fellow hackers and innovators to build revolutionary projects."}
-                  </p>
-
-                  {/* Teammates Seeking Teammates Preview */}
-                  {hasRecruitingProjects && (
-                    <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 space-y-1.5">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-                        Open Project Roles:
-                      </span>
-                      <div className="space-y-1">
-                        {h.projects.map((p) => (
-                          <Link
-                            key={p.id}
-                            href={`/projects/${p.id}`}
-                            className="text-xs text-foreground hover:text-primary flex items-center justify-between gap-1 transition-colors truncate"
-                          >
-                            <span className="truncate">{p.title}</span>
-                            <span className="text-[10px] text-muted-foreground shrink-0">
-                              {p.roles.length} {p.roles.length === 1 ? "role" : "roles"}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-
-                <CardFooter className="p-4 sm:p-5 pt-3 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-1">
-                    {h.websiteUrl && (
-                      <a
-                        href={h.websiteUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors"
-                        title="Official Website"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Website</span>
-                      </a>
-                    )}
-                    {h.devpostUrl && (
-                      <a
-                        href={h.devpostUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 px-2 py-1 rounded hover:bg-emerald-950/40 transition-colors"
-                        title="Devpost Page"
-                      >
-                        <Trophy className="w-3.5 h-3.5" />
-                        <span>Devpost</span>
-                      </a>
-                    )}
-                  </div>
-
-                  <Link href={`/discover?projectType=Hackathon`}>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-xs h-8 gap-1 hover:text-primary hover:bg-primary/10"
-                    >
-                      Find Team
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            );
-          })}
+                Load More Hackathons ({hackathons.length - visibleCount} remaining)
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Showing {visibleHackathons.length} of {hackathons.length} events
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

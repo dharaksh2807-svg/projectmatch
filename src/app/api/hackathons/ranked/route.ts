@@ -40,6 +40,8 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
     const mode = searchParams.get("mode")?.toUpperCase();
     const sourceId = searchParams.get("sourceId");
+    const nationalOnly = searchParams.get("nationalOnly") === "true";
+    const tag = searchParams.get("tag");
 
     const where: any = {
       // Always exclude REJECTED from every feed (Phase 5 invariant)
@@ -48,14 +50,36 @@ export async function GET(req: NextRequest) {
       NOT: { status: "CANCELLED" },
     };
 
-    if (search?.trim()) {
+    if (nationalOnly) {
+      where.isNational = true;
+    }
+
+    if (tag) {
       where.OR = [
+        { tags: { has: tag } },
+        { themes: { has: tag } },
+      ];
+    }
+
+    if (search?.trim()) {
+      const searchConditions = [
         { name: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
+        { organizerName: { contains: search, mode: "insensitive" } },
         { location: { contains: search, mode: "insensitive" } },
         { city: { contains: search, mode: "insensitive" } },
         { country: { contains: search, mode: "insensitive" } },
       ];
+
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: searchConditions },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = searchConditions;
+      }
     }
 
     if (mode && ["ONLINE", "OFFLINE", "HYBRID"].includes(mode)) {

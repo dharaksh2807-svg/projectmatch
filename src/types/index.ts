@@ -120,6 +120,20 @@ export interface Hackathon {
   lastSyncAt?: string | null;
   lastVerifiedAt?: string | null;
 
+  // Runtime fields from Phase 5 & Phase 6
+  computedStatus?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "UNKNOWN" | string;
+  computedRegistrationStatus?: "OPEN" | "CLOSED" | "COMING_SOON" | "UNKNOWN" | string;
+  rankScore?: {
+    total: number;
+    breakdown?: {
+      nationalImportance: number;
+      registrationUrgency: number;
+      studentRelevance: number;
+      prizeAndLearning: number;
+      eligibilityAccessibility: number;
+    };
+  };
+
   createdAt: string;
   updatedAt: string;
   _count?: {
