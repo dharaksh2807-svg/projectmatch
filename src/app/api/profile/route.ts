@@ -22,6 +22,16 @@ const profileUpdateSchema = z.object({
   twitterHandle: z.string().max(50).trim().optional().nullable(),
   instagramHandle: z.string().max(50).trim().optional().nullable(),
   phoneNumber: z.string().max(30).trim().optional().nullable(),
+  previousProjects: z.array(z.object({
+    id: z.string().optional(),
+    title: z.string().min(2).max(120).trim(),
+    description: z.string().max(2000).trim().optional().nullable().or(z.literal("")),
+    techStack: z.array(z.string().max(50)).max(20).default([]),
+    projectUrl: z.string().url().optional().nullable().or(z.literal("")),
+    githubUrl: z.string().url().optional().nullable().or(z.literal("")),
+    driveUrl: z.string().url().optional().nullable().or(z.literal("")),
+    fileType: z.string().max(60).optional().nullable().or(z.literal("")),
+  })).max(30).optional(),
 });
 
 /**
@@ -61,6 +71,21 @@ export async function GET() {
         instagramHandle: true,
         phoneNumber: true,
         createdAt: true,
+        previousProjects: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            techStack: true,
+            projectUrl: true,
+            githubUrl: true,
+            driveUrl: true,
+            fileType: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
         connections: {
           select: {
             id: true,
@@ -120,20 +145,40 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
+  const { previousProjects, ...userFields } = parsed.data;
+
   // Normalize empty strings to null for URL fields
   const data = {
-    ...parsed.data,
-    portfolioUrl: parsed.data.portfolioUrl || null,
-    linkedinUrl: parsed.data.linkedinUrl || null,
-    githubUrl: parsed.data.githubUrl || null,
-    leetcodeUrl: parsed.data.leetcodeUrl || null,
-    codeforcesUrl: parsed.data.codeforcesUrl || null,
-    hackerrankUrl: parsed.data.hackerrankUrl || null,
-    kaggleUrl: parsed.data.kaggleUrl || null,
-    resumeUrl: parsed.data.resumeUrl || null,
+    ...userFields,
+    portfolioUrl: userFields.portfolioUrl || null,
+    linkedinUrl: userFields.linkedinUrl || null,
+    githubUrl: userFields.githubUrl || null,
+    leetcodeUrl: userFields.leetcodeUrl || null,
+    codeforcesUrl: userFields.codeforcesUrl || null,
+    hackerrankUrl: userFields.hackerrankUrl || null,
+    kaggleUrl: userFields.kaggleUrl || null,
+    resumeUrl: userFields.resumeUrl || null,
   };
 
   try {
+    if (previousProjects !== undefined) {
+      await prisma.$transaction([
+        prisma.previousProject.deleteMany({ where: { userId: session.user.id } }),
+        prisma.previousProject.createMany({
+          data: previousProjects.map((p) => ({
+            userId: session.user.id,
+            title: p.title,
+            description: p.description || null,
+            techStack: p.techStack || [],
+            projectUrl: p.projectUrl || null,
+            githubUrl: p.githubUrl || null,
+            driveUrl: p.driveUrl || null,
+            fileType: p.fileType || null,
+          })),
+        }),
+      ]);
+    }
+
     const updated = await prisma.user.update({
       where: { id: session.user.id },
       data,
@@ -159,6 +204,21 @@ export async function PATCH(req: NextRequest) {
         twitterHandle: true,
         instagramHandle: true,
         phoneNumber: true,
+        previousProjects: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            techStack: true,
+            projectUrl: true,
+            githubUrl: true,
+            driveUrl: true,
+            fileType: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 

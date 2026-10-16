@@ -23,8 +23,30 @@ export const profileSchema = z.object({
   twitterHandle: z.string().max(50).optional().nullable(),
   instagramHandle: z.string().max(50).optional().nullable(),
   phoneNumber: z.string().max(30).optional().nullable(),
+  previousProjects: z.array(z.object({
+    id: z.string().optional(),
+    title: z.string().min(2, "Title must be at least 2 characters").max(120),
+    description: z.string().max(2000, "Description cannot exceed 2000 characters").optional().nullable().or(z.literal("")),
+    techStack: z.array(z.string().min(1).max(50)).max(20, "Maximum 20 skills/tech").default([]),
+    projectUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
+    githubUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
+    driveUrl: z.string().url("Must be a valid URL (e.g. Google Drive link)").optional().nullable().or(z.literal("")),
+    fileType: z.string().max(60).optional().nullable().or(z.literal("")),
+  })).max(30, "Maximum 30 previous projects").optional(),
 });
 
+export const previousProjectSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(2, "Title must be at least 2 characters").max(120),
+  description: z.string().max(2000, "Description cannot exceed 2000 characters").optional().nullable().or(z.literal("")),
+  techStack: z.array(z.string().min(1).max(50)).max(20, "Maximum 20 skills/tech").default([]),
+  projectUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
+  githubUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
+  driveUrl: z.string().url("Must be a valid URL (e.g. Google Drive link)").optional().nullable().or(z.literal("")),
+  fileType: z.string().max(60).optional().nullable().or(z.literal("")),
+});
+
+export type PreviousProjectInput = z.infer<typeof previousProjectSchema>;
 export type ProfileInput = z.infer<typeof profileSchema>;
 
 export const roleSchema = z.object({
@@ -46,6 +68,7 @@ export const projectSchema = z.object({
   techStack: z.array(z.string().min(1)).max(30).default([]),
   repoUrl: z.string().url().optional().or(z.literal("")),
   websiteUrl: z.string().url().optional().or(z.literal("")),
+  driveUrl: z.string().url().optional().or(z.literal("")),
   isPublished: z.boolean().default(false),
   roles: z.array(roleSchema).min(1, "At least one role is required").max(10),
 });
@@ -65,6 +88,8 @@ export type RatingInput = z.infer<typeof ratingSchema>;
 export const applicationActionSchema = z.object({
   roleId: z.string().min(1, "Role ID is required"),
   message: z.string().max(2000, "Cover message cannot exceed 2000 characters").optional(),
+  projectUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  driveUrl: z.string().url("Must be a valid URL (e.g. Google Drive link)").optional().or(z.literal("")),
 });
 
 export type ApplicationActionInput = z.infer<typeof applicationActionSchema>;

@@ -14,6 +14,20 @@ export type ProjectType =
 
 export type ApplicationStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 
+export interface PreviousProject {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string | null;
+  techStack: string[];
+  projectUrl?: string | null;
+  githubUrl?: string | null;
+  driveUrl?: string | null;
+  fileType?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface UserSummary {
   id: string;
   name: string | null;
@@ -32,6 +46,7 @@ export interface UserSummary {
   resumeUrl?: string | null;
   twitterHandle?: string | null;
   reputationScore?: number;
+  previousProjects?: PreviousProject[];
 }
 
 export interface DirectMessage {
@@ -116,6 +131,7 @@ export interface Project {
   techStack: string[];
   repoUrl?: string | null;
   websiteUrl?: string | null;
+  driveUrl?: string | null;
   isPublished: boolean;
   hackathonId?: string | null;
   hackathon?: Hackathon | null;
@@ -132,6 +148,8 @@ export interface Application {
   projectId: string;
   status: ApplicationStatus;
   message: string | null;
+  projectUrl?: string | null;
+  driveUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   user?: UserSummary;

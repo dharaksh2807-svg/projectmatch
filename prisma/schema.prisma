@@ -95,10 +95,11 @@ model User {
   connections   UserConnection[]
 
   // Relations — Project Matching
-  ownedProjects  Project[]
-  applications   Application[]
-  notifications  Notification[]
-  roleBookmarks  RoleBookmark[]
+  ownedProjects    Project[]
+  applications     Application[]
+  notifications    Notification[]
+  roleBookmarks    RoleBookmark[]
+  previousProjects PreviousProject[]
 
   // Relations — Direct Messaging
   conversationsAsUserOne DirectConversation[] @relation("ConversationUserOne")
@@ -285,6 +286,7 @@ model Project {
   techStack   String[] @default([])           // e.g. ["React", "FastAPI", "PostgreSQL"]
   repoUrl     String?
   websiteUrl  String?
+  driveUrl    String?                         // Optional Drive link for specs, PDF, PPT pitch deck
   isPublished Boolean @default(false)         // draft until published
 
   hackathonId String?
@@ -356,6 +358,8 @@ model Application {
 
   status    ApplicationStatus @default(PENDING)
   message   String?  @db.Text              // optional cover note from the applicant
+  projectUrl String?                        // optional specific project demo / link for this application
+  driveUrl   String?                        // optional specific drive link (PDF/PPT/document) for this application
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -500,6 +504,30 @@ model Report {
   @@index([reportedUserId])
   @@index([projectId])
   @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// Previous Projects / Proof of Work
+// ─────────────────────────────────────────────
+
+/// Represents a past project or portfolio work completed by a user
+model PreviousProject {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?  @db.Text
+  techStack   String[] @default([])
+  projectUrl  String?                          // live demo, web app, or video demo URL
+  githubUrl   String?                          // GitHub or code repository URL
+  driveUrl    String?                          // Google Drive link for PDF / PPT / project files
+  fileType    String?                          // e.g. "Presentation (PPT)", "Project Report (PDF)", "Research Paper", "Pitch Deck", "Other Document"
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────────

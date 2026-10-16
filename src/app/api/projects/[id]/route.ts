@@ -12,6 +12,7 @@ const updateSchema = z.object({
   techStack: z.array(z.string()).max(30).optional(),
   repoUrl: z.string().url().optional().or(z.literal("")).or(z.null()),
   websiteUrl: z.string().url().optional().or(z.literal("")).or(z.null()),
+  driveUrl: z.string().url().optional().or(z.literal("")).or(z.null()),
   isPublished: z.boolean().optional(),
 });
 

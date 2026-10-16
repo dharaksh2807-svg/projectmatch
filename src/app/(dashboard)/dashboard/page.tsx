@@ -23,6 +23,7 @@ function computeProfileCompleteness(user: {
   linkedinUrl: string | null;
   leetcodeUrl: string | null;
   portfolioUrl: string | null;
+  previousProjects?: Array<{ id: string }>;
 }): { score: number; missing: string[] } {
   const missing: string[] = [];
   let points = 0;
@@ -30,16 +31,16 @@ function computeProfileCompleteness(user: {
   if (user.name) points += 10;
   else missing.push("Full Name");
 
-  if (user.bio && user.bio.trim().length > 10) points += 15;
+  if (user.bio && user.bio.trim().length > 10) points += 10;
   else missing.push("Bio / About");
 
-  if (user.skills && user.skills.length >= 3) points += 25;
+  if (user.skills && user.skills.length >= 3) points += 20;
   else missing.push("At least 3 skills");
 
-  if (user.experienceLevel) points += 15;
+  if (user.experienceLevel) points += 10;
   else missing.push("Experience Level");
 
-  if (user.availability) points += 15;
+  if (user.availability) points += 10;
   else missing.push("Availability");
 
   if (user.resumeUrl) points += 10;
@@ -47,6 +48,9 @@ function computeProfileCompleteness(user: {
 
   if (user.githubUrl || user.linkedinUrl || user.leetcodeUrl || user.portfolioUrl) points += 10;
   else missing.push("GitHub or Tech Profile link");
+
+  if (user.previousProjects && user.previousProjects.length > 0) points += 20;
+  else missing.push("Previous Projects / Proof of Work (Drive/Demo)");
 
   return { score: Math.min(100, points), missing };
 }
@@ -111,6 +115,9 @@ export default async function DashboardPage() {
           hackerrankUrl: true,
           kaggleUrl: true,
           resumeUrl: true,
+          previousProjects: {
+            select: { id: true, title: true, driveUrl: true, projectUrl: true, fileType: true },
+          },
         },
       }),
 

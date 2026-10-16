@@ -20,6 +20,8 @@ import {
   Search,
   Globe,
   Users,
+  FolderGit2,
+  ExternalLink,
 } from "lucide-react";
 import {
   GithubIcon,
@@ -29,6 +31,8 @@ import {
   HackerRankIcon,
   KaggleIcon,
   GoogleDriveIcon,
+  PdfIcon,
+  PptIcon,
 } from "@/components/shared/social-icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,11 +43,14 @@ import { useToast } from "@/components/ui/toast-provider";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { PreviousProject } from "@/types";
 
 interface ReceivedApplicant {
   id: string;
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
   message: string | null;
+  projectUrl?: string | null;
+  driveUrl?: string | null;
   createdAt: string;
   user: {
     id: string;
@@ -65,6 +72,7 @@ interface ReceivedApplicant {
     instagramHandle: string | null;
     phoneNumber: string | null;
     reputationScore: number;
+    previousProjects?: PreviousProject[];
   };
   role: {
     id: string;
@@ -622,6 +630,145 @@ export default function ApplicationsPage() {
                           })}
                         </div>
                       </div>
+
+                      {/* Attached Project / Drive Link for this application */}
+                      {(app.driveUrl || app.projectUrl) && (
+                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
+                          <span className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                            <FolderGit2 className="w-3.5 h-3.5" />
+                            Attached Project for this Application:
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {app.driveUrl && (
+                              <a
+                                href={app.driveUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs text-primary font-medium hover:underline bg-background px-2.5 py-1 rounded-lg border border-primary/30 shadow-xs"
+                              >
+                                <GoogleDriveIcon className="w-3.5 h-3.5 text-primary" />
+                                Project File / Presentation (Google Drive)
+                                <ExternalLink className="w-3 h-3 opacity-60" />
+                              </a>
+                            )}
+                            {app.projectUrl && (
+                              <a
+                                href={app.projectUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs text-foreground/90 font-medium hover:underline bg-background px-2.5 py-1 rounded-lg border border-border/60 shadow-xs"
+                              >
+                                <Globe className="w-3.5 h-3.5 text-primary" />
+                                Project Demo Link
+                                <ExternalLink className="w-3 h-3 opacity-60" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Previous Projects Showcase from Applicant's Profile */}
+                      {app.user.previousProjects && app.user.previousProjects.length > 0 && (
+                        <div className="space-y-2 pt-2 border-t border-border/40">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span className="font-semibold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-foreground/90">
+                              <FolderGit2 className="w-3.5 h-3.5 text-primary" />
+                              Previous Projects ({app.user.previousProjects.length}):
+                            </span>
+                            <Link
+                              href={`/profile/${app.user.id}`}
+                              className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                            >
+                              View full portfolio <ExternalLink className="w-2.5 h-2.5" />
+                            </Link>
+                          </div>
+
+                          <div className="grid gap-2">
+                            {app.user.previousProjects.slice(0, 3).map((proj) => {
+                              const ft = (proj.fileType || "").toLowerCase();
+                              const isPpt = ft.includes("ppt") || ft.includes("slide") || ft.includes("presentation") || ft.includes("deck");
+                              const isPdf = ft.includes("pdf") || ft.includes("report") || ft.includes("paper");
+
+                              return (
+                                <div
+                                  key={proj.id}
+                                  className="p-2.5 rounded-lg bg-card/70 border border-border/50 text-xs space-y-1.5"
+                                >
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <span className="font-medium text-foreground">
+                                      {proj.title}
+                                    </span>
+                                    {proj.driveUrl && (
+                                      <span
+                                        className={cn(
+                                          "text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-medium border",
+                                          isPpt
+                                            ? "border-amber-500/30 text-amber-500 bg-amber-500/10"
+                                            : isPdf
+                                            ? "border-rose-500/30 text-rose-500 bg-rose-500/10"
+                                            : "border-blue-500/30 text-blue-500 bg-blue-500/10"
+                                        )}
+                                      >
+                                        {isPpt ? (
+                                          <PptIcon className="w-3 h-3 text-amber-500" />
+                                        ) : isPdf ? (
+                                          <PdfIcon className="w-3 h-3 text-rose-500" />
+                                        ) : (
+                                          <GoogleDriveIcon className="w-3 h-3 text-primary" />
+                                        )}
+                                        {proj.fileType || "Document"}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {proj.description && (
+                                    <p className="text-[11px] text-muted-foreground line-clamp-1">
+                                      {proj.description}
+                                    </p>
+                                  )}
+
+                                  <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
+                                    {proj.driveUrl && (
+                                      <a
+                                        href={proj.driveUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                                      >
+                                        <GoogleDriveIcon className="w-3 h-3 text-primary" />
+                                        {isPpt ? "View Slides (PPT)" : isPdf ? "View Report (PDF)" : "View File"}
+                                        <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                      </a>
+                                    )}
+                                    {proj.projectUrl && (
+                                      <a
+                                        href={proj.projectUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                                      >
+                                        <Globe className="w-3 h-3 text-primary" /> Demo
+                                        <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                      </a>
+                                    )}
+                                    {proj.githubUrl && (
+                                      <a
+                                        href={proj.githubUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                                      >
+                                        <GithubIcon className="w-3 h-3" /> Code
+                                        <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Bio & Social Links */}
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/40">

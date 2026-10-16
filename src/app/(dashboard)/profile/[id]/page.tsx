@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Star, Link as LinkIcon, CheckCircle2, Calendar, MessageSquare, Globe, ExternalLink } from "lucide-react";
+import { Star, Link as LinkIcon, CheckCircle2, Calendar, MessageSquare, Globe, ExternalLink, FolderGit2 } from "lucide-react";
 import {
   GithubIcon,
   LinkedinIcon,
@@ -14,6 +14,8 @@ import {
   HackerRankIcon,
   KaggleIcon,
   GoogleDriveIcon,
+  PdfIcon,
+  PptIcon,
 } from "@/components/shared/social-icons";
 import { formatDistanceToNow } from "date-fns";
 import sanitizeHtml from "sanitize-html";
@@ -33,6 +35,9 @@ export default async function PublicProfilePage({
   const profile = await prisma.user.findUnique({
     where: { id: params.id },
     include: {
+      previousProjects: {
+        orderBy: { createdAt: "desc" },
+      },
       reviewsReceived: {
         include: {
           reviewer: { select: { id: true, name: true, image: true } },
@@ -246,6 +251,151 @@ export default async function PublicProfilePage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Previous Projects & Work Showcase */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <FolderGit2 className="w-5 h-5 text-primary" />
+              Previous Projects & Proof of Work
+            </h2>
+            {profile.previousProjects.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {profile.previousProjects.length}
+              </Badge>
+            )}
+          </div>
+          {loggedInUserId === profile.id && (
+            <Link href="/profile">
+              <Button variant="outline" size="sm" className="text-xs gap-1.5 border-primary/30 text-primary">
+                Manage Projects
+              </Button>
+            </Link>
+          )}
+        </div>
+
+        {profile.previousProjects.length === 0 ? (
+          <Card className="border-dashed border-border/60 bg-transparent">
+            <CardContent className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
+              <FolderGit2 className="w-8 h-8 text-muted-foreground/30" />
+              <p className="text-sm">No previous projects showcased yet.</p>
+              {loggedInUserId === profile.id && (
+                <Link href="/profile" className="text-xs text-primary hover:underline">
+                  Add your past projects and upload presentations/reports on Google Drive
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {profile.previousProjects.map((project) => {
+              const ft = (project.fileType || "").toLowerCase();
+              const isPpt = ft.includes("ppt") || ft.includes("slide") || ft.includes("presentation") || ft.includes("deck");
+              const isPdf = ft.includes("pdf") || ft.includes("report") || ft.includes("paper");
+
+              return (
+                <Card
+                  key={project.id}
+                  className="border-border/60 bg-card/60 backdrop-blur-sm shadow-sm hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-between"
+                >
+                  <CardContent className="p-5 space-y-3.5 flex-1 flex flex-col">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <h3 className="font-semibold text-base text-foreground leading-snug">
+                          {project.title}
+                        </h3>
+                        {project.driveUrl && (
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-2 py-0.5 flex items-center gap-1 shrink-0 ${
+                              isPpt
+                                ? "border-amber-500/30 text-amber-500 bg-amber-500/10"
+                                : isPdf
+                                ? "border-rose-500/30 text-rose-500 bg-rose-500/10"
+                                : "border-blue-500/30 text-blue-500 bg-blue-500/10"
+                            }`}
+                          >
+                            {isPpt ? (
+                              <PptIcon className="w-3.5 h-3.5 text-amber-500" />
+                            ) : isPdf ? (
+                              <PdfIcon className="w-3.5 h-3.5 text-rose-500" />
+                            ) : (
+                              <GoogleDriveIcon className="w-3.5 h-3.5 text-primary" />
+                            )}
+                            {project.fileType || "Project Document"}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {project.description && (
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                          {project.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {project.techStack.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {project.techStack.map((tech) => (
+                          <span
+                            key={tech}
+                            className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-muted/70 text-muted-foreground border border-border/40"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Action Links */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/40 text-xs">
+                      {project.driveUrl && (
+                        <a
+                          href={project.driveUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-primary font-medium hover:underline bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20 hover:bg-primary/20 transition-colors"
+                        >
+                          <GoogleDriveIcon className="w-3.5 h-3.5 text-primary" />
+                          {isPpt ? "View Project Slides (PPT)" : isPdf ? "View Project Report (PDF)" : "View File (Drive)"}
+                          <ExternalLink className="w-3 h-3 opacity-60 ml-0.5" />
+                        </a>
+                      )}
+
+                      {project.projectUrl && (
+                        <a
+                          href={project.projectUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-foreground/85 hover:text-foreground hover:underline px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-primary" />
+                          Live Demo
+                          <ExternalLink className="w-3 h-3 opacity-50 ml-0.5" />
+                        </a>
+                      )}
+
+                      {project.githubUrl && (
+                        <a
+                          href={project.githubUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-foreground/85 hover:text-foreground hover:underline px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
+                        >
+                          <GithubIcon className="w-3.5 h-3.5 text-foreground/80" />
+                          Code
+                          <ExternalLink className="w-3 h-3 opacity-50 ml-0.5" />
+                        </a>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Reviews Section */}
       <div className="space-y-4">

@@ -58,6 +58,13 @@ export interface SerializedUser {
   hackerrankUrl: string | null;
   kaggleUrl: string | null;
   resumeUrl: string | null;
+  previousProjects?: Array<{
+    id: string;
+    title: string;
+    driveUrl?: string | null;
+    projectUrl?: string | null;
+    fileType?: string | null;
+  }>;
 }
 
 export interface SerializedRole {
@@ -915,6 +922,26 @@ export function DashboardView({
               </div>
             </CardHeader>
             <CardContent className="p-4 pt-2 space-y-2.5">
+              {/* Previous Projects / Proof of Work */}
+              <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-secondary/40 border border-border/30">
+                <span className="flex items-center gap-2">
+                  <FolderGit2 className="w-4 h-4 text-emerald-500" />
+                  <span className="font-medium">Projects & Proof of Work</span>
+                </span>
+                {user.previousProjects && user.previousProjects.length > 0 ? (
+                  <Link
+                    href="/profile"
+                    className="text-primary hover:underline flex items-center gap-1 text-[11px] font-medium"
+                  >
+                    {user.previousProjects.length} showcase{user.previousProjects.length > 1 ? "s" : ""} <ExternalLink className="w-3 h-3" />
+                  </Link>
+                ) : (
+                  <Link href="/profile" className="text-xs text-muted-foreground hover:text-primary underline">
+                    Add projects
+                  </Link>
+                )}
+              </div>
+
               {/* Resume / CV */}
               <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-secondary/40 border border-border/30">
                 <span className="flex items-center gap-2">

@@ -8,6 +8,7 @@ import { projectSchema, type ProjectInput } from "@/lib/validations";
 import { Loader2, Plus, Trash2, Save, Rocket, AlertCircle } from "lucide-react";
 import { TagInput } from "@/components/shared/tag-input";
 import { Button } from "@/components/ui/button";
+import { GoogleDriveIcon } from "@/components/shared/social-icons";
 
 const TECH_SUGGESTIONS = [
   "React", "Next.js", "TypeScript", "Node.js", "Python", "FastAPI", "Django", "Java", "Spring",
@@ -37,6 +38,7 @@ export default function NewProjectPage() {
       techStack: [],
       repoUrl: "",
       websiteUrl: "",
+      driveUrl: "",
       isPublished: true,
       roles: [
         {
@@ -148,15 +150,16 @@ export default function NewProjectPage() {
             />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">GitHub / Repo URL (optional)</label>
+              <label className="text-sm font-medium">GitHub / Repo (optional)</label>
               <input
                 type="url"
                 {...register("repoUrl")}
                 className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
                 placeholder="https://github.com/..."
               />
+              {errors.repoUrl && <p className="text-xs text-destructive">{errors.repoUrl.message}</p>}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Live Website (optional)</label>
@@ -166,8 +169,25 @@ export default function NewProjectPage() {
                 className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
                 placeholder="https://..."
               />
+              {errors.websiteUrl && <p className="text-xs text-destructive">{errors.websiteUrl.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <GoogleDriveIcon className="w-4 h-4 text-blue-500" />
+                Project Specs / Slides (optional)
+              </label>
+              <input
+                type="url"
+                {...register("driveUrl")}
+                className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
+                placeholder="https://drive.google.com/..."
+              />
+              {errors.driveUrl && <p className="text-xs text-destructive">{errors.driveUrl.message}</p>}
             </div>
           </div>
+          <p className="text-xs text-muted-foreground -mt-3">
+            💡 Have project slides (PPT), a PDF spec report, or research paper? Paste your Google Drive link and ensure it&apos;s set to &ldquo;Anyone with link can view&rdquo;.
+          </p>
         </div>
 
         {/* Roles */}

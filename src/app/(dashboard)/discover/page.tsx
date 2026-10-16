@@ -52,6 +52,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { ApplyModal } from "@/components/applications/apply-modal";
 
 interface MatchedRole {
   id: string;
@@ -1153,44 +1154,18 @@ function ProjectRoleCard({
 }) {
   const { toast } = useToast();
   const router = useRouter();
-  const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(Boolean(role.isApplied));
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const isOwner = currentUserId === role.project.ownerId;
   const openSpots = role.openSpots ?? Math.max(role.headcount - role.filledCount, 0);
 
-  async function handleApply() {
+  function handleApplyClick() {
     if (!currentUserId) {
       toast("Please sign in to apply for projects.", "info");
       router.push("/login");
       return;
     }
-
-    setApplying(true);
-    try {
-      const res = await fetch("/api/applications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roleId: role.id, actionType: "APPLY" }),
-      });
-      const data = await res.json();
-      if (res.status === 201) {
-        setApplied(true);
-        onApplied(role.id);
-        toast(`Applied to "${role.title}" successfully!`, "success");
-      } else if (res.status === 409) {
-        setApplied(true);
-        onApplied(role.id);
-        toast(data.error || "You already applied to this role.", "info");
-      } else if (res.status === 429) {
-        toast("Too many requests. Please try again in a few minutes.", "error");
-      } else {
-        toast(data.error || "Failed to apply. Please try again.", "error");
-      }
-    } catch {
-      toast("Network error. Please check your connection.", "error");
-    } finally {
-      setApplying(false);
-    }
+    setIsApplyModalOpen(true);
   }
 
   return (
@@ -1441,8 +1416,8 @@ function ProjectRoleCard({
           {!isOwner && (
             <Button
               size="sm"
-              disabled={applying || applied}
-              onClick={handleApply}
+              disabled={applied}
+              onClick={handleApplyClick}
               aria-label={`Apply for ${role.title} on ${role.project.title}`}
               className={cn(
                 "h-8 text-xs font-semibold gap-1.5 transition-all",
@@ -1453,12 +1428,7 @@ function ProjectRoleCard({
                   : "bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white"
               )}
             >
-              {applying ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>Applying...</span>
-                </>
-              ) : applied ? (
+              {applied ? (
                 <>
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                   <span>Applied</span>
@@ -1473,6 +1443,18 @@ function ProjectRoleCard({
           )}
         </div>
       </CardFooter>
+
+      <ApplyModal
+        isOpen={isApplyModalOpen}
+        onClose={() => setIsApplyModalOpen(false)}
+        role={role}
+        projectId={role.project.id}
+        projectTitle={role.project.title}
+        onSuccess={() => {
+          setApplied(true);
+          onApplied(role.id);
+        }}
+      />
     </Card>
   );
 }

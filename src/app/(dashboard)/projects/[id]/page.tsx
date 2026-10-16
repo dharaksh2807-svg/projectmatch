@@ -23,6 +23,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast-provider";
 import { ReputationBadge } from "@/components/ratings/reputation-badge";
 import { ReportModal } from "@/components/shared/report-modal";
+import { GoogleDriveIcon } from "@/components/shared/social-icons";
+import { ApplyModal } from "@/components/applications/apply-modal";
 
 interface Role {
   id: string;
@@ -46,6 +48,7 @@ interface Project {
   techStack: string[];
   repoUrl: string | null;
   websiteUrl: string | null;
+  driveUrl: string | null;
   isPublished: boolean;
   createdAt: string;
   ownerId: string;
@@ -70,7 +73,8 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [applyingTo, setApplyingTo] = useState<string | null>(null);
+  const [selectedRoleForApply, setSelectedRoleForApply] = useState<Role | null>(null);
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadProject() {
@@ -91,37 +95,14 @@ export default function ProjectDetailPage() {
     if (id) loadProject();
   }, [id]);
 
-  const handleApply = async (roleId: string) => {
+  const onOpenApplyModal = (role: Role) => {
     if (sessionStatus !== "authenticated") {
       toast("Please log in to apply.", "info");
       router.push("/login");
       return;
     }
-    
-    setApplyingTo(roleId);
-    try {
-      const res = await fetch("/api/applications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roleId, message: "Hi! I'm interested in this role and would love to contribute." }),
-      });
-
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server returned a non-JSON response");
-      }
-
-      const data = await res.json();
-      if (res.ok) {
-        toast("Application submitted successfully! 🎉", "success");
-      } else {
-        toast(data.error || "Failed to apply.", "error");
-      }
-    } catch (err: any) {
-      toast(err.message || "Network error while applying.", "error");
-    } finally {
-      setApplyingTo(null);
-    }
+    setSelectedRoleForApply(role);
+    setIsApplyModalOpen(true);
   };
 
   if (loading) {
@@ -221,10 +202,9 @@ export default function ProjectDetailPage() {
                         ) : (
                           <Button 
                             className="brand-gradient text-white gap-2 w-full md:w-auto min-h-[44px]"
-                            disabled={applyingTo === role.id}
-                            onClick={() => handleApply(role.id)}
+                            onClick={() => onOpenApplyModal(role)}
                           >
-                            {applyingTo === role.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                            <Send className="w-4 h-4" />
                             Apply Now
                           </Button>
                         )}
@@ -257,10 +237,10 @@ export default function ProjectDetailPage() {
               </CardContent>
             </Card>
 
-            {(project.repoUrl || project.websiteUrl) && (
+            {(project.repoUrl || project.websiteUrl || project.driveUrl) && (
               <Card className="border-border/60">
                 <CardContent className="p-5 space-y-3">
-                  <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Links</h3>
+                  <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Links & Documents</h3>
                   {project.repoUrl && (
                     <a href={project.repoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:text-primary transition-colors">
                       <GitBranch className="w-4 h-4" /> GitHub Repository
@@ -269,6 +249,11 @@ export default function ProjectDetailPage() {
                   {project.websiteUrl && (
                     <a href={project.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:text-primary transition-colors">
                       <Globe className="w-4 h-4" /> Live Website
+                    </a>
+                  )}
+                  {project.driveUrl && (
+                    <a href={project.driveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors">
+                      <GoogleDriveIcon className="w-4 h-4 flex-shrink-0 text-blue-500" /> Project Specs / Slides (Drive)
                     </a>
                   )}
                 </CardContent>
@@ -298,6 +283,24 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       </div>
+
+      <ApplyModal
+        isOpen={isApplyModalOpen}
+        onClose={() => {
+          setIsApplyModalOpen(false);
+          setSelectedRoleForApply(null);
+        }}
+        role={selectedRoleForApply}
+        projectId={project.id}
+        projectTitle={project.title}
+        onSuccess={() => {
+          // Re-fetch project to update counts if needed
+          fetch(`/api/projects/${id}`)
+            .then((res) => res.json())
+            .then((data) => setProject(data))
+            .catch(() => {});
+        }}
+      />
     </div>
   );
 }

@@ -3,11 +3,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/components/ui/toast-provider";
+import type { PreviousProject } from "@/types";
 
 export interface ReceivedApplicantItem {
   id: string;
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
   message: string | null;
+  projectUrl?: string | null;
+  driveUrl?: string | null;
   createdAt: string;
   user: {
     id: string;
@@ -27,6 +30,7 @@ export interface ReceivedApplicantItem {
     resumeUrl?: string | null;
     twitterHandle: string | null;
     reputationScore: number;
+    previousProjects?: PreviousProject[];
   };
   role: {
     id: string;

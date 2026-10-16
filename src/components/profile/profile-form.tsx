@@ -17,6 +17,8 @@ import {
   GoogleDriveIcon,
 } from "@/components/shared/social-icons";
 
+import { PreviousProjectsManager } from "@/components/profile/previous-projects-manager";
+
 const SKILL_SUGGESTIONS = [
   "React", "Next.js", "TypeScript", "JavaScript", "Node.js", "Python", "Java", "Go", "Rust",
   "C++", "Swift", "Kotlin", "Figma", "UI/UX Design", "Product Design", "Graphic Design",
@@ -49,6 +51,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     watch,
     formState: { errors },
   } = useForm<ProfileInput>({
+    // @ts-expect-error type mismatch with Zod resolver
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: initialData?.name || "",
@@ -68,10 +71,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       twitterHandle: initialData?.twitterHandle || "",
       instagramHandle: initialData?.instagramHandle || "",
       phoneNumber: initialData?.phoneNumber || "",
+      previousProjects: initialData?.previousProjects || [],
     },
   });
 
   const skills = watch("skills");
+  const previousProjects = watch("previousProjects") || [];
 
   const onSubmit = async (data: ProfileInput) => {
     setStatus("saving");
@@ -217,6 +222,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           )}
         </div>
       </div>
+
+      {/* Previous Projects & Proof of Work */}
+      <PreviousProjectsManager
+        projects={previousProjects}
+        onChange={(projects) =>
+          setValue("previousProjects", projects, { shouldValidate: true, shouldDirty: true })
+        }
+      />
 
       {/* Tech & Coding Profiles */}
       <div className="space-y-4">

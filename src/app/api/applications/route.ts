@@ -8,6 +8,8 @@ import { checkRateLimit, publishEvent, userNotificationsChannel } from "@/lib/re
 const applicationSchema = z.object({
   roleId: z.string().cuid("roleId must be a valid CUID"),
   message: z.string().max(2000, "Cover message must be ≤ 2000 characters").optional(),
+  projectUrl: z.string().url().optional().nullable().or(z.literal("")),
+  driveUrl: z.string().url().optional().nullable().or(z.literal("")),
 });
 
 /**
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { roleId, message } = parsed.data;
+  const { roleId, message, projectUrl, driveUrl } = parsed.data;
 
   try {
     // Validate the role exists and is still open
@@ -92,6 +94,8 @@ export async function POST(req: NextRequest) {
           roleId,
           projectId: role.project.id,
           message: message ?? null,
+          projectUrl: projectUrl || null,
+          driveUrl: driveUrl || null,
           status: "PENDING",
         },
       }),
@@ -186,6 +190,20 @@ export async function GET(req: NextRequest) {
               instagramHandle: true,
               phoneNumber: true,
               reputationScore: true,
+              previousProjects: {
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  techStack: true,
+                  projectUrl: true,
+                  githubUrl: true,
+                  driveUrl: true,
+                  fileType: true,
+                  createdAt: true,
+                },
+                orderBy: { createdAt: "desc" },
+              },
             },
           },
           role: {

@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { projectSchema, type ProjectInput } from "@/lib/validations";
 import { TagInput } from "@/components/shared/tag-input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { GoogleDriveIcon } from "@/components/shared/social-icons";
 import {
   Loader2,
   Plus,
@@ -50,6 +51,9 @@ export function ProjectForm() {
       description: "",
       projectType: "Side Project",
       duration: "1-3 months",
+      repoUrl: "",
+      websiteUrl: "",
+      driveUrl: "",
       roles: [
         {
           title: "",
@@ -156,6 +160,43 @@ export function ProjectForm() {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Links & Resources (Optional) */}
+      <div className="space-y-3">
+        <label className="text-sm font-medium">Links & Documents (Optional)</label>
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <input
+              {...register("repoUrl")}
+              placeholder="GitHub repo URL..."
+              className="w-full h-10 px-3 rounded-xl border border-input bg-transparent text-xs placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+            />
+            {errors.repoUrl && <p className="text-[11px] text-destructive">{errors.repoUrl.message}</p>}
+          </div>
+          <div className="space-y-1">
+            <input
+              {...register("websiteUrl")}
+              placeholder="Live demo / website..."
+              className="w-full h-10 px-3 rounded-xl border border-input bg-transparent text-xs placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+            />
+            {errors.websiteUrl && <p className="text-[11px] text-destructive">{errors.websiteUrl.message}</p>}
+          </div>
+          <div className="space-y-1">
+            <div className="relative">
+              <input
+                {...register("driveUrl")}
+                placeholder="Google Drive (PDF/PPT)..."
+                className="w-full h-10 pl-8 pr-3 rounded-xl border border-input bg-transparent text-xs placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+              <GoogleDriveIcon className="w-3.5 h-3.5 text-blue-500 absolute left-2.5 top-3 pointer-events-none" />
+            </div>
+            {errors.driveUrl && <p className="text-[11px] text-destructive">{errors.driveUrl.message}</p>}
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Attach project presentation slides (PPT/Slides) or PDF specifications. Set Drive link sharing to &ldquo;Anyone with link can view&rdquo;.
+        </p>
       </div>
 
       {/* Roles Section */}

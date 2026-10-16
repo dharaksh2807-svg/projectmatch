@@ -21,6 +21,7 @@ const projectSchema = z.object({
   techStack: z.array(z.string()).max(30).default([]),
   repoUrl: z.string().url().optional().or(z.literal("")),
   websiteUrl: z.string().url().optional().or(z.literal("")),
+  driveUrl: z.string().url().optional().or(z.literal("")),
   isPublished: z.boolean().default(false),
   roles: z.array(roleSchema).min(1, "At least one role is required").max(10),
 });
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { roles, repoUrl, websiteUrl, ...projectData } = parsed.data;
+  const { roles, repoUrl, websiteUrl, driveUrl, ...projectData } = parsed.data;
 
   try {
     const project = await prisma.project.create({
@@ -126,6 +127,7 @@ export async function POST(req: NextRequest) {
         ...projectData,
         repoUrl: repoUrl || null,
         websiteUrl: websiteUrl || null,
+        driveUrl: driveUrl || null,
         ownerId: session.user.id,
         roles: {
           create: roles,

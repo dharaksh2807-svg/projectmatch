@@ -14,6 +14,11 @@ export default async function ProfilePage() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
+    include: {
+      previousProjects: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
 
   if (!user) redirect("/login");
@@ -89,6 +94,7 @@ export default async function ProfilePage() {
           twitterHandle: safeUser.twitterHandle || "",
           instagramHandle: safeUser.instagramHandle || "",
           phoneNumber: safeUser.phoneNumber || "",
+          previousProjects: safeUser.previousProjects || [],
         }}
       />
     </div>
