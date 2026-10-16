@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hackathonIngestionEngine } from "@/lib/hackathons";
+import { runStatusMaintenance } from "@/lib/hackathons/status-maintenance";
 
 /**
  * Validates whether the incoming request is authorized to trigger hackathon synchronization.
@@ -94,10 +95,21 @@ export async function POST(req: NextRequest) {
       triggeredBy,
     });
 
+    // Phase 5: After ingestion, run status maintenance to recalculate lifecycle
+    // and registration statuses for all records, flagging stale/contradictory data.
+    let maintenanceResult;
+    try {
+      maintenanceResult = await runStatusMaintenance();
+    } catch (maintErr) {
+      console.error("[sync] Status maintenance failed (non-fatal):", maintErr);
+      maintenanceResult = { error: String(maintErr) };
+    }
+
     return NextResponse.json({
       success: summary.success,
       mode: "all-sources",
       summary,
+      statusMaintenance: maintenanceResult,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -107,4 +119,13 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * GET /api/hackathons/sync
+ * Vercel Cron endpoint — triggers sync + status maintenance.
+ * The Vercel Cron scheduler calls GET; we route it through the same logic.
+ */
+export async function GET(req: NextRequest) {
+  return POST(req);
 }
