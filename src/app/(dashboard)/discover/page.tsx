@@ -1250,15 +1250,48 @@ function ProjectRoleCard({
               <span className="text-sm font-semibold text-foreground/90 truncate">{role.title}</span>
             </div>
 
-            {/* Quick-Preview Popover Button */}
-            <button
-              onClick={() => onPreviewRole(role)}
-              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 p-1 rounded hover:bg-secondary/40"
-              title="Preview role responsibilities & project overview"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span className="text-[11px]">Preview</span>
-            </button>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {/* Quick-Preview Popover Button */}
+              <button
+                onClick={() => onPreviewRole(role)}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 p-1 px-1.5 rounded hover:bg-secondary/40"
+                title="Preview role responsibilities & project overview"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span className="text-[11px]">Preview</span>
+              </button>
+
+              {/* Direct Chat Button */}
+              <Link
+                href={
+                  isOwner
+                    ? `/messages`
+                    : currentUserId
+                    ? `/messages?userId=${role.project.ownerId}&projectId=${role.project.id}`
+                    : `/login`
+                }
+                tabIndex={-1}
+              >
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className={cn(
+                    "h-6 px-2 text-[11px] gap-1 font-medium transition-all shadow-xs",
+                    isOwner
+                      ? "border-zinc-700/60 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                      : "border-primary/40 text-primary hover:bg-primary hover:text-white"
+                  )}
+                  title={
+                    isOwner
+                      ? "View your project messages & applicant chats"
+                      : `Chat with ${role.project.owner.name || "Project Lead"}`
+                  }
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  <span>{isOwner ? "Messages" : "Chat"}</span>
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
