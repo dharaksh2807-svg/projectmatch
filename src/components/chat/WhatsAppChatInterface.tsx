@@ -63,9 +63,15 @@ interface MessageItem {
 
 interface Props {
   initialConversationId?: string | null;
+  targetUserId?: string | null;
+  targetProjectId?: string | null;
 }
 
-export function WhatsAppChatInterface({ initialConversationId }: Props) {
+export function WhatsAppChatInterface({
+  initialConversationId,
+  targetUserId,
+  targetProjectId,
+}: Props) {
   const { data: session } = useSession();
   const { toast } = useToast();
 
@@ -88,6 +94,7 @@ export function WhatsAppChatInterface({ initialConversationId }: Props) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const targetInitiatedRef = useRef(false);
 
   // Scroll to bottom helper
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
@@ -102,17 +109,25 @@ export function WhatsAppChatInterface({ initialConversationId }: Props) {
         const data: ConversationItem[] = await res.json();
         setConversations(data);
 
-        // Auto-select initial or first conversation on desktop if none selected
-        if (!activeConversationId && data.length > 0 && typeof window !== "undefined" && window.innerWidth >= 768) {
+        // Auto-select initial or first conversation on desktop if none selected and not targeting someone
+        if (
+          !activeConversationId &&
+          !targetUserId &&
+          data.length > 0 &&
+          typeof window !== "undefined" &&
+          window.innerWidth >= 768
+        ) {
           setActiveConversationId(data[0].id);
         }
+        return data;
       }
     } catch (err) {
       console.error("Failed to fetch conversations:", err);
     } finally {
       setLoadingConversations(false);
     }
-  }, [activeConversationId]);
+    return [];
+  }, [activeConversationId, targetUserId]);
 
   useEffect(() => {
     let ignore = false;
@@ -126,6 +141,48 @@ export function WhatsAppChatInterface({ initialConversationId }: Props) {
       ignore = true;
     };
   }, [session, fetchConversations]);
+
+  // Handle direct targeting via URL params (e.g. ?userId=...&projectId=...)
+  useEffect(() => {
+    if (!session?.user?.id || !targetUserId || targetInitiatedRef.current) return;
+    if (targetUserId === session.user.id) {
+      toast("You cannot start a conversation with yourself", "info");
+      return;
+    }
+
+    targetInitiatedRef.current = true;
+
+    async function initTargetChat() {
+      try {
+        setLoadingConversations(true);
+        const res = await fetch("/api/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: targetUserId,
+            projectId: targetProjectId || undefined,
+          }),
+        });
+
+        if (res.ok) {
+          const conv = await res.json();
+          await fetchConversations();
+          setActiveConversationId(conv.id);
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.error("Failed to initialize target conversation:", errData);
+          toast(errData.error || "Could not open conversation", "error");
+        }
+      } catch (err) {
+        console.error("Error auto-starting conversation:", err);
+        toast("Network error starting chat", "error");
+      } finally {
+        setLoadingConversations(false);
+      }
+    }
+
+    initTargetChat();
+  }, [session, targetUserId, targetProjectId, fetchConversations, toast]);
 
   // 2. Fetch Messages for Active Conversation & setup SSE
   useEffect(() => {

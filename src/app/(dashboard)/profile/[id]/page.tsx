@@ -141,7 +141,7 @@ export default async function PublicProfilePage({
               )}
               {loggedInUserId && loggedInUserId !== profile.id && (
                 <>
-                  <Link href={`/messages`}>
+                  <Link href={`/messages?userId=${profile.id}`}>
                     <Button variant="outline" size="sm" className="gap-2">
                       <MessageSquare className="w-4 h-4" /> Message
                     </Button>

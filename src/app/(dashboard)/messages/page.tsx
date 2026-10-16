@@ -8,8 +8,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 function MessagesContent() {
   const searchParams = useSearchParams();
   const initialId = searchParams.get("c") || searchParams.get("conversationId");
+  const targetUserId = searchParams.get("userId") || searchParams.get("u");
+  const targetProjectId = searchParams.get("projectId") || searchParams.get("p");
 
-  return <WhatsAppChatInterface initialConversationId={initialId} />;
+  return (
+    <WhatsAppChatInterface
+      initialConversationId={initialId}
+      targetUserId={targetUserId}
+      targetProjectId={targetProjectId}
+    />
+  );
 }
 
 export default function MessagesPage() {

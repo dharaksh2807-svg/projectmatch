@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   Loader2,
   Send,
+  MessageSquare,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -230,6 +231,13 @@ export default function ProjectDetailPage() {
                 </div>
                 {project.owner.bio && (
                   <p className="text-sm text-muted-foreground line-clamp-3">{project.owner.bio}</p>
+                )}
+                {!isOwner && session?.user?.id && (
+                  <Link href={`/messages?userId=${project.owner.id}&projectId=${project.id}`} className="block w-full">
+                    <Button variant="outline" className="w-full gap-2 border-primary/30 text-primary hover:bg-primary hover:text-white transition-colors">
+                      <MessageSquare className="w-4 h-4" /> Message Lead
+                    </Button>
+                  </Link>
                 )}
                 <div className="text-xs text-muted-foreground pt-2 border-t border-border/50">
                   Posted {formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}

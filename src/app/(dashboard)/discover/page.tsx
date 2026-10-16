@@ -25,6 +25,7 @@ import {
   ArrowUpDown,
   ChevronDown,
   X,
+  MessageSquare,
 } from "lucide-react";
 import {
   Card,
@@ -1117,12 +1118,22 @@ export default function DiscoverPage() {
               </div>
             </div>
 
-            <DialogFooter className="pt-2 flex justify-between gap-2 sm:justify-between">
-              <Link href={`/projects/${previewRole.project.id}`}>
-                <Button size="sm" variant="outline" className="text-xs">
-                  View Full Project
-                </Button>
-              </Link>
+            <DialogFooter className="pt-2 flex justify-between gap-2 sm:justify-between items-center">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={`/projects/${previewRole.project.id}`}>
+                  <Button size="sm" variant="outline" className="text-xs">
+                    View Full Project
+                  </Button>
+                </Link>
+                {session?.user?.id && session.user.id !== previewRole.project.ownerId && (
+                  <Link href={`/messages?userId=${previewRole.project.ownerId}&projectId=${previewRole.project.id}`}>
+                    <Button size="sm" variant="outline" className="text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10">
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Chat with Lead
+                    </Button>
+                  </Link>
+                )}
+              </div>
               <DialogClose render={<Button size="sm" variant="secondary" className="text-xs">Close</Button>} />
             </DialogFooter>
           </DialogContent>
@@ -1412,6 +1423,27 @@ function ProjectRoleCard({
               <ChevronRight className="w-3 h-3" aria-hidden="true" />
             </Button>
           </Link>
+
+          {!isOwner && (
+            <Link
+              href={
+                currentUserId
+                  ? `/messages?userId=${role.project.ownerId}&projectId=${role.project.id}`
+                  : `/login`
+              }
+              tabIndex={-1}
+            >
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1 border-primary/20 text-primary hover:bg-primary/10"
+                aria-label={`Chat with ${role.project.owner.name || "Project Lead"}`}
+              >
+                <MessageSquare className="w-3 h-3" />
+                <span>Chat</span>
+              </Button>
+            </Link>
+          )}
 
           {!isOwner && (
             <Button
