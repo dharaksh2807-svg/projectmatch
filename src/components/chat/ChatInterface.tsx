@@ -116,7 +116,7 @@ export function ChatInterface() {
 
   if (!activeAgent) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 bg-zinc-950/30">
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-background">
         <Bot className="w-16 h-16 mb-4 opacity-50" />
         <p className="text-lg">Select or configure an agent to start chatting.</p>
       </div>
@@ -124,13 +124,13 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-zinc-950/50 relative overflow-hidden">
+    <div className="flex-1 flex flex-col bg-background relative overflow-hidden">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 scroll-smooth">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-zinc-500">
-            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4">
-              <Bot className="w-6 h-6 text-zinc-400" />
+          <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Bot className="w-6 h-6 text-muted-foreground" />
             </div>
             <p>Say hello to {activeAgent.name}</p>
             <p className="text-xs mt-2 opacity-70">
@@ -151,11 +151,11 @@ export function ChatInterface() {
                 } items-end gap-2`}
               >
                 {/* Avatar */}
-                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/10">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-muted/80 backdrop-blur-md border border-border">
                   {msg.role === "USER" ? (
-                    <User className="w-4 h-4 text-blue-400" />
+                    <User className="w-4 h-4 text-primary" />
                   ) : (
-                    <Bot className="w-4 h-4 text-zinc-300" />
+                    <Bot className="w-4 h-4 text-foreground" />
                   )}
                 </div>
 
@@ -164,14 +164,14 @@ export function ChatInterface() {
                   <div
                     className={`px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed ${
                       msg.role === "USER"
-                        ? "bg-blue-600/90 text-white rounded-br-sm backdrop-blur-md"
-                        : "bg-zinc-800/80 text-zinc-100 rounded-bl-sm backdrop-blur-md border border-white/5"
+                        ? "bg-primary text-primary-foreground rounded-br-sm backdrop-blur-md shadow-sm"
+                        : "bg-card text-card-foreground rounded-bl-sm backdrop-blur-md border border-border shadow-sm"
                     }`}
                   >
                     {msg.role === "USER" ? (
                       <div className="whitespace-pre-wrap">{msg.content}</div>
                     ) : (
-                      <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-700">
+                      <div className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-muted prose-pre:border prose-pre:border-border">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {msg.content}
                         </ReactMarkdown>
@@ -181,7 +181,7 @@ export function ChatInterface() {
                   
                   {/* Metadata for Assistant */}
                   {msg.role === "ASSISTANT" && (
-                    <div className="flex items-center gap-2 text-[10px] text-zinc-500 pl-1">
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground pl-1">
                       <span>{getModelName(activeAgent.modelId)}</span>
                       <span>•</span>
                       <span>~{Math.ceil(msg.content.length / 4)} tokens</span>
@@ -200,7 +200,7 @@ export function ChatInterface() {
               variant="outline"
               size="sm"
               onClick={handleStop}
-              className="rounded-full bg-zinc-900/80 border-zinc-700 text-zinc-300 hover:text-white flex items-center gap-2"
+              className="rounded-full bg-card border-border text-foreground hover:bg-accent flex items-center gap-2 shadow-sm"
             >
               <Square className="w-3 h-3 fill-current" />
               Stop Generating
@@ -212,7 +212,7 @@ export function ChatInterface() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-zinc-950/80 backdrop-blur-xl border-t border-white/10">
+      <div className="p-4 bg-background/80 backdrop-blur-xl border-t border-border">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -224,14 +224,14 @@ export function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
-            className="w-full bg-black/50 border-white/20 text-white rounded-full pl-6 pr-14 py-6 focus-visible:ring-1 focus-visible:ring-blue-500 shadow-inner"
+            className="w-full bg-card border-border text-foreground placeholder:text-muted-foreground rounded-full pl-6 pr-14 py-6 focus-visible:ring-1 focus-visible:ring-ring shadow-sm"
             disabled={isStreaming}
           />
           <Button
             type="submit"
             size="icon"
             disabled={!input.trim() || isStreaming}
-            className="absolute right-2 rounded-full w-10 h-10 bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md"
+            className="absolute right-2 rounded-full w-10 h-10 bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-md"
           >
             <Send className="w-4 h-4 ml-1" />
           </Button>

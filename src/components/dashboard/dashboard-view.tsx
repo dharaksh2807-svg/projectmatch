@@ -737,7 +737,7 @@ export function DashboardView({
                               ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
                               : app.status === "REJECTED"
                               ? "bg-rose-500/15 text-rose-400 border-rose-500/30"
-                              : "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"
+                              : "bg-muted text-muted-foreground border-border"
                           )}
                         >
                           {app.status === "PENDING"

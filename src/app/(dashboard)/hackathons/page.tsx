@@ -107,21 +107,21 @@ function HackathonsPageContent() {
       {/* ─────────────────────────────────────────────────────────────
           1. HERO BANNER (Preserved ProjectMatch Visual Identity)
           ───────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950/40 p-4 sm:p-6 md:p-10 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-emerald-950/20 dark:from-zinc-950 dark:via-zinc-900 dark:to-emerald-950/40 p-4 sm:p-6 md:p-10 shadow-xl">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 -mb-12 w-64 h-64 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider">
             <Trophy className="w-3.5 h-3.5" />
             Hackathon Arena
           </div>
 
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
             Find Your Winning Hackathon Team
           </h1>
 
-          <p className="text-zinc-300 text-xs sm:text-sm md:text-base leading-relaxed">
+          <p className="text-muted-foreground text-xs sm:text-sm md:text-base leading-relaxed">
             Browse verified national competitions and student hackathons, find teammates with complementary skills, or pitch your squad project to win together.
           </p>
 
@@ -137,7 +137,7 @@ function HackathonsPageContent() {
             <Link href="/projects/new" className="w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 text-xs sm:text-sm gap-1.5"
+                className="w-full sm:w-auto border-border text-foreground hover:bg-accent text-xs sm:text-sm gap-1.5"
               >
                 <Plus className="w-4 h-4" />
                 Pitch a Project
@@ -157,7 +157,7 @@ function HackathonsPageContent() {
               variant="ghost"
               size="sm"
               onClick={refresh}
-              className="text-zinc-400 hover:text-white hover:bg-white/5 text-xs gap-1.5 ml-auto hidden sm:inline-flex"
+              className="text-muted-foreground hover:text-foreground hover:bg-accent text-xs gap-1.5 ml-auto hidden sm:inline-flex"
               title="Refresh database feed"
             >
               <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
@@ -171,34 +171,34 @@ function HackathonsPageContent() {
           2. AI MATCHMAKER RECOMMENDATIONS (EXPANDABLE)
           ───────────────────────────────────────────────────────────── */}
       {aiExpanded && (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-5 md:p-6 space-y-4 animate-fade-in shadow-xl">
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/10 dark:bg-emerald-950/20 p-5 md:p-6 space-y-4 animate-fade-in shadow-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-500 dark:text-emerald-400">
                 <Zap className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-white">AI-Recommended Hackathon Roles</h3>
-                <p className="text-xs text-emerald-300/80">
+                <h3 className="font-bold text-sm text-foreground">AI-Recommended Hackathon Roles</h3>
+                <p className="text-xs text-muted-foreground">
                   Ranked by Gemini AI comparing your profile skills against open team roles
                 </p>
               </div>
             </div>
             <button
               onClick={() => setAiExpanded(false)}
-              className="text-xs text-zinc-400 hover:text-white"
+              className="text-xs text-muted-foreground hover:text-foreground"
             >
               Dismiss
             </button>
           </div>
 
           {loadingAi ? (
-            <div className="py-8 flex flex-col items-center justify-center space-y-2 text-zinc-400">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+            <div className="py-8 flex flex-col items-center justify-center space-y-2 text-muted-foreground">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-500 dark:text-emerald-400" />
               <p className="text-xs">Computing role compatibility via Gemini...</p>
             </div>
           ) : aiMatches.length === 0 ? (
-            <p className="text-xs text-zinc-400 py-4 text-center">
+            <p className="text-xs text-muted-foreground py-4 text-center">
               No matching hackathon roles found for your current profile. Update your skills in your profile to get personalized matches!
             </p>
           ) : (
@@ -206,22 +206,22 @@ function HackathonsPageContent() {
               {aiMatches.map((m) => (
                 <Card
                   key={m.roleId}
-                  className="bg-zinc-900/90 border-emerald-500/20 hover:border-emerald-500/40 transition-all"
+                  className="bg-card border-border hover:border-emerald-500/40 transition-all text-card-foreground shadow-sm"
                 >
                   <CardContent className="p-4 space-y-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">
                           {m.role.project.title}
                         </span>
-                        <h4 className="font-semibold text-sm text-white">{m.role.title}</h4>
+                        <h4 className="font-semibold text-sm text-foreground">{m.role.title}</h4>
                       </div>
-                      <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold text-xs shrink-0">
+                      <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40 font-bold text-xs shrink-0">
                         {m.aiScore}% Match
                       </Badge>
                     </div>
 
-                    <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                       {m.explanation}
                     </p>
 
@@ -229,7 +229,7 @@ function HackathonsPageContent() {
                       {m.role.requiredSkills.slice(0, 3).map((s) => (
                         <span
                           key={s}
-                          className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300"
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
                         >
                           {s}
                         </span>
@@ -336,7 +336,7 @@ function HackathonsPageContent() {
         <div className="space-y-10">
           {/* STREAM SWITCHER TABS & SUMMARY */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-3">
-            <div className="flex flex-wrap items-center p-1 rounded-2xl bg-zinc-900/90 border border-border/60 w-fit gap-1 shadow-inner">
+            <div className="flex flex-wrap items-center p-1 rounded-2xl bg-muted/70 border border-border w-fit gap-1 shadow-sm">
               <button
                 type="button"
                 onClick={() => setSelectedStream("ALL")}
@@ -344,7 +344,7 @@ function HackathonsPageContent() {
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
                   selectedStream === "ALL"
                     ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/40"
-                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background"
                 )}
               >
                 <Zap className="w-3.5 h-3.5" />
@@ -361,7 +361,7 @@ function HackathonsPageContent() {
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
                   selectedStream === "CAMPUS"
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/40"
-                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background"
                 )}
               >
                 <Building2 className="w-3.5 h-3.5 text-indigo-300" />
@@ -378,7 +378,7 @@ function HackathonsPageContent() {
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
                   selectedStream === "NATIONAL"
                     ? "bg-amber-600 text-white shadow-md shadow-amber-950/40"
-                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background"
                 )}
               >
                 <Trophy className="w-3.5 h-3.5 text-amber-300" />

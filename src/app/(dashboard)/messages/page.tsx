@@ -24,7 +24,7 @@ export default function MessagesPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-[calc(100dvh-7.5rem)] md:h-[100dvh] w-full items-center justify-center bg-zinc-950">
+        <div className="flex h-[calc(100dvh-7.5rem)] md:h-[100dvh] w-full items-center justify-center bg-background">
           <div className="space-y-4 text-center">
             <Skeleton className="h-10 w-48 mx-auto rounded-xl" />
             <Skeleton className="h-4 w-64 mx-auto rounded" />

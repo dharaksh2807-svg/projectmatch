@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Sparkles, GitBranch, Globe, Loader2, ArrowLeft } from "lucide-react";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const DEMO_USERS = [
   {
@@ -69,14 +70,17 @@ export default function LoginPage() {
 
   return (
     <div className="animate-slide-up max-w-md mx-auto">
-      {/* Back link */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to home
-      </Link>
+      {/* Top bar */}
+      <div className="flex items-center justify-between mb-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to home
+        </Link>
+        <ModeToggle />
+      </div>
 
       {/* Card */}
       <div className="glass-card rounded-2xl p-8 border border-border/50 shadow-xl">

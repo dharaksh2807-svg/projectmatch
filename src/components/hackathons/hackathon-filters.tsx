@@ -166,16 +166,16 @@ export function HackathonFilters({
               onChange={(e) => onSortChange(e.target.value as SortOption)}
               className="bg-transparent text-foreground font-semibold focus:outline-none cursor-pointer pr-1"
             >
-              <option value="ranked" className="bg-zinc-900 text-white">
+              <option value="ranked" className="bg-popover text-popover-foreground">
                 Priority Ranked (Default)
               </option>
-              <option value="deadline" className="bg-zinc-900 text-white">
+              <option value="deadline" className="bg-popover text-popover-foreground">
                 Registration Deadline (Soonest)
               </option>
-              <option value="startDate" className="bg-zinc-900 text-white">
+              <option value="startDate" className="bg-popover text-popover-foreground">
                 Event Start Date (Soonest)
               </option>
-              <option value="prize" className="bg-zinc-900 text-white">
+              <option value="prize" className="bg-popover text-popover-foreground">
                 Prize Pool (Highest)
               </option>
             </select>
@@ -337,7 +337,7 @@ export function HackathonFilters({
                 className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer truncate"
               >
                 {CITY_OPTIONS.map((c) => (
-                  <option key={c.value} value={c.value} className="bg-zinc-900 text-white">
+                  <option key={c.value} value={c.value} className="bg-popover text-popover-foreground">
                     {c.label}
                   </option>
                 ))}
@@ -367,7 +367,7 @@ export function HackathonFilters({
                 className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer truncate"
               >
                 {COLLEGE_OPTIONS.map((c) => (
-                  <option key={c.value} value={c.value} className="bg-zinc-900 text-white">
+                  <option key={c.value} value={c.value} className="bg-popover text-popover-foreground">
                     {c.label}
                   </option>
                 ))}
@@ -397,7 +397,7 @@ export function HackathonFilters({
                 className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer truncate"
               >
                 {ELIGIBILITY_OPTIONS.map((e) => (
-                  <option key={e.value} value={e.value} className="bg-zinc-900 text-white">
+                  <option key={e.value} value={e.value} className="bg-popover text-popover-foreground">
                     {e.label}
                   </option>
                 ))}

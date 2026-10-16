@@ -301,10 +301,10 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
             {(hackathon.organizerClubName || hackathon.organizerName) && (
               <Badge
                 variant="outline"
-                className="bg-zinc-800/80 text-zinc-300 border-zinc-700/60 text-[10px] px-2 py-0.5 gap-1 font-medium"
+                className="bg-muted text-muted-foreground border-border text-[10px] px-2 py-0.5 gap-1 font-medium"
               >
                 <span className="text-muted-foreground">Org:</span>
-                <span className="font-semibold text-zinc-200">
+                <span className="font-semibold text-foreground">
                   {hackathon.organizerClubName || hackathon.organizerName}
                 </span>
               </Badge>
@@ -510,7 +510,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
 
           {/* Free entry badge */}
           {hackathon.registrationFee === 0 && (
-            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-[11px]">
+            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-muted-foreground border border-border text-[11px]">
               <span>Free Entry</span>
             </div>
           )}
@@ -541,7 +541,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
             {allTags.slice(0, 4).map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800/80 border border-zinc-700/50 text-zinc-300 font-medium"
+                className="text-[10px] px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground font-medium"
               >
                 {tag}
               </span>
@@ -559,7 +559,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
           <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50 space-y-1.5 mt-2">
             <div className="flex items-center justify-between text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
               <span>Recruiting Teams on ProjectMatch:</span>
-              <span className="text-emerald-400">{openRoles.length} open roles</span>
+              <span className="text-emerald-500 dark:text-emerald-400">{openRoles.length} open roles</span>
             </div>
             <div className="space-y-1">
               {openRoles.slice(0, 2).map((role) => (
@@ -569,7 +569,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
                   className="text-xs text-foreground hover:text-primary flex items-center justify-between gap-1 transition-colors truncate group/role"
                 >
                   <span className="truncate group-hover/role:underline">{role.projectTitle}</span>
-                  <span className="text-[10px] text-muted-foreground shrink-0 px-1.5 py-0.2 rounded bg-zinc-800">
+                  <span className="text-[10px] text-muted-foreground shrink-0 px-1.5 py-0.2 rounded bg-muted border border-border">
                     {role.title}
                   </span>
                 </Link>

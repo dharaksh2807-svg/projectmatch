@@ -84,18 +84,18 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-7.5rem)] md:h-[100dvh] w-full overflow-hidden bg-zinc-950">
+    <div className="flex flex-col h-[calc(100dvh-7.5rem)] md:h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       {/* Top Mode Switcher Bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/80 bg-zinc-950 shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background/95 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-2">
-          <div className="flex items-center p-0.5 rounded-lg bg-zinc-900 border border-zinc-800">
+          <div className="flex items-center p-0.5 rounded-lg bg-muted border border-border">
             <button
               onClick={() => setChatTab("direct")}
               className={cn(
                 "px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
                 chatTab === "direct"
                   ? "bg-emerald-600 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <MessageSquare className="w-3.5 h-3.5" />
@@ -107,7 +107,7 @@ export default function ChatPage() {
                 "px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
                 chatTab === "agent"
                   ? "bg-blue-600 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Bot className="w-3.5 h-3.5" />
@@ -116,7 +116,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <span className="text-[11px] text-zinc-500 hidden sm:inline">
+        <span className="text-[11px] text-muted-foreground hidden sm:inline">
           {chatTab === "direct" ? "Direct Chat Split-Pane • Live Redis SSE" : "LLM Multi-Agent Sandbox"}
         </span>
       </div>
@@ -130,10 +130,10 @@ export default function ChatPage() {
       
       
       {/* Chat History Sidebar (Desktop) */}
-      <div className="hidden md:flex flex-col w-64 border-r border-white/10 bg-zinc-950/50">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <span className="text-sm font-semibold text-zinc-300">Chat History</span>
-          <Button variant="ghost" size="icon" onClick={() => clearChat()} className="h-6 w-6 text-zinc-400 hover:text-white" title="New Chat">
+      <div className="hidden md:flex flex-col w-64 border-r border-border bg-sidebar">
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <span className="text-sm font-semibold text-foreground">Chat History</span>
+          <Button variant="ghost" size="icon" onClick={() => clearChat()} className="h-6 w-6 text-muted-foreground hover:text-foreground" title="New Chat">
             <PlusCircle className="w-4 h-4" />
           </Button>
         </div>
@@ -143,7 +143,7 @@ export default function ChatPage() {
               key={chat.id}
               onClick={() => loadChatHistory(chat.id)}
               className={`flex items-center justify-between p-2 rounded-lg cursor-pointer group text-sm transition-colors ${
-                activeChatId === chat.id ? "bg-blue-600/20 text-blue-400" : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+                activeChatId === chat.id ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
               <div className="flex items-center gap-2 overflow-hidden">
@@ -154,34 +154,34 @@ export default function ChatPage() {
                 variant="ghost"
                 size="icon"
                 onClick={(e) => handleDeleteChat(e, chat.id)}
-                className="opacity-0 group-hover:opacity-100 h-6 w-6 text-zinc-500 hover:text-red-400"
+                className="opacity-0 group-hover:opacity-100 h-6 w-6 text-muted-foreground hover:text-destructive"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </div>
           ))}
           {chatList.length === 0 && (
-            <div className="p-4 text-center text-xs text-zinc-600">No recent chats</div>
+            <div className="p-4 text-center text-xs text-muted-foreground">No recent chats</div>
           )}
         </div>
       </div>
 
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/10 bg-zinc-950/80 backdrop-blur-md shrink-0">
+        <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border bg-background/80 backdrop-blur-md shrink-0">
         <div className="flex items-center space-x-4">
           {/* Mobile Hamburger Menu */}
           <div className="md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger render={
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-400 hover:text-white">
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
                   <Menu className="w-5 h-5" />
                 </Button>
               } />
-              <SheetContent side="left" className="w-72 p-0 bg-zinc-950 border-white/10 text-white flex flex-col">
-                <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-zinc-300">Chat History</span>
-                  <Button variant="ghost" size="icon" onClick={() => { clearChat(); setIsMobileMenuOpen(false); }} className="h-6 w-6 text-zinc-400 hover:text-white" title="New Chat">
+              <SheetContent side="left" className="w-72 p-0 bg-sidebar border-border text-foreground flex flex-col">
+                <div className="p-4 border-b border-border flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground">Chat History</span>
+                  <Button variant="ghost" size="icon" onClick={() => { clearChat(); setIsMobileMenuOpen(false); }} className="h-6 w-6 text-muted-foreground hover:text-foreground" title="New Chat">
                     <PlusCircle className="w-4 h-4" />
                   </Button>
                 </div>
@@ -191,7 +191,7 @@ export default function ChatPage() {
                       key={chat.id}
                       onClick={() => { loadChatHistory(chat.id); setIsMobileMenuOpen(false); }}
                       className={`flex items-center justify-between p-2 rounded-lg cursor-pointer group text-sm transition-colors ${
-                        activeChatId === chat.id ? "bg-blue-600/20 text-blue-400" : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+                        activeChatId === chat.id ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground"
                       }`}
                     >
                       <div className="flex items-center gap-2 overflow-hidden">
@@ -202,26 +202,26 @@ export default function ChatPage() {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => handleDeleteChat(e, chat.id)}
-                        className="h-6 w-6 text-zinc-500 hover:text-red-400"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   ))}
                   {chatList.length === 0 && (
-                    <div className="p-4 text-center text-xs text-zinc-600">No recent chats</div>
+                    <div className="p-4 text-center text-xs text-muted-foreground">No recent chats</div>
                   )}
                 </div>
               </SheetContent>
             </Sheet>
           </div>
 
-          <div className="flex items-center space-x-2 text-zinc-100 font-semibold">
-            <Bot className="w-5 h-5 text-blue-400" />
+          <div className="flex items-center space-x-2 text-foreground font-semibold">
+            <Bot className="w-5 h-5 text-primary" />
             <span className="hidden sm:inline">Agent Workspace</span>
           </div>
 
-          <div className="hidden sm:block h-6 w-px bg-white/10 mx-2" />
+          <div className="hidden sm:block h-6 w-px bg-border mx-2" />
 
           {/* Agent Selector */}
           <div className="flex items-center space-x-2">
@@ -229,10 +229,10 @@ export default function ChatPage() {
               value={activeAgent?.id}
               onValueChange={handleAgentSelect}
             >
-              <SelectTrigger className="w-[200px] h-9 bg-white/5 border-white/10 text-white hover:bg-white/10 transition-colors">
+              <SelectTrigger className="w-[200px] h-9 bg-background border-border text-foreground hover:bg-accent transition-colors">
                 <SelectValue placeholder="Select an Agent" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-white/10 text-white">
+              <SelectContent className="bg-popover border-border text-popover-foreground">
                 {agents.map((a) => (
                   <SelectItem key={a.id} value={a.id} className="cursor-pointer">
                     {a.name}
@@ -248,7 +248,7 @@ export default function ChatPage() {
             variant="outline"
             size="sm"
             onClick={() => setIsConfigOpen(true)}
-            className="h-9 border-white/10 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            className="h-9 border-border bg-transparent text-foreground hover:bg-accent"
           >
             <PlusCircle className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">New Agent</span>
@@ -258,7 +258,7 @@ export default function ChatPage() {
             variant="ghost"
             size="icon"
             onClick={() => setIsConfigOpen(true)}
-            className="h-9 w-9 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full"
             title="Configure Agent"
           >
             <Settings2 className="w-5 h-5" />

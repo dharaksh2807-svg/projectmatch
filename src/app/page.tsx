@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles, Users, Zap, Star, Code2, Palette, Brain } from "lucide-react";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const features = [
   {
@@ -54,16 +55,16 @@ export default function HomePage() {
             </div>
             <span className="font-bold text-lg tracking-tight">ProjectMatch</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/hackathons"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5 hidden sm:inline"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-accent hidden sm:inline"
             >
               Hackathons
             </Link>
             <Link
               href="/login"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3.5 py-1.5 rounded-lg hover:bg-accent"
             >
               Sign In
             </Link>
@@ -73,6 +74,7 @@ export default function HomePage() {
             >
               Get Started
             </Link>
+            <ModeToggle />
           </div>
         </div>
       </nav>
@@ -167,7 +169,7 @@ export default function HomePage() {
             {features.map(({ icon: Icon, title, description }) => (
               <div
                 key={title}
-                className="group glass-card rounded-2xl p-6 hover:border-primary/20 hover:bg-white/5 transition-all duration-300 hover:-translate-y-1"
+                className="group glass-card rounded-2xl p-6 hover:border-primary/30 hover:bg-accent/40 transition-all duration-300 hover:-translate-y-1"
               >
                 <div className="w-12 h-12 rounded-xl brand-gradient flex items-center justify-center mb-4 glow-sm group-hover:scale-110 transition-transform">
                   <Icon className="w-6 h-6 text-white" />
