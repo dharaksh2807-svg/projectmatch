@@ -6,8 +6,38 @@ import { z } from "zod";
 import {
   HackathonStatus,
   VerificationStatus,
+  ParticipationMode,
+  EligibilityScope,
+  Prisma,
 } from "@prisma/client";
 import { classifyForDiscovery, DiscoveryView } from "@/lib/hackathons/utils/status";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OR-group helper — prevents illegal duplicate top-level OR keys on a single
+// Prisma where object when multiple independent OR conditions coexist.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function mergeOrGroups(
+  where: Prisma.HackathonWhereInput,
+  orGroups: Prisma.HackathonWhereInput[][]
+): void {
+  const nonEmpty = orGroups.filter((g) => g.length > 0);
+  if (nonEmpty.length === 0) return;
+  if (nonEmpty.length === 1) {
+    where.OR = nonEmpty[0];
+    return;
+  }
+  const existingAnd = Array.isArray(where.AND)
+    ? (where.AND as Prisma.HackathonWhereInput[])
+    : where.AND
+    ? [where.AND as Prisma.HackathonWhereInput]
+    : [];
+  where.AND = [
+    ...existingAnd,
+    ...nonEmpty.map((g) => ({ OR: g } as Prisma.HackathonWhereInput)),
+  ];
+  delete where.OR;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/hackathons — schema
@@ -116,62 +146,63 @@ function parseView(raw: string | null): DiscoveryView | "all" {
  * Fetch hackathons with Phase 5 runtime status classification.
  *
  * Query parameters:
- *   search        — full-text search across name, description, location
+ *   search        — full-text search across name, description, organizer, city
  *   view          — main (default) | upcoming-reg | reg-closed | past | cancelled | all
  *   page          — 1-indexed page number (default: 1)
  *   pageSize      — results per page (default: 20, max: 100)
- *   mode          — ONLINE | OFFLINE | HYBRID (filter by participation mode)
+ *   mode          — ALL | ONLINE | OFFLINE | HYBRID
+ *   college       — collegeSlug exact match OR collegeName contains (e.g. "srm-ist")
+ *   city          — city name, case-insensitive exact match (e.g. "Chennai")
+ *   eligibility   — ALL | OPEN_TO_ALL | ANY_COLLEGE_STUDENT | HOST_COLLEGE_ONLY
+ *   openRegOnly   — "true" → only events whose registrationDeadline >= now
+ *   sortBy        — ranked | deadline | startDate | prize
  *   sourceId      — filter by specific source (e.g. "hackclub", "kaggle")
+ *   tag           — filter by tag or theme exact match
+ *   nationalOnly  — "true" → restrict to isNational = true
  *   includeStale  — "true" to include stale records in MAIN view (default: false)
  *   includeFlagged — "true" to include FLAGGED verification records (default: false)
  */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const search = searchParams.get("search");
+    const now = new Date();
+
+    // ── Parse query params ────────────────────────────────────────────────────
+    const search = searchParams.get("search")?.trim() ?? null;
     const view = parseView(searchParams.get("view"));
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
     const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20", 10)));
-    const mode = searchParams.get("mode")?.toUpperCase();
-    const sourceId = searchParams.get("sourceId");
+    const mode = searchParams.get("mode")?.toUpperCase() ?? "ALL";
+    const college = searchParams.get("college")?.trim() ?? null;
+    const city = searchParams.get("city")?.trim() ?? null;
+    const eligibility = searchParams.get("eligibility")?.toUpperCase() ?? "ALL";
+    const openRegOnly = searchParams.get("openRegOnly") === "true";
+    const sortBy = searchParams.get("sortBy") ?? "ranked";
+    const sourceId = searchParams.get("sourceId") ?? null;
+    const nationalOnly = searchParams.get("nationalOnly") === "true";
+    const tag = searchParams.get("tag") ?? null;
     const includeStale = searchParams.get("includeStale") === "true";
     const includeFlagged = searchParams.get("includeFlagged") === "true";
-    const nationalOnly = searchParams.get("nationalOnly") === "true";
-    const tag = searchParams.get("tag");
 
-    // Auto-seed if empty
+    // Auto-seed if DB is empty
     const count = await prisma.hackathon.count();
     if (count === 0) {
       await prisma.hackathon.createMany({ data: DEFAULT_HACKATHONS });
     }
 
-    // ── Database-level pre-filter ──────────────────────────────────────────
-    // We apply a broad DB-level filter first to avoid loading the entire table
-    // into memory. The runtime classifier then does the precise Phase 5 logic.
-    //
-    // Strategy: for each view, exclude records that are definitely wrong via
-    // a simple date+status check. Edge cases are handled by the runtime engine.
-
-    const now = new Date();
-    const whereClause: any = {
-      // Always exclude REJECTED
+    // ── Build type-safe Prisma where clause ───────────────────────────────────
+    const whereClause: Prisma.HackathonWhereInput = {
       verificationStatus: { not: VerificationStatus.REJECTED },
     };
 
-    if (nationalOnly) {
-      whereClause.isNational = true;
-    }
-
-    if (tag) {
-      whereClause.OR = [
-        { tags: { has: tag } },
-        { themes: { has: tag } },
-      ];
-    }
-
-    // Include / exclude FLAGGED based on caller preference
+    // Include / exclude FLAGGED
     if (!includeFlagged) {
       whereClause.NOT = { verificationStatus: VerificationStatus.FLAGGED };
+    }
+
+    // National-only guard
+    if (nationalOnly) {
+      whereClause.isNational = true;
     }
 
     // Source filter
@@ -180,59 +211,122 @@ export async function GET(req: NextRequest) {
     }
 
     // Participation mode filter
-    if (mode && ["ONLINE", "OFFLINE", "HYBRID"].includes(mode)) {
-      whereClause.participationMode = mode;
+    if (mode && mode !== "ALL" && ["ONLINE", "OFFLINE", "HYBRID"].includes(mode)) {
+      whereClause.participationMode = mode as ParticipationMode;
     }
 
-    // Text search
-    if (search && search.trim().length > 0) {
-      const searchConditions = [
+    // Eligibility scope filter
+    if (
+      eligibility &&
+      eligibility !== "ALL" &&
+      ["OPEN_TO_ALL", "ANY_COLLEGE_STUDENT", "HOST_COLLEGE_ONLY"].includes(eligibility)
+    ) {
+      whereClause.eligibilityScope = eligibility as EligibilityScope;
+    }
+
+    // Open registration guard
+    if (openRegOnly) {
+      whereClause.registrationDeadline = { gte: now };
+    }
+
+    // City filter — exact, case-insensitive
+    if (city && city !== "ALL") {
+      whereClause.city = { equals: city, mode: "insensitive" };
+    }
+
+    // ── Collect independent OR-groups for safe merging ────────────────────────
+    const orGroups: Prisma.HackathonWhereInput[][] = [];
+
+    // College filter (slug exact + name contains)
+    if (college && college !== "ALL") {
+      orGroups.push([
+        { collegeSlug: { equals: college.toLowerCase() } },
+        { collegeName: { contains: college, mode: "insensitive" } },
+      ]);
+    }
+
+    // Tag filter
+    if (tag) {
+      orGroups.push([
+        { tags: { has: tag } },
+        { themes: { has: tag } },
+      ]);
+    }
+
+    // Full-text search
+    if (search && search.length > 0) {
+      orGroups.push([
         { name: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
         { organizerName: { contains: search, mode: "insensitive" } },
+        { organizerClubName: { contains: search, mode: "insensitive" } },
+        { collegeName: { contains: search, mode: "insensitive" } },
         { location: { contains: search, mode: "insensitive" } },
         { city: { contains: search, mode: "insensitive" } },
         { country: { contains: search, mode: "insensitive" } },
-        { themes: { has: search } },
-      ];
-
-      if (whereClause.OR) {
-        whereClause.AND = [
-          { OR: whereClause.OR },
-          { OR: searchConditions },
-        ];
-        delete whereClause.OR;
-      } else {
-        whereClause.OR = searchConditions;
-      }
+      ]);
     }
 
-    // Pre-filter by view at the DB level (broad, not exhaustive — runtime engine finalizes)
+    // Merge OR groups safely
+    mergeOrGroups(whereClause, orGroups);
+
+    // ── View-specific status/date pre-filter ──────────────────────────────────
     if (view === "PAST") {
-      // Definitely ended: endDate in the past OR DB status is ENDED
-      whereClause.OR = [
-        ...(whereClause.OR ?? []),
+      // Collect any existing OR conditions to avoid conflict
+      const existingOrItems = Array.isArray(whereClause.OR) ? (whereClause.OR as Prisma.HackathonWhereInput[]) : [];
+      const pastOrItems: Prisma.HackathonWhereInput[] = [
+        ...existingOrItems,
         { status: HackathonStatus.ENDED },
         { endDate: { lt: now } },
       ];
-      // Ensure we don't inadvertently pull CANCELLED here
+      // If we had multiple OR groups merged to AND already, add the past filter directly
+      if (whereClause.AND) {
+        const existingAnd = Array.isArray(whereClause.AND)
+          ? (whereClause.AND as Prisma.HackathonWhereInput[])
+          : [whereClause.AND as Prisma.HackathonWhereInput];
+        whereClause.AND = [...existingAnd, { OR: pastOrItems }];
+      } else {
+        whereClause.OR = pastOrItems;
+      }
       whereClause.status = { not: HackathonStatus.CANCELLED };
     } else if (view === "CANCELLED") {
       whereClause.status = HackathonStatus.CANCELLED;
     } else if (view !== "all") {
-      // MAIN, UPCOMING_REG, REG_CLOSED — exclude definitively ended and cancelled records
+      // MAIN, UPCOMING_REG, REG_CLOSED
       whereClause.status = {
         notIn: [HackathonStatus.CANCELLED, HackathonStatus.ENDED],
       };
-      // Broad date filter: exclude records whose endDate is unambiguously in the past
-      whereClause.OR = [
-        ...(whereClause.OR ?? []),
-        { endDate: null }, // No end date — defer to runtime engine
+      // Exclude records whose endDate is unambiguously in the past
+      const dateOrItems: Prisma.HackathonWhereInput[] = [
+        { endDate: null },
         { endDate: { gte: now } },
       ];
+      if (whereClause.AND) {
+        const existingAnd = Array.isArray(whereClause.AND)
+          ? (whereClause.AND as Prisma.HackathonWhereInput[])
+          : [whereClause.AND as Prisma.HackathonWhereInput];
+        whereClause.AND = [...existingAnd, { OR: dateOrItems }];
+      } else if (whereClause.OR) {
+        // Already has an OR (single group path) — merge both into AND
+        const existing = whereClause.OR as Prisma.HackathonWhereInput[];
+        whereClause.AND = [{ OR: existing }, { OR: dateOrItems }];
+        delete whereClause.OR;
+      } else {
+        whereClause.OR = dateOrItems;
+      }
     }
 
-    // ── Fetch candidates ──────────────────────────────────────────────────
+    // ── Determine DB-level sort ───────────────────────────────────────────────
+    const dbOrderBy: Prisma.HackathonOrderByWithRelationInput[] =
+      sortBy === "deadline"
+        ? [{ registrationDeadline: "asc" }, { startDate: "asc" }]
+        : sortBy === "startDate"
+        ? [{ startDate: "asc" }, { createdAt: "desc" }]
+        : sortBy === "prize"
+        ? [{ prizeAmount: "desc" }, { startDate: "asc" }]
+        : [{ startDate: "asc" }, { createdAt: "desc" }];
+
+    // ── Fetch candidates ──────────────────────────────────────────────────────
     const candidates = await prisma.hackathon.findMany({
       where: whereClause,
       include: {
@@ -252,10 +346,10 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      orderBy: [{ startDate: "asc" }, { createdAt: "desc" }],
+      orderBy: dbOrderBy,
     });
 
-    // ── Runtime Phase 5 classification ────────────────────────────────────
+    // ── Runtime Phase 5 classification ────────────────────────────────────────
     const classified = candidates
       .map((h) => {
         const classification = classifyForDiscovery(h, now);
@@ -263,32 +357,26 @@ export async function GET(req: NextRequest) {
       })
       .filter(({ classification }) => {
         if (view === "all") {
-          // Include everything except EXCLUDED
           return classification.view !== "EXCLUDED";
-        }
-        if (!includeStale && classification.view === "MAIN") {
-          // Optionally exclude stale items from the main feed
-          // (they are still classified MAIN, just surfaced with a warning annotation)
-          // We include them by default; callers can filter client-side via `isStale`.
         }
         return classification.view === view;
       })
       .map(({ hackathon, classification }) => ({
         ...hackathon,
-        // Augment each record with computed status override — the canonical truth
         computedStatus: classification.computedStatus,
         computedRegistrationStatus: classification.computedRegistrationStatus,
         discoveryView: classification.view,
         discoveryReason: classification.reason,
       }));
 
-    // ── Pagination ────────────────────────────────────────────────────────
+    // ── Pagination ────────────────────────────────────────────────────────────
     const total = classified.length;
     const totalPages = Math.ceil(total / pageSize);
     const paginated = classified.slice((page - 1) * pageSize, page * pageSize);
 
     return NextResponse.json({
       data: paginated,
+      count: total,
       pagination: {
         page,
         pageSize,
@@ -300,7 +388,18 @@ export async function GET(req: NextRequest) {
       meta: {
         view,
         now: now.toISOString(),
-        search: search ?? null,
+        filters: {
+          search: search ?? null,
+          mode: mode !== "ALL" ? mode : null,
+          college: college ?? null,
+          city: city ?? null,
+          eligibility: eligibility !== "ALL" ? eligibility : null,
+          openRegOnly,
+          sortBy,
+          nationalOnly,
+          tag: tag ?? null,
+          includeStale,
+        },
       },
     });
   } catch (err) {

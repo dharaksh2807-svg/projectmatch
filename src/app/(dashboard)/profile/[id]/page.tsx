@@ -27,13 +27,14 @@ import { ReportModal } from "@/components/shared/report-modal";
 export default async function PublicProfilePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   const loggedInUserId = (session?.user as { id?: string } | undefined)?.id;
 
   const profile = await prisma.user.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       previousProjects: {
         orderBy: { createdAt: "desc" },

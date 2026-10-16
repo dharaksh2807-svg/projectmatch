@@ -4,6 +4,27 @@
 
 export type ExperienceLevel = "Beginner" | "Intermediate" | "Advanced" | "Expert";
 
+// ─── Dual-Stream Hackathon Enums ──────────────────────────────────────────────
+
+/** Classifies whether a hackathon was auto-ingested or organizer-submitted. */
+export type HackathonStream = "NATIONAL_AUTOMATED" | "COMMUNITY_LOCAL";
+
+/** Describes who is eligible to register for a hackathon. */
+export type EligibilityScope =
+  | "OPEN_TO_ALL"          // anyone — students, professionals, hobbyists
+  | "ANY_COLLEGE_STUDENT"  // any university/college student with a valid ID
+  | "HOST_COLLEGE_ONLY";   // restricted to students of the organizing campus
+
+/** Categorizes the entity that organized and submitted the hackathon. */
+export type OrganizerType =
+  | "COLLEGE_CLUB"
+  | "STUDENT_CHAPTER"
+  | "COLLEGE_OFFICIAL"
+  | "COMPANY"
+  | "COMMUNITY"
+  | "AGGREGATED";
+
+
 export type ProjectType =
   | "Hackathon"
   | "Startup"
@@ -47,6 +68,10 @@ export interface UserSummary {
   twitterHandle?: string | null;
   reputationScore?: number;
   previousProjects?: PreviousProject[];
+  // College profile (for 1-click campus filter defaults)
+  collegeName?: string | null; // e.g. "SRM Institute of Science and Technology"
+  collegeSlug?: string | null; // e.g. "srm-ist"
+  city?: string | null;        // e.g. "Chennai"
 }
 
 export interface DirectMessage {
@@ -119,6 +144,30 @@ export interface Hackathon {
   firstDiscoveredAt?: string | null;
   lastSyncAt?: string | null;
   lastVerifiedAt?: string | null;
+
+  // ── Dual-Stream Architecture Fields ────────────────────────────────────────
+  /** Classifies this hackathon as auto-ingested national or organizer-uploaded local. */
+  stream?: HackathonStream | null;
+  /** True when submitted by a college club / organizer via the upload portal. */
+  isCommunitySubmitted?: boolean;
+
+  // ── Institutional Location (Local & College Stream) ─────────────────────────
+  collegeName?: string | null;   // e.g. "SRM Institute of Science and Technology"
+  collegeSlug?: string | null;   // e.g. "srm-ist" (normalized for exact filter matching)
+  campusName?: string | null;    // e.g. "Kattankulathur Campus"
+  venueAddress?: string | null;  // e.g. "Tech Park Hall 401, SRMIST KTR"
+
+  // ── Eligibility Scope ────────────────────────────────────────────────────────
+  /** Controls card eligibility badge and filter behavior. */
+  eligibilityScope?: EligibilityScope | null;
+  /** Allowed college email domains for restricted events, e.g. ["@srmist.edu.in"]. */
+  allowedCollegeDomains?: string[];
+
+  // ── Organizer Attribution ────────────────────────────────────────────────────
+  organizerClubName?: string | null;  // e.g. "GDSC SRMIST" or "IEEE Student Branch"
+  organizerContact?: string | null;   // coordinator email, Discord, or WhatsApp
+  organizerType?: OrganizerType | null;
+  uploadedByUserId?: string | null;   // userId of the organizer who submitted
 
   // Runtime fields from Phase 5 & Phase 6
   computedStatus?: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED" | "UNKNOWN" | string;

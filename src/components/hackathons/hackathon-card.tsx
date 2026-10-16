@@ -159,6 +159,15 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
   // Mode & Location details
   const mode = hackathon.participationMode || "ONLINE";
   const locationLabel = useMemo(() => {
+    const venueParts = [
+      hackathon.venueAddress,
+      hackathon.campusName,
+      hackathon.collegeName,
+      hackathon.city,
+    ].filter(Boolean);
+    if (venueParts.length > 0 && mode !== "ONLINE") {
+      return venueParts.slice(0, 3).join(", ");
+    }
     if (hackathon.city && hackathon.country) {
       return `${hackathon.city}, ${hackathon.country}`;
     }
@@ -167,7 +176,15 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
     if (hackathon.location) return hackathon.location;
     if (mode === "ONLINE") return "Online / Virtual";
     return null;
-  }, [hackathon.city, hackathon.country, hackathon.location, mode]);
+  }, [
+    hackathon.venueAddress,
+    hackathon.campusName,
+    hackathon.collegeName,
+    hackathon.city,
+    hackathon.country,
+    hackathon.location,
+    mode,
+  ]);
 
   // Team size formatting
   const teamSizeLabel = useMemo(() => {
@@ -180,6 +197,50 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
     if (max) return `Up to ${max} members`;
     return null;
   }, [hackathon.minTeamSize, hackathon.maxTeamSize]);
+
+  // Campus badge text calculation
+  const campusBadgeText = useMemo(() => {
+    const isSrm =
+      hackathon.collegeSlug === "srm-ist" ||
+      (hackathon.collegeName && /srm/i.test(hackathon.collegeName));
+
+    if (isSrm) {
+      return "🏛️ SRM KTR Campus";
+    }
+
+    if (hackathon.collegeName && hackathon.campusName) {
+      return `🏛️ ${hackathon.collegeName}, ${hackathon.campusName}`;
+    }
+
+    if (hackathon.collegeName && hackathon.city) {
+      return `🏛️ ${hackathon.collegeName}, ${hackathon.city}`;
+    }
+
+    if (hackathon.campusName && hackathon.city) {
+      return `🏛️ ${hackathon.campusName}, ${hackathon.city}`;
+    }
+
+    if (hackathon.collegeName) {
+      return `🏛️ ${hackathon.collegeName}`;
+    }
+
+    if (hackathon.campusName) {
+      return `🏛️ ${hackathon.campusName}`;
+    }
+
+    if (hackathon.stream === "COMMUNITY_LOCAL" || hackathon.isCommunitySubmitted) {
+      return "🏛️ Campus Event";
+    }
+
+    return null;
+  }, [
+    hackathon.collegeName,
+    hackathon.collegeSlug,
+    hackathon.campusName,
+    hackathon.city,
+    hackathon.stream,
+    hackathon.isCommunitySubmitted,
+  ]);
 
   const isNationalVerified = isNational && isVerified;
 
@@ -207,10 +268,87 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
         )}
       />
 
+      {/* Optional Banner Image */}
+      {hackathon.bannerUrl ? (
+        <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-muted/40 border-b border-border/40">
+          <img
+            src={hackathon.bannerUrl}
+            alt={hackathon.name || "Hackathon Banner"}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              (e.currentTarget.parentElement as HTMLElement).style.display = "none";
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+        </div>
+      ) : null}
+
       <CardHeader className="p-4 sm:p-5 pb-3 space-y-2.5">
-        {/* Badges Bar: National status, Verification, Registration & Mode */}
+        {/* Badges Bar: Campus, Eligibility, Organizer Tag, National, Verification, Mode */}
         <div className="flex flex-wrap items-center gap-1.5 justify-between">
           <div className="flex flex-wrap items-center gap-1.5">
+            {/* Campus / Local Stream Badge: e.g. "🏛️ SRM KTR Campus" or "🏛️ IIT Madras, Chennai" */}
+            {campusBadgeText && (
+              <Badge
+                variant="outline"
+                className="bg-indigo-500/15 text-indigo-300 border-indigo-500/30 text-[11px] px-2 py-0.5 gap-1 font-semibold"
+              >
+                {campusBadgeText}
+              </Badge>
+            )}
+
+            {/* Organizer Club Tag: e.g. "Org: GDSC SRMIST" */}
+            {(hackathon.organizerClubName || hackathon.organizerName) && (
+              <Badge
+                variant="outline"
+                className="bg-zinc-800/80 text-zinc-300 border-zinc-700/60 text-[10px] px-2 py-0.5 gap-1 font-medium"
+              >
+                <span className="text-muted-foreground">Org:</span>
+                <span className="font-semibold text-zinc-200">
+                  {hackathon.organizerClubName || hackathon.organizerName}
+                </span>
+              </Badge>
+            )}
+
+            {/* Eligibility Scope Badge (Green: Open to All, Amber: Any College Student, Blue/Purple: SRM Students Only) */}
+            {hackathon.eligibilityScope === "OPEN_TO_ALL" && (
+              <Badge
+                variant="outline"
+                className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Open to All
+              </Badge>
+            )}
+            {hackathon.eligibilityScope === "ANY_COLLEGE_STUDENT" && (
+              <Badge
+                variant="outline"
+                className="bg-amber-500/15 text-amber-300 border-amber-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                Any College Student
+              </Badge>
+            )}
+            {hackathon.eligibilityScope === "HOST_COLLEGE_ONLY" && (
+              <Badge
+                variant="outline"
+                className="bg-violet-500/15 text-violet-300 border-violet-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                {(() => {
+                  const isSrm =
+                    hackathon.collegeSlug === "srm-ist" ||
+                    (hackathon.collegeName && /srm/i.test(hackathon.collegeName));
+                  if (isSrm) return "SRM Students Only";
+                  if (hackathon.collegeName) {
+                    const shortName = hackathon.collegeName.split(" ")[0];
+                    return `${shortName} Students Only`;
+                  }
+                  return "Host College Only";
+                })()}
+              </Badge>
+            )}
+
             {/* National Distinction Badge */}
             {isNationalVerified ? (
               <Badge
@@ -298,10 +436,17 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
           </CardTitle>
 
           {/* Organizer info if available — never fabricate */}
-          {hackathon.organizerName && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+          {(hackathon.organizerClubName || hackathon.organizerName) && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1 flex-wrap">
               <Building2 className="w-3.5 h-3.5 shrink-0 text-muted-foreground/80" />
-              <span className="font-medium truncate">{hackathon.organizerName}</span>
+              <span className="font-semibold text-foreground/90 truncate">
+                Org: {hackathon.organizerClubName || hackathon.organizerName}
+              </span>
+              {hackathon.collegeName && (
+                <span className="text-[11px] text-muted-foreground/80 truncate">
+                  • {hackathon.collegeName}
+                </span>
+              )}
               {hackathon.organizerCredibility && (
                 <span
                   className="text-[10px] px-1 py-0.2 rounded bg-muted/80 text-muted-foreground/90 shrink-0"
@@ -465,17 +610,42 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
           )}
         </div>
 
-        {/* Find Teammates on ProjectMatch */}
-        <Link href={`/discover?projectType=Hackathon`}>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-xs h-8 gap-1 hover:text-primary hover:bg-primary/10 font-medium"
-          >
-            Find Team
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Button>
-        </Link>
+        {/* Find Teammates Button */}
+        {(() => {
+          const isSrm =
+            hackathon.collegeSlug === "srm-ist" ||
+            (hackathon.collegeName && /srm/i.test(hackathon.collegeName));
+          const collegePrefix = isSrm
+            ? "SRM"
+            : hackathon.collegeName
+            ? hackathon.collegeName.split(" ")[0]
+            : null;
+          const buttonLabel = collegePrefix
+            ? `👥 Find Teammates in ${collegePrefix}`
+            : "👥 Find Teammates";
+
+          const teamParams = new URLSearchParams();
+          teamParams.set("hackathonId", hackathon.id);
+          if (hackathon.collegeSlug) {
+            teamParams.set("college", hackathon.collegeSlug);
+          }
+          if (hackathon.city) {
+            teamParams.set("city", hackathon.city);
+          }
+          const teamsUrl = `/teams?${teamParams.toString()}`;
+
+          return (
+            <Link href={teamsUrl}>
+              <Button
+                size="sm"
+                className="text-xs h-8 gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold shadow-sm"
+              >
+                <span>{buttonLabel}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          );
+        })()}
       </CardFooter>
     </Card>
   );

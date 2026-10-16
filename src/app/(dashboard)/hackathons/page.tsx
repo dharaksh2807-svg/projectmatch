@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import {
   Trophy,
@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Filter,
+  Building2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,7 @@ interface AIMatchItem {
   };
 }
 
-export default function HackathonsPage() {
+function HackathonsPageContent() {
   const { toast } = useToast();
 
   const {
@@ -69,6 +70,12 @@ export default function HackathonsPage() {
     setSelectedCategory,
     sortBy,
     setSortBy,
+    selectedCollege,
+    setSelectedCollege,
+    selectedCity,
+    setSelectedCity,
+    selectedEligibility,
+    setSelectedEligibility,
     resetFilters,
     refresh,
   } = useHackathons();
@@ -137,6 +144,15 @@ export default function HackathonsPage() {
               >
                 <Plus className="w-4 h-4" />
                 Pitch a Project
+              </Button>
+            </Link>
+
+            <Link href="/hackathons/submit" className="w-full sm:w-auto">
+              <Button
+                className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm gap-1.5 shadow-lg shadow-emerald-950/40 border border-emerald-400/30"
+              >
+                <Plus className="w-4 h-4" />
+                + Post a Hackathon
               </Button>
             </Link>
 
@@ -258,6 +274,12 @@ export default function HackathonsPage() {
         onResetFilters={resetFilters}
         hasActiveFilters={hasActiveFilters}
         totalCount={hackathons.length}
+        selectedCollege={selectedCollege}
+        onCollegeChange={setSelectedCollege}
+        selectedCity={selectedCity}
+        onCityChange={setSelectedCity}
+        selectedEligibility={selectedEligibility}
+        onEligibilityChange={setSelectedEligibility}
       />
 
       {/* ─────────────────────────────────────────────────────────────
@@ -380,6 +402,51 @@ export default function HackathonsPage() {
             </section>
           )}
 
+          {/* SECTION: Campus & Local Hackathons (Organizer Submitted Stream) */}
+          {sections.localCampus && sections.localCampus.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      Campus & Local Hackathons
+                      <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/40 text-[10px] font-semibold">
+                        Club & Campus
+                      </Badge>
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Competitions hosted by college clubs, student chapters, and regional university sprints.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {sections.localCampus.length} {sections.localCampus.length === 1 ? "event" : "events"}
+                  </span>
+                  <Link href="/hackathons/submit">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-7 gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Post Hackathon
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {sections.localCampus.map((h) => (
+                  <HackathonCard key={h.id} hackathon={h} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* SECTION 3: Upcoming Hackathons (Priority Ranked) */}
           {sections.upcoming.length > 0 && (
             <section className="space-y-4">
@@ -456,6 +523,9 @@ export default function HackathonsPage() {
                 {selectedMode !== "ALL" && ` (${selectedMode.toLowerCase()})`}
                 {nationalOnly && " [National Level Only]"}
                 {openRegOnly && " [Open Registration]"}
+                {selectedCollege !== "ALL" && ` [College: ${selectedCollege}]`}
+                {selectedCity !== "ALL" && ` [City: ${selectedCity}]`}
+                {selectedEligibility !== "ALL" && ` [Eligibility: ${selectedEligibility.replace(/_/g, " ")}]`}
               </span>
             </div>
 
@@ -494,5 +564,23 @@ export default function HackathonsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function HackathonsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background p-6 max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+            <span>Loading hackathon opportunities...</span>
+          </div>
+          <HackathonSkeletonGrid count={6} />
+        </div>
+      }
+    >
+      <HackathonsPageContent />
+    </Suspense>
   );
 }

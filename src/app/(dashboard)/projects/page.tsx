@@ -36,7 +36,7 @@ interface ProjectItem {
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams?: { tab?: string };
+  searchParams?: Promise<{ tab?: string } | undefined>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
@@ -51,7 +51,8 @@ export default async function ProjectsPage({
   }
   if (!userId) redirect("/login");
 
-  const tab = searchParams?.tab || "mine";
+  const resolvedSearchParams = await searchParams;
+  const tab = resolvedSearchParams?.tab || "mine";
 
   const [myProjects, allProjects] = await Promise.all([
     prisma.project.findMany({

@@ -114,6 +114,14 @@ model User {
   reportsSubmitted Report[] @relation("ReportsSubmitted")
   reportsReceived  Report[] @relation("ReportsReceived")
 
+  // Relations — Hackathon Submissions (Local & College Stream)
+  submittedHackathons Hackathon[] @relation("UserSubmittedHackathons")
+
+  // ── College / Location Profile (for 1-click campus filter) ──────────────
+  collegeName String?  // e.g. "SRM Institute of Science and Technology"
+  collegeSlug String?  // e.g. "srm-ist" — normalized for fast query matching
+  city        String?  // e.g. "Chennai" — used to default city filter on login
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -481,6 +489,35 @@ model Hackathon {
   lastSyncAt        DateTime?  // timestamp of last successful source sync
   lastVerifiedAt    DateTime?  // timestamp of last human or automated verification
 
+  // ── Dual-Stream Architecture (Phase: Local & College Stream) ─────────────
+  // stream distinguishes auto-ingested national events from organizer-uploaded
+  // campus/city hackathons. Defaults to COMMUNITY_LOCAL so that organizer
+  // submissions are correctly bucketed without an explicit value.
+  stream               HackathonStream  @default(COMMUNITY_LOCAL)
+  isCommunitySubmitted Boolean          @default(false)
+
+  // ── Institutional Location (Local & College Stream) ───────────────────────
+  // Structured fields for campus-specific and city-level discovery.
+  // Not set for purely online national events.
+  collegeName   String?  // e.g. "SRM Institute of Science and Technology"
+  collegeSlug   String?  // normalized slug, e.g. "srm-ist" or "iit-madras"
+  campusName    String?  // e.g. "Kattankulathur Campus"
+  venueAddress  String?  // e.g. "Tech Park Hall 401, SRMIST KTR"
+
+  // ── Eligibility & Participation Scope ────────────────────────────────────
+  // Controls what filter returns this event and what badge is rendered.
+  eligibilityScope      EligibilityScope @default(ANY_COLLEGE_STUDENT)
+  allowedCollegeDomains String[]         @default([]) // e.g. ["@srmist.edu.in"]
+
+  // ── Organizer Attribution (Local & College Stream) ────────────────────────
+  organizerClubName String?  // e.g. "GDSC SRMIST" or "IEEE Student Branch"
+  organizerContact  String?  // coordinator email, Discord, or WhatsApp link
+  organizerType     OrganizerType @default(AGGREGATED)
+
+  // Relation back to the User who uploaded (for community submissions).
+  uploadedByUserId  String?
+  uploadedBy        User?    @relation("UserSubmittedHackathons", fields: [uploadedByUserId], references: [id])
+
   // ── Existing Relation (preserved) ────────────────────────────────────────
   projects    Project[]
 
@@ -504,6 +541,14 @@ model Hackathon {
   @@index([importanceScore(sort: Desc)])
   @@index([sourceId])
   @@index([canonicalUrl])
+  // ── New indexes for Dual-Stream filters ────────────────────────────────
+  @@index([stream])
+  @@index([collegeSlug])
+  @@index([city])
+  @@index([eligibilityScope])
+  @@index([stream, city])  // Composite: "all Chennai LOCAL events"
+  @@index([isCommunitySubmitted])
+  @@index([uploadedByUserId])
 }
 
 /// Records the outcome of each background ingestion run for a given source.
@@ -725,4 +770,31 @@ enum SyncStatus {
   FAILED   // ingestion run failed entirely; no records written
 }
 
+// ─────────────────────────────────────────────
+// Dual-Stream Hackathon Discovery Enums
+// ─────────────────────────────────────────────
 
+/// Classifies whether a hackathon record was auto-ingested from a national
+/// API source or submitted manually by a college club / event organizer.
+enum HackathonStream {
+  NATIONAL_AUTOMATED  // auto-synced from Devfolio, SIH, MLH, IIT feeds, etc.
+  COMMUNITY_LOCAL     // organizer-uploaded: college club, student chapter, city event
+}
+
+/// Describes who is eligible to register for a hackathon.
+/// Rendered as a color-coded badge on the student-facing discovery card.
+enum EligibilityScope {
+  OPEN_TO_ALL          // anyone: college students, working pros, high schoolers
+  ANY_COLLEGE_STUDENT  // inter-college: any valid student ID from any institution
+  HOST_COLLEGE_ONLY    // intra-college: strictly students of the organizing campus
+}
+
+/// Categorizes the type of entity that organized and uploaded the hackathon.
+enum OrganizerType {
+  COLLEGE_CLUB      // student-run technical club (e.g. GDSC, ACM, IEEE Chapter)
+  STUDENT_CHAPTER   // recognized national student chapter (e.g. CSI, ISTE)
+  COLLEGE_OFFICIAL  // official college department or institution (e.g. Dept. of CSE)
+  COMPANY           // corporate / startup organizer (e.g. Google, a fintech startup)
+  COMMUNITY         // independent tech community or open-source group
+  AGGREGATED        // auto-ingested from an external aggregator (default for national stream)
+}

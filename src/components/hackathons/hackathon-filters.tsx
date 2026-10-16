@@ -5,16 +5,47 @@ import {
   X,
   SlidersHorizontal,
   Award,
-  Clock,
   RotateCcw,
   Globe,
   MapPin,
   Laptop,
+  Building2,
+  GraduationCap,
+  Zap,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { EligibilityScopeFilter } from "@/hooks/useHackathons";
+
+// ── Dropdown Options ─────────────────────────────────────────────────────────
+
+export const CITY_OPTIONS = [
+  { label: "All Cities", value: "ALL" },
+  { label: "Chennai", value: "Chennai" },
+  { label: "Bengaluru", value: "Bengaluru" },
+  { label: "Delhi NCR", value: "Delhi NCR" },
+  { label: "Hyderabad", value: "Hyderabad" },
+  { label: "Pune", value: "Pune" },
+  { label: "Mumbai", value: "Mumbai" },
+] as const;
+
+export const COLLEGE_OPTIONS = [
+  { label: "All Colleges", value: "ALL" },
+  { label: "SRMIST (Kattankulathur)", value: "srm-ist" },
+  { label: "IIT Madras", value: "iit-madras" },
+  { label: "Anna University", value: "anna-univ" },
+  { label: "VIT Chennai", value: "vit-chennai" },
+  { label: "SSN College", value: "ssn" },
+] as const;
+
+export const ELIGIBILITY_OPTIONS = [
+  { label: "All Eligibilities", value: "ALL" },
+  { label: "Open to All", value: "OPEN_TO_ALL" },
+  { label: "Any College Student", value: "ANY_COLLEGE_STUDENT" },
+  { label: "Host College Only", value: "HOST_COLLEGE_ONLY" },
+] as const;
 
 export const TECH_CATEGORIES = [
   "All",
@@ -46,6 +77,13 @@ interface HackathonFiltersProps {
   onResetFilters: () => void;
   hasActiveFilters: boolean;
   totalCount?: number;
+  // Location & eligibility
+  selectedCollege?: string;
+  onCollegeChange?: (slug: string) => void;
+  selectedCity?: string;
+  onCityChange?: (city: string) => void;
+  selectedEligibility?: EligibilityScopeFilter;
+  onEligibilityChange?: (scope: EligibilityScopeFilter) => void;
 }
 
 export function HackathonFilters({
@@ -63,8 +101,38 @@ export function HackathonFilters({
   onSortChange,
   onResetFilters,
   hasActiveFilters,
-  totalCount,
+  totalCount: _totalCount,
+  selectedCollege = "ALL",
+  onCollegeChange,
+  selectedCity = "ALL",
+  onCityChange,
+  selectedEligibility = "ALL",
+  onEligibilityChange,
 }: HackathonFiltersProps) {
+  // Handlers for 1-Click Quick Scope Pills
+  const handleQuickSrm = () => {
+    if (!onCollegeChange) return;
+    onCollegeChange(selectedCollege === "srm-ist" ? "ALL" : "srm-ist");
+  };
+
+  const handleQuickChennai = () => {
+    if (!onCityChange) return;
+    if (selectedCity === "Chennai") {
+      onCityChange("ALL");
+    } else {
+      onCityChange("Chennai");
+      onCollegeChange?.("ALL"); // clears college filter as required
+    }
+  };
+
+  const handleQuickOnline = () => {
+    onModeChange(selectedMode === "ONLINE" ? "ALL" : "ONLINE");
+  };
+
+  const handleQuickOpenReg = () => {
+    onOpenRegChange(!openRegOnly);
+  };
+
   return (
     <div className="space-y-4 font-sans">
       {/* ── TOP BAR: Search & Sort ── */}
@@ -75,7 +143,7 @@ export function HackathonFilters({
           <Input
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search hackathons, organizers, topics, or cities..."
+            placeholder="Search hackathons, organizers, colleges, or topics..."
             className="pl-9 pr-9 bg-card/70 text-sm h-10 border-border/70 rounded-xl focus:border-emerald-500/60"
           />
           {searchQuery && (
@@ -89,7 +157,7 @@ export function HackathonFilters({
           )}
         </div>
 
-        {/* Sort Selector & Reset */}
+        {/* Sort Selector & Reset Button */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 bg-card/60 border border-border/70 px-3 py-1.5 rounded-xl text-xs">
             <span className="text-muted-foreground font-medium shrink-0">Sort by:</span>
@@ -128,81 +196,228 @@ export function HackathonFilters({
         </div>
       </div>
 
-      {/* ── FILTER TOGGLES & PILLS ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-b border-border/40 pb-3">
-        {/* Left Side: Specific Feature Toggles (National, Reg Open, Mode) */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* National Level Toggle Button */}
+      {/* ── 1-CLICK QUICK SCOPE PILLS ── */}
+      <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-border/40 pb-3">
+        <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1 shrink-0">
+          <Zap className="w-3.5 h-3.5 text-amber-400" />
+          Quick Scope:
+        </span>
+
+        {/* [ 🏛️ At SRM (Campus) ] */}
+        {onCollegeChange && (
           <button
-            onClick={() => onNationalChange(!nationalOnly)}
+            onClick={handleQuickSrm}
             className={cn(
-              "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border",
-              nationalOnly
-                ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950/30 ring-1 ring-amber-500/30"
+              "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
+              selectedCollege === "srm-ist"
+                ? "bg-violet-500/20 text-violet-200 border-violet-500/60 shadow-sm ring-1 ring-violet-500/30 font-bold"
                 : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
             )}
           >
-            <Award className={cn("w-3.5 h-3.5", nationalOnly ? "text-amber-400" : "text-muted-foreground")} />
-            National Level
-            {nationalOnly && <Badge className="bg-amber-500/30 text-amber-200 text-[10px] px-1 py-0 ml-0.5">Active</Badge>}
+            <span>🏛️</span>
+            <span>At SRM (Campus)</span>
+            {selectedCollege === "srm-ist" && (
+              <Badge className="bg-violet-500/40 text-violet-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+            )}
           </button>
+        )}
 
-          {/* Registration Open Only Toggle */}
+        {/* [ 📍 In Chennai (City) ] */}
+        {onCityChange && (
           <button
-            onClick={() => onOpenRegChange(!openRegOnly)}
+            onClick={handleQuickChennai}
             className={cn(
-              "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border",
-              openRegOnly
-                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm ring-1 ring-emerald-500/30"
+              "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
+              selectedCity === "Chennai" && selectedCollege === "ALL"
+                ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/60 shadow-sm ring-1 ring-emerald-500/30 font-bold"
                 : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
             )}
           >
-            <Clock className={cn("w-3.5 h-3.5", openRegOnly ? "text-emerald-400" : "text-muted-foreground")} />
-            Registration Open
-            {openRegOnly && <Badge className="bg-emerald-500/30 text-emerald-200 text-[10px] px-1 py-0 ml-0.5">Active</Badge>}
+            <span>📍</span>
+            <span>In Chennai (City)</span>
+            {selectedCity === "Chennai" && selectedCollege === "ALL" && (
+              <Badge className="bg-emerald-500/40 text-emerald-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+            )}
           </button>
+        )}
 
-          {/* Participation Mode Segmented Pills */}
-          <div className="flex items-center p-0.5 rounded-xl bg-card/60 border border-border/60">
-            {(
-              [
-                { id: "ALL", label: "All Modes", icon: null },
-                { id: "ONLINE", label: "Online", icon: Globe },
-                { id: "OFFLINE", label: "In-Person", icon: MapPin },
-                { id: "HYBRID", label: "Hybrid", icon: Laptop },
-              ] as const
-            ).map((item) => {
-              const Icon = item.icon;
-              const isSelected = selectedMode === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onModeChange(item.id)}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1 transition-all",
-                    isSelected
-                      ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {Icon && <Icon className="w-3 h-3" />}
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
+        {/* [ 🌐 Online / Virtual ] */}
+        <button
+          onClick={handleQuickOnline}
+          className={cn(
+            "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
+            selectedMode === "ONLINE"
+              ? "bg-blue-500/20 text-blue-200 border-blue-500/60 shadow-sm ring-1 ring-blue-500/30 font-bold"
+              : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
+          )}
+        >
+          <span>🌐</span>
+          <span>Online / Virtual</span>
+          {selectedMode === "ONLINE" && (
+            <Badge className="bg-blue-500/40 text-blue-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+          )}
+        </button>
+
+        {/* [ ⚡ Open Reg Only ] */}
+        <button
+          onClick={handleQuickOpenReg}
+          className={cn(
+            "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
+            openRegOnly
+              ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/60 shadow-sm ring-1 ring-emerald-500/30 font-bold"
+              : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
+          )}
+        >
+          <span>⚡</span>
+          <span>Open Reg Only</span>
+          {openRegOnly && (
+            <Badge className="bg-emerald-500/40 text-emerald-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+          )}
+        </button>
+
+        {/* National Flagships Toggle */}
+        <button
+          onClick={() => onNationalChange(!nationalOnly)}
+          className={cn(
+            "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
+            nationalOnly
+              ? "bg-amber-500/20 text-amber-200 border-amber-500/60 shadow-sm ring-1 ring-amber-500/30 font-bold"
+              : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
+          )}
+        >
+          <Award className={cn("w-3.5 h-3.5", nationalOnly ? "text-amber-400" : "text-muted-foreground")} />
+          <span>National Flagships</span>
+          {nationalOnly && (
+            <Badge className="bg-amber-500/40 text-amber-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+          )}
+        </button>
+
+        {/* Participation Mode Segmented Pills */}
+        <div className="flex items-center p-0.5 rounded-xl bg-card/60 border border-border/60 ml-auto">
+          {(
+            [
+              { id: "ALL", label: "All Modes", icon: null },
+              { id: "ONLINE", label: "Online", icon: Globe },
+              { id: "OFFLINE", label: "In-Person", icon: MapPin },
+              { id: "HYBRID", label: "Hybrid", icon: Laptop },
+            ] as const
+          ).map((item) => {
+            const Icon = item.icon;
+            const isSelected = selectedMode === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onModeChange(item.id)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1 transition-all",
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {Icon && <Icon className="w-3 h-3" />}
+                {item.label}
+              </button>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Count Indicator */}
-        {totalCount !== undefined && (
-          <span className="text-xs text-muted-foreground/80 font-medium">
-            {totalCount} {totalCount === 1 ? "event" : "events"} found
-          </span>
+      {/* ── WORKING DROPDOWN FILTERS (City, College, Eligibility) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+        {/* City Selector Dropdown */}
+        {onCityChange && (
+          <div className="flex items-center gap-2 bg-card/60 border border-border/70 px-3 py-2 rounded-xl focus-within:border-emerald-500/70 transition-colors">
+            <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">City</span>
+              <select
+                value={selectedCity}
+                onChange={(e) => onCityChange(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer truncate"
+              >
+                {CITY_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value} className="bg-zinc-900 text-white">
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedCity !== "ALL" && (
+              <button
+                onClick={() => onCityChange("ALL")}
+                className="text-muted-foreground hover:text-foreground p-1"
+                title="Clear city filter"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* College Selector Dropdown */}
+        {onCollegeChange && (
+          <div className="flex items-center gap-2 bg-card/60 border border-border/70 px-3 py-2 rounded-xl focus-within:border-violet-500/70 transition-colors">
+            <Building2 className="w-4 h-4 text-violet-400 shrink-0" />
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">College</span>
+              <select
+                value={selectedCollege}
+                onChange={(e) => onCollegeChange(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer truncate"
+              >
+                {COLLEGE_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value} className="bg-zinc-900 text-white">
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedCollege !== "ALL" && (
+              <button
+                onClick={() => onCollegeChange("ALL")}
+                className="text-muted-foreground hover:text-foreground p-1"
+                title="Clear college filter"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Eligibility Selector Dropdown */}
+        {onEligibilityChange && (
+          <div className="flex items-center gap-2 bg-card/60 border border-border/70 px-3 py-2 rounded-xl focus-within:border-amber-500/70 transition-colors">
+            <GraduationCap className="w-4 h-4 text-amber-400 shrink-0" />
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Eligibility</span>
+              <select
+                value={selectedEligibility}
+                onChange={(e) => onEligibilityChange(e.target.value as EligibilityScopeFilter)}
+                className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer truncate"
+              >
+                {ELIGIBILITY_OPTIONS.map((e) => (
+                  <option key={e.value} value={e.value} className="bg-zinc-900 text-white">
+                    {e.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedEligibility !== "ALL" && (
+              <button
+                onClick={() => onEligibilityChange("ALL")}
+                className="text-muted-foreground hover:text-foreground p-1"
+                title="Clear eligibility filter"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
       {/* ── TECHNOLOGY CATEGORY CHIPS ── */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-1">
         <span className="text-xs text-muted-foreground font-medium shrink-0 mr-1 flex items-center gap-1">
           <SlidersHorizontal className="w-3 h-3" />
           Tech:
