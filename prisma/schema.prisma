@@ -394,23 +394,139 @@ model Notification {
 // Hackathons & Messaging (P2P)
 // ─────────────────────────────────────────────
 
-/// A specific Hackathon event that projects can be associated with
+/// A specific Hackathon event that projects can be associated with.
+/// Extended in Phase 3 to support API-driven discovery, lifecycle tracking,
+/// ranking, deduplication, and ingestion provenance.
 model Hackathon {
   id          String   @id @default(cuid())
-  name        String
-  description String?  @db.Text
-  startDate   DateTime?
-  endDate     DateTime?
-  devpostUrl  String?
-  websiteUrl  String?
-  location    String?
 
+  // ── Source Identity & Deduplication ──────────────────────────────────────
+  // sourceId + sourceEventId together uniquely identify an event from a given
+  // source (e.g. "hackclub" + "recajWTZ5ETkj2ua7"). canonicalUrl is a stable
+  // fallback for deduplication when source IDs are unavailable.
+  // Similar titles alone MUST NOT be used to deduplicate unrelated events.
+  sourceId        String?   // "hackclub" | "kaggle" | "admin" | "government" …
+  sourceEventId   String?   // opaque ID / slug from the upstream source
+  canonicalUrl    String?   // unique stable URL used as secondary dedup key
+
+  // ── Event Details ─────────────────────────────────────────────────────────
+  name            String
+  description     String?  @db.Text
+
+  // ── Organizer ─────────────────────────────────────────────────────────────
+  organizerName        String?  // e.g. "Hack Club", "Google DeepMind"
+  organizerCredibility String?  // evidence string, e.g. "Verified MLH Partner"
+
+  // ── URLs ──────────────────────────────────────────────────────────────────
+  // Kept for backward compatibility; websiteUrl is the canonical official URL.
+  websiteUrl       String?  // official event site (pre-existing field)
+  devpostUrl       String?  // Devpost listing URL (pre-existing field)
+  registrationUrl  String?  // direct registration / application link
+  bannerUrl        String?  // event promotional image
+
+  // ── Event Dates & Timezone ────────────────────────────────────────────────
+  startDate             DateTime?  // event start (pre-existing field)
+  endDate               DateTime?  // event end   (pre-existing field)
+  registrationStartDate DateTime?  // when registration opens
+  registrationDeadline  DateTime?  // when registration closes
+  // Explicit IANA timezone string. All stored timestamps are UTC; this field
+  // lets the UI display local times correctly. Nullable — some sources omit it.
+  timezone              String?    // e.g. "Asia/Kolkata" | "America/Chicago"
+
+  // ── Location & Participation Mode ─────────────────────────────────────────
+  // location is kept for backward compatibility with existing seed data.
+  // The structured fields below are populated by the ingestion engine.
+  location          String?            // free-text legacy field (pre-existing)
+  participationMode ParticipationMode? // ONLINE | OFFLINE | HYBRID
+  city              String?
+  state             String?
+  country           String?
+  countryCode       String?  // ISO 3166-1 alpha-2 e.g. "IN", "US"
+
+  // ── Eligibility & Team Parameters ─────────────────────────────────────────
+  eligibilityRequirements String?  @db.Text  // free-text, e.g. "Open to students"
+  minTeamSize             Int?
+  maxTeamSize             Int?
+
+  // ── Technology & Themes ───────────────────────────────────────────────────
+  tags   String[]  @default([])  // tech categories e.g. ["AI", "Web3", "FinTech"]
+  themes String[]  @default([])  // broad themes e.g. ["Education", "Healthcare"]
+
+  // ── Prizes & Fees ─────────────────────────────────────────────────────────
+  prizeAmount   Float?   // total prize pool numeric value; null = not disclosed
+  prizeCurrency String?  // ISO 4217 e.g. "INR" | "USD"; null if prizeAmount is null
+  registrationFee Float? // 0 = free; null = unknown
+
+  // ── National Classification ───────────────────────────────────────────────
+  // isNational is set only when there is verifiable evidence. It must NOT be
+  // assumed true for every imported event.
+  isNational       Boolean  @default(false)
+  nationalEvidence String?  // e.g. "Organized by MoE, listed on sih.gov.in"
+
+  // ── Ranking ───────────────────────────────────────────────────────────────
+  // Pre-computed composite importance score (0.0–1.0). Recalculated on each
+  // sync by the ranking engine (Phase 6). Never user-editable.
+  importanceScore  Float    @default(0.0)
+
+  // ── Lifecycle & Status ────────────────────────────────────────────────────
+  // status is the event lifecycle (driven by source + timestamps).
+  // registrationStatus is independent and may differ from status
+  // (e.g. registration CLOSED while event is still UPCOMING).
+  status               HackathonStatus    @default(UPCOMING)
+  registrationStatus   RegistrationStatus @default(UNKNOWN)
+  verificationStatus   VerificationStatus @default(UNVERIFIED)
+
+  // ── Sync Provenance ───────────────────────────────────────────────────────
+  firstDiscoveredAt DateTime?  // when the record was first ingested
+  lastSyncAt        DateTime?  // timestamp of last successful source sync
+  lastVerifiedAt    DateTime?  // timestamp of last human or automated verification
+
+  // ── Existing Relation (preserved) ────────────────────────────────────────
   projects    Project[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // ── Source Identity Constraint ────────────────────────────────────────────
+  // Prevents duplicate records from the same upstream source.
+  // Events without a sourceId (e.g. admin-entered) are excluded from this
+  // constraint (nulls are excluded from unique indexes in PostgreSQL).
+  @@unique([sourceId, sourceEventId])
+
+  // ── Indexes ───────────────────────────────────────────────────────────────
   @@index([startDate])
+  @@index([registrationDeadline])
+  @@index([status])
+  @@index([registrationStatus])
+  @@index([verificationStatus])
+  @@index([isNational])
+  @@index([countryCode])
+  @@index([importanceScore(sort: Desc)])
+  @@index([sourceId])
+  @@index([canonicalUrl])
+}
+
+/// Records the outcome of each background ingestion run for a given source.
+/// Used by the admin monitoring dashboard (Phase 8) and for failure isolation.
+model HackathonSyncLog {
+  id                String   @id @default(cuid())
+
+  sourceId          String   // which adapter produced this log ("hackclub", "kaggle" …)
+  status            SyncStatus               // SUCCESS | PARTIAL | FAILED
+  recordsDiscovered Int      @default(0)     // total raw records returned by source
+  recordsInserted   Int      @default(0)     // net new events written to DB
+  recordsUpdated    Int      @default(0)     // existing events refreshed
+  recordsSkipped    Int      @default(0)     // duplicates or filtered records
+  durationMs        Int?                     // wall-clock duration of the run
+  errorMessage      String?  @db.Text        // first error message, if status != SUCCESS
+  triggeredBy       String?                  // "cron" | "admin:<userId>" | "manual"
+
+  startedAt         DateTime @default(now())
+  completedAt       DateTime?
+
+  @@index([sourceId])
+  @@index([status])
+  @@index([startedAt(sort: Desc)])
 }
 
 /// A P2P conversation between two users
@@ -565,4 +681,48 @@ enum ReportStatus {
   RESOLVED
   DISMISSED
 }
+
+// ─────────────────────────────────────────────
+// Hackathon Discovery Enums (Phase 3)
+// ─────────────────────────────────────────────
+
+/// Lifecycle stage of a hackathon event, driven by source data + timestamps.
+enum HackathonStatus {
+  UPCOMING    // start date is in the future, not yet started
+  ONGOING     // currently in progress (startDate <= now <= endDate)
+  ENDED       // endDate has passed
+  CANCELLED   // confirmed cancellation from source or manual override
+  UNKNOWN     // status cannot be determined from available data
+}
+
+/// Registration window state — independent from event lifecycle status.
+enum RegistrationStatus {
+  OPEN        // registration is actively accepting applications
+  CLOSED      // registration deadline has passed or source says closed
+  COMING_SOON // registration is announced but not yet open
+  UNKNOWN     // not determinable from available data
+}
+
+/// Confidence level of the event record based on source authority + human review.
+enum VerificationStatus {
+  UNVERIFIED  // default: auto-imported, no human review
+  VERIFIED    // confirmed by admin or trusted source verification
+  FLAGGED     // marked for review due to inconsistent / suspicious data
+  REJECTED    // confirmed as invalid, duplicate, or spam; hidden from users
+}
+
+/// Physical participation mode for the hackathon.
+enum ParticipationMode {
+  ONLINE   // fully remote / virtual
+  OFFLINE  // in-person only
+  HYBRID   // both in-person and remote options available
+}
+
+/// Outcome status of a background ingestion sync run.
+enum SyncStatus {
+  SUCCESS  // all records processed without errors
+  PARTIAL  // some records processed; errors occurred for a subset
+  FAILED   // ingestion run failed entirely; no records written
+}
+
 

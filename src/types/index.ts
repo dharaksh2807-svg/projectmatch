@@ -85,6 +85,41 @@ export interface Hackathon {
   devpostUrl: string | null;
   websiteUrl: string | null;
   location: string | null;
+
+  // Extended Phase 3 / Phase 4 fields
+  sourceId?: string | null;
+  sourceEventId?: string | null;
+  canonicalUrl?: string | null;
+  organizerName?: string | null;
+  organizerCredibility?: string | null;
+  registrationUrl?: string | null;
+  bannerUrl?: string | null;
+  registrationStartDate?: string | null;
+  registrationDeadline?: string | null;
+  timezone?: string | null;
+  participationMode?: "ONLINE" | "OFFLINE" | "HYBRID" | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  countryCode?: string | null;
+  eligibilityRequirements?: string | null;
+  minTeamSize?: number | null;
+  maxTeamSize?: number | null;
+  tags?: string[];
+  themes?: string[];
+  prizeAmount?: number | null;
+  prizeCurrency?: string | null;
+  registrationFee?: number | null;
+  isNational?: boolean;
+  nationalEvidence?: string | null;
+  importanceScore?: number;
+  status?: "UPCOMING" | "ONGOING" | "ENDED" | "CANCELLED" | "UNKNOWN";
+  registrationStatus?: "OPEN" | "CLOSED" | "COMING_SOON" | "UNKNOWN";
+  verificationStatus?: "UNVERIFIED" | "VERIFIED" | "FLAGGED" | "REJECTED";
+  firstDiscoveredAt?: string | null;
+  lastSyncAt?: string | null;
+  lastVerifiedAt?: string | null;
+
   createdAt: string;
   updatedAt: string;
   _count?: {
@@ -105,6 +140,7 @@ export interface Hackathon {
     }[];
   }[];
 }
+
 
 export interface Role {
   id: string;

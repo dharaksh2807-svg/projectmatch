@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/hackathons/sync",
+      "schedule": "0 */8 * * *"
+    }
+  ]
+}
