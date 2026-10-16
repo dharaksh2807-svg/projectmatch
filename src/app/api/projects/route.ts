@@ -121,6 +121,30 @@ export async function POST(req: NextRequest) {
 
   const { roles, repoUrl, websiteUrl, driveUrl, ...projectData } = parsed.data;
 
+  // Defensive check: ensure owner exists in DB (auto-heal if session token.id is from previous DB state)
+  let ownerId = session.user?.id;
+  if (prisma.user?.findUnique) {
+    let userRecord = ownerId ? await prisma.user.findUnique({ where: { id: ownerId } }) : null;
+    if (!userRecord && session.user?.email) {
+      userRecord = await prisma.user.findUnique({ where: { email: session.user.email } });
+      if (!userRecord) {
+        userRecord = await prisma.user.create({
+          data: {
+            ...(ownerId ? { id: ownerId } : {}),
+            email: session.user.email,
+            name: session.user.name || "Project Creator",
+            image: session.user.image || null,
+          },
+        });
+      }
+      ownerId = userRecord.id;
+    }
+  }
+
+  if (!ownerId) {
+    return NextResponse.json({ error: "Unauthorized: user account could not be resolved" }, { status: 401 });
+  }
+
   try {
     const project = await prisma.project.create({
       data: {
@@ -128,7 +152,7 @@ export async function POST(req: NextRequest) {
         repoUrl: repoUrl || null,
         websiteUrl: websiteUrl || null,
         driveUrl: driveUrl || null,
-        ownerId: session.user.id,
+        ownerId,
         roles: {
           create: roles,
         },
@@ -142,9 +166,12 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(project, { status: 201 });
-  } catch (err) {
+  } catch (err: any) {
     console.error("POST /api/projects failed:", err);
-    return NextResponse.json({ error: "Failed to create project" }, { status: 500 });
+    return NextResponse.json(
+      { error: err?.message || "Failed to create project" },
+      { status: 500 }
+    );
   }
   } catch (outerErr) {
     console.error("POST /api/projects unhandled error:", outerErr);

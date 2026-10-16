@@ -82,7 +82,36 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user && token) {
-        session.user.id = token.id as string;
+        let userId = (token.id as string) || (token.sub as string);
+        // Auto-heal session user if database was pushed/reset or token has stale ID
+        if (session.user.email) {
+          try {
+            const dbUser = await prisma.user.findFirst({
+              where: {
+                OR: [
+                  ...(userId ? [{ id: userId }] : []),
+                  { email: session.user.email },
+                ],
+              },
+            });
+            if (dbUser) {
+              userId = dbUser.id;
+            } else {
+              const created = await prisma.user.create({
+                data: {
+                  ...(userId ? { id: userId } : {}),
+                  email: session.user.email,
+                  name: session.user.name || "User",
+                  image: session.user.image || null,
+                },
+              });
+              userId = created.id;
+            }
+          } catch (e) {
+            console.error("Session user resolution failed:", e);
+          }
+        }
+        session.user.id = userId;
         session.user.role = token.role as string;
         session.user.isBanned = token.isBanned as boolean;
       }

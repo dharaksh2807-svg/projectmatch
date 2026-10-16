@@ -271,6 +271,26 @@ export async function POST(req: NextRequest) {
       ? data.collegeSlug.trim()
       : toCollegeSlug(data.collegeName);
 
+  // Defensive check: ensure uploader user exists in DB
+  let validUploaderId: string | null = uploaderId;
+  if (prisma.user?.findUnique) {
+    let uploaderRecord = uploaderId ? await prisma.user.findUnique({ where: { id: uploaderId } }) : null;
+    if (!uploaderRecord && session.user?.email) {
+      uploaderRecord = await prisma.user.findUnique({ where: { email: session.user.email } });
+      if (!uploaderRecord) {
+        uploaderRecord = await prisma.user.create({
+          data: {
+            ...(uploaderId ? { id: uploaderId } : {}),
+            email: session.user.email,
+            name: session.user.name || "Organizer",
+            image: session.user.image || null,
+          },
+        });
+      }
+      validUploaderId = uploaderRecord.id;
+    }
+  }
+
   // ── 6. Persist to Database ───────────────────────────────────────────────
   try {
     const hackathon = await prisma.hackathon.create({
@@ -333,7 +353,7 @@ export async function POST(req: NextRequest) {
         lastSyncAt: new Date(),
 
         // ── Uploader Relation ─────────────────────────────────────────────
-        uploadedByUserId: uploaderId,
+        uploadedByUserId: validUploaderId,
       },
     });
 
