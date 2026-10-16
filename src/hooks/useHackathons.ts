@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/toast-provider";
 import type { ParticipationModeFilter, SortOption } from "@/components/hackathons/hackathon-filters";
 
 export type EligibilityScopeFilter = "ALL" | EligibilityScope;
+export type StreamTab = "ALL" | "CAMPUS" | "NATIONAL";
 
 export interface HackathonSections {
   featured: Hackathon[];
@@ -59,6 +60,11 @@ export function useHackathons() {
       ? (e as EligibilityScopeFilter)
       : "ALL";
   });
+  // Stream tab state: "ALL" | "CAMPUS" | "NATIONAL"
+  const [selectedStream, setSelectedStream] = useState<StreamTab>(() => {
+    const s = searchParams?.get("stream")?.toUpperCase();
+    return s === "CAMPUS" || s === "NATIONAL" ? (s as StreamTab) : "ALL";
+  });
 
   // Incremental loading state
   const [visibleCount, setVisibleCount] = useState(INITIAL_PAGE_SIZE);
@@ -78,6 +84,8 @@ export function useHackathons() {
     const validSort = urlSort === "deadline" || urlSort === "startDate" || urlSort === "prize" ? urlSort : "ranked";
     const urlElig = searchParams.get("eligibility")?.toUpperCase();
     const validElig = urlElig === "OPEN_TO_ALL" || urlElig === "ANY_COLLEGE_STUDENT" || urlElig === "HOST_COLLEGE_ONLY" ? urlElig : "ALL";
+    const urlStream = searchParams.get("stream")?.toUpperCase();
+    const validStream = urlStream === "CAMPUS" || urlStream === "NATIONAL" ? urlStream : "ALL";
 
     setSelectedCollege((prev) => (prev !== urlCollege ? urlCollege : prev));
     setSelectedCity((prev) => (prev !== urlCity ? urlCity : prev));
@@ -88,6 +96,7 @@ export function useHackathons() {
     setSelectedCategory((prev) => (prev !== urlTag ? urlTag : prev));
     setSortBy((prev) => (prev !== validSort ? (validSort as SortOption) : prev));
     setSelectedEligibility((prev) => (prev !== validElig ? (validElig as EligibilityScopeFilter) : prev));
+    setSelectedStream((prev) => (prev !== validStream ? (validStream as StreamTab) : prev));
   }, [searchParams]);
 
   /**
@@ -318,6 +327,7 @@ export function useHackathons() {
       selectedCollege !== "ALL" ||
       selectedCity !== "ALL" ||
       selectedEligibility !== "ALL" ||
+      selectedStream !== "ALL" ||
       sortBy !== "ranked"
   );
 
@@ -334,6 +344,7 @@ export function useHackathons() {
     if (selectedCollege !== "ALL") params.set("college", selectedCollege);
     if (selectedCity !== "ALL") params.set("city", selectedCity);
     if (selectedEligibility !== "ALL") params.set("eligibility", selectedEligibility);
+    if (selectedStream !== "ALL") params.set("stream", selectedStream.toLowerCase());
 
     const newQuery = params.toString();
     const basePath = pathname || "/hackathons";
@@ -354,6 +365,7 @@ export function useHackathons() {
     selectedCollege,
     selectedCity,
     selectedEligibility,
+    selectedStream,
     pathname,
     router,
     searchParams,
@@ -368,6 +380,7 @@ export function useHackathons() {
     setSelectedCollege("ALL");
     setSelectedCity("ALL");
     setSelectedEligibility("ALL");
+    setSelectedStream("ALL");
     setSortBy("ranked");
     setVisibleCount(INITIAL_PAGE_SIZE);
     if (router) {
@@ -378,6 +391,24 @@ export function useHackathons() {
   const loadMore = useCallback(() => {
     setVisibleCount((prev) => prev + INCREMENTAL_STEP);
   }, []);
+
+  // Partition active hackathons into distinct streams
+  const localCampusHackathons = useMemo(() => {
+    return filteredHackathons.filter(
+      (h) =>
+        h.isCommunitySubmitted === true ||
+        h.stream === "COMMUNITY_LOCAL" ||
+        Boolean(h.collegeSlug || h.collegeName)
+    );
+  }, [filteredHackathons]);
+
+  const nationalHackathons = useMemo(() => {
+    return filteredHackathons.filter(
+      (h) =>
+        h.stream === "NATIONAL_AUTOMATED" ||
+        (h.isNational === true && !h.isCommunitySubmitted)
+    );
+  }, [filteredHackathons]);
 
   // Items currently visible for incremental loading
   const visibleHackathons = useMemo(() => {
@@ -390,6 +421,10 @@ export function useHackathons() {
     sections,
     allHackathons: allActiveHackathons,
     hackathons: filteredHackathons,
+    localCampusHackathons,
+    nationalHackathons,
+    selectedStream,
+    setSelectedStream,
     visibleHackathons,
     visibleCount,
     hasMore,

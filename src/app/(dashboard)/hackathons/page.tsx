@@ -8,12 +8,8 @@ import {
   Plus,
   Loader2,
   Zap,
-  Clock,
-  Award,
-  ShieldCheck,
   AlertTriangle,
   RefreshCw,
-  Filter,
   Building2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,15 +44,16 @@ function HackathonsPageContent() {
   const { toast } = useToast();
 
   const {
-    sections,
     hackathons,
-    visibleHackathons,
+    localCampusHackathons,
+    nationalHackathons,
+    selectedStream,
+    setSelectedStream,
     visibleCount,
     hasMore,
     loadMore,
     loading,
     error,
-    isCuratedSectionsView,
     hasActiveFilters,
     searchQuery,
     setSearchQuery,
@@ -329,85 +326,94 @@ function HackathonsPageContent() {
           actionLabel={hasActiveFilters ? "Clear All Filters" : "Refresh Data"}
           onAction={hasActiveFilters ? resetFilters : refresh}
         />
-      ) : isCuratedSectionsView ? (
+      ) : (
         /* ─────────────────────────────────────────────────────────────
-            DEFAULT DISCOVERY FEED: 4 CURATED RANKED SECTIONS
-            Excludes completed and cancelled events strictly.
-            Distinguishes verified national flagships prominently.
+            DUAL-STREAM DISCOVERY VIEW: STRICT SEPARATION
+            Stream A: Campus & Local (Organizer & Student Posted)
+            Stream B: Top National (Automated & System-Synchronized)
+            These two streams are NEVER flattened or mixed together.
            ───────────────────────────────────────────────────────────── */
         <div className="space-y-10">
-          {/* SECTION 1: Featured National Competitions */}
-          {sections.featured.length > 0 && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
-                    <Award className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                      Featured National Competitions
-                      <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[10px] font-semibold">
-                        Flagship
-                      </Badge>
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      Verified high-impact national initiatives and premier institutional championships.
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">
-                  {sections.featured.length} {sections.featured.length === 1 ? "event" : "events"}
+          {/* STREAM SWITCHER TABS & SUMMARY */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-3">
+            <div className="flex flex-wrap items-center p-1 rounded-2xl bg-zinc-900/90 border border-border/60 w-fit gap-1 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setSelectedStream("ALL")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                  selectedStream === "ALL"
+                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/40"
+                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>All Opportunities (Dual Stream)</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 text-white font-bold ml-1">
+                  {hackathons.length}
                 </span>
-              </div>
+              </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {sections.featured.map((h) => (
-                  <HackathonCard key={h.id} hackathon={h} variant="featured" />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* SECTION 2: Registration Closing Soon */}
-          {sections.closingSoon.length > 0 && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400">
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                      Registration Closing Soon
-                      <Badge className="bg-red-500/20 text-red-300 border-red-500/40 text-[10px] font-semibold animate-pulse">
-                        Urgent
-                      </Badge>
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      Registration deadlines expiring within 72 hours. Finalize your squad and register before spots close.
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">
-                  {sections.closingSoon.length} {sections.closingSoon.length === 1 ? "event" : "events"}
+              <button
+                type="button"
+                onClick={() => setSelectedStream("CAMPUS")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                  selectedStream === "CAMPUS"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/40"
+                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <Building2 className="w-3.5 h-3.5 text-indigo-300" />
+                <span>Campus & Local</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 font-bold ml-1">
+                  {localCampusHackathons.length}
                 </span>
-              </div>
+              </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {sections.closingSoon.map((h) => (
-                  <HackathonCard key={h.id} hackathon={h} />
-                ))}
-              </div>
-            </section>
-          )}
+              <button
+                type="button"
+                onClick={() => setSelectedStream("NATIONAL")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                  selectedStream === "NATIONAL"
+                    ? "bg-amber-600 text-white shadow-md shadow-amber-950/40"
+                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <Trophy className="w-3.5 h-3.5 text-amber-300" />
+                <span>Top National</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 font-bold ml-1">
+                  {nationalHackathons.length}
+                </span>
+              </button>
+            </div>
 
-          {/* SECTION: Campus & Local Hackathons (Organizer Submitted Stream) */}
-          {sections.localCampus && sections.localCampus.length > 0 && (
+            {hasActiveFilters && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  Filtered: {hackathons.length} active
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 h-7"
+                >
+                  Clear All Filters
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* ═════════════════════════════════════════════════════════════
+              STREAM A: CAMPUS & LOCAL HACKATHONS (ORGANIZER POSTED)
+              ═════════════════════════════════════════════════════════════ */}
+          {(selectedStream === "ALL" || selectedStream === "CAMPUS") && (
             <section className="space-y-4">
-              <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
                     <Building2 className="w-4 h-4" />
                   </div>
                   <div>
@@ -418,137 +424,110 @@ function HackathonsPageContent() {
                       </Badge>
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                      Competitions hosted by college clubs, student chapters, and regional university sprints.
+                      Crowdsourced and hosted by college student chapters, technical clubs (SRM, Anna Univ, IITM, VIT), and regional university circuits.
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground font-medium">
-                    {sections.localCampus.length} {sections.localCampus.length === 1 ? "event" : "events"}
+
+                <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                  <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 rounded-md bg-muted/60">
+                    {localCampusHackathons.length} {localCampusHackathons.length === 1 ? "event" : "events"}
                   </span>
                   <Link href="/hackathons/submit">
                     <Button
                       size="sm"
-                      variant="ghost"
-                      className="text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-7 gap-1"
+                      className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-xs h-8 px-3 rounded-xl gap-1 shadow-md shadow-indigo-950/40 border border-indigo-400/30"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      Post Hackathon
+                      + Post a Hackathon
                     </Button>
                   </Link>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {sections.localCampus.map((h) => (
-                  <HackathonCard key={h.id} hackathon={h} />
-                ))}
-              </div>
+              {localCampusHackathons.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {localCampusHackathons.map((h) => (
+                    <HackathonCard key={h.id} hackathon={h} />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-indigo-500/30 bg-indigo-950/10 p-6 text-center space-y-3">
+                  <Building2 className="w-8 h-8 text-indigo-400/80 mx-auto" />
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-sm text-foreground">
+                      No Campus Hackathons Match Your Current Filter
+                    </h3>
+                    <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                      Are you a student club lead, GDSC/ACM coordinator, or hackathon organizer? Be the first to list your campus hackathon and reach student hackers across colleges.
+                    </p>
+                  </div>
+                  <Link href="/hackathons/submit">
+                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs gap-1.5 mt-1">
+                      <Plus className="w-3.5 h-3.5" />
+                      + Post a Campus Hackathon
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </section>
           )}
 
-          {/* SECTION 3: Upcoming Hackathons (Priority Ranked) */}
-          {sections.upcoming.length > 0 && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                    <Sparkles className="w-4 h-4" />
+          {/* ═════════════════════════════════════════════════════════════
+              STREAM B: TOP NATIONAL HACKATHONS (AUTOMATED FLAGSHIPS)
+              ═════════════════════════════════════════════════════════════ */}
+          {(selectedStream === "ALL" || selectedStream === "NATIONAL") && (
+            <section className="space-y-4 pt-4 sm:pt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
+                    <Trophy className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-foreground">
-                      Upcoming Hackathons
+                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      Top National Hackathons
+                      <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[10px] font-semibold">
+                        Automated Flagships
+                      </Badge>
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                      Ranked deterministically by national credibility, student relevance, learning value, and timeline.
+                      Verified premier national championships, Smart India Hackathon (SIH), and tier-1 institutional tournaments.
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground font-medium">
-                  {sections.upcoming.length} {sections.upcoming.length === 1 ? "event" : "events"}
+
+                <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 rounded-md bg-muted/60 self-start sm:self-auto">
+                  {nationalHackathons.length} {nationalHackathons.length === 1 ? "flagship" : "flagships"}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {sections.upcoming.map((h) => (
-                  <HackathonCard key={h.id} hackathon={h} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* SECTION 4: Other Verified Opportunities */}
-          {sections.other.length > 0 && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-300">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground">
-                      Other Verified Opportunities
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      Additional verified competitions, upcoming registration announcements, and university sprints.
-                    </p>
-                  </div>
+              {nationalHackathons.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {nationalHackathons.map((h, i) => (
+                    <HackathonCard
+                      key={h.id}
+                      hackathon={h}
+                      variant={i === 0 && !hasActiveFilters ? "featured" : "default"}
+                    />
+                  ))}
                 </div>
-                <span className="text-xs text-muted-foreground font-medium">
-                  {sections.other.length} {sections.other.length === 1 ? "event" : "events"}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {sections.other.map((h) => (
-                  <HackathonCard key={h.id} hackathon={h} />
-                ))}
-              </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-amber-500/30 bg-amber-950/10 p-6 text-center space-y-2">
+                  <Trophy className="w-8 h-8 text-amber-400/80 mx-auto" />
+                  <h3 className="font-semibold text-sm text-foreground">
+                    No National Flagships Match Your Current Filter
+                  </h3>
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                    Try broadening your filters or clearing city/campus filters to view pan-India national initiatives.
+                  </p>
+                </div>
+              )}
             </section>
           )}
-        </div>
-      ) : (
-        /* ─────────────────────────────────────────────────────────────
-            FILTERED / CUSTOM SORT VIEW
-            Displays unified filtered results with incremental loading.
-           ───────────────────────────────────────────────────────────── */
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Filter className="w-3.5 h-3.5 text-primary" />
-              <span>
-                Showing {Math.min(visibleCount, hackathons.length)} of {hackathons.length} active opportunities
-                {searchQuery && ` matching "${searchQuery}"`}
-                {selectedCategory !== "All" && ` in ${selectedCategory}`}
-                {selectedMode !== "ALL" && ` (${selectedMode.toLowerCase()})`}
-                {nationalOnly && " [National Level Only]"}
-                {openRegOnly && " [Open Registration]"}
-                {selectedCollege !== "ALL" && ` [College: ${selectedCollege}]`}
-                {selectedCity !== "ALL" && ` [City: ${selectedCity}]`}
-                {selectedEligibility !== "ALL" && ` [Eligibility: ${selectedEligibility.replace(/_/g, " ")}]`}
-              </span>
-            </div>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={resetFilters}
-              className="text-xs text-muted-foreground hover:text-foreground h-7"
-            >
-              Reset Filters
-            </Button>
-          </div>
-
-          {/* Card Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {visibleHackathons.map((h) => (
-              <HackathonCard key={h.id} hackathon={h} />
-            ))}
-          </div>
 
           {/* Incremental Loading / Pagination */}
           {hasMore && (
-            <div className="pt-6 flex flex-col items-center justify-center space-y-2">
+            <div className="pt-6 flex flex-col items-center justify-center space-y-2 border-t border-border/40">
               <Button
                 variant="outline"
                 onClick={loadMore}
@@ -557,7 +536,7 @@ function HackathonsPageContent() {
                 Load More Hackathons ({hackathons.length - visibleCount} remaining)
               </Button>
               <p className="text-[11px] text-muted-foreground">
-                Showing {visibleHackathons.length} of {hackathons.length} events
+                Showing {Math.min(visibleCount, hackathons.length)} of {hackathons.length} events
               </p>
             </div>
           )}
