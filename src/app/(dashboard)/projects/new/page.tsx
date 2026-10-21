@@ -314,7 +314,7 @@ export default function NewProjectPage() {
                   )}
 
                   <div className="flex items-center gap-2 mb-3">
-                    <Badge variant="purple" className="text-[10px]">
+                    <Badge variant="accent" className="text-[10px]">
                       Role #{index + 1}
                     </Badge>
                   </div>

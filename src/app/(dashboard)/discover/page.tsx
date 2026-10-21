@@ -329,8 +329,7 @@ export default function DiscoverPage() {
           ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Compass className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Discover Opportunities
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -344,12 +343,12 @@ export default function DiscoverPage() {
               variant={bookmarkedOnly ? "default" : "outline"}
               size="sm"
               onClick={() => setBookmarkedOnly(!bookmarkedOnly)}
-              className="gap-1.5"
+              className="gap-1.5 h-9"
             >
               <Heart
                 className={cn(
                   "w-3.5 h-3.5",
-                  bookmarkedOnly ? "fill-current text-white" : "text-muted-foreground"
+                  bookmarkedOnly ? "fill-current text-primary-foreground" : "text-muted-foreground"
                 )}
               />
               <span>{bookmarkedOnly ? "Saved Only" : "Bookmarks"}</span>
@@ -357,7 +356,7 @@ export default function DiscoverPage() {
           )}
 
           <Link href="/projects/new">
-            <Button size="sm" className="gap-1.5 font-semibold shadow-xs">
+            <Button size="sm" className="gap-1.5 h-9 font-semibold shadow-xs">
               Post a Project
             </Button>
           </Link>
@@ -367,15 +366,15 @@ export default function DiscoverPage() {
       {/* ─────────────────────────────────────────────────────────────
           2. HORIZONTAL SEARCH & FILTER CONTROL BAR
           ───────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border shadow-xs">
-        {/* Search Input */}
-        <div className="relative flex-1 min-w-[240px]">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border shadow-xs">
+        {/* Search Input - gets greatest horizontal space */}
+        <div className="relative flex-1 min-w-[260px]">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search roles, required skills, or projects..."
-            className="pl-9 pr-8 h-9.5 text-sm rounded-xl"
+            className="pl-9 pr-8 h-10 text-sm rounded-xl border-input bg-card focus-visible:ring-primary"
             aria-label="Search roles and projects"
           />
           {searchQuery && (
@@ -395,7 +394,7 @@ export default function DiscoverPage() {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="h-9.5 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+            className="h-10 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
             aria-label="Filter by project type"
           >
             {PROJECT_TYPES.map((type) => (
@@ -409,7 +408,7 @@ export default function DiscoverPage() {
           <select
             value={selectedExp}
             onChange={(e) => setSelectedExp(e.target.value)}
-            className="h-9.5 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+            className="h-10 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
             aria-label="Filter by experience level"
           >
             {EXPERIENCE_LEVELS.map((exp) => (
@@ -423,7 +422,7 @@ export default function DiscoverPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="h-9.5 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+            className="h-10 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
             aria-label="Sort roles"
           >
             {SORT_OPTIONS.map((opt) => (
@@ -438,7 +437,7 @@ export default function DiscoverPage() {
             variant="outline"
             size="sm"
             onClick={() => setFilterDrawerOpen(true)}
-            className="gap-1.5 h-9.5"
+            className="gap-1.5 h-10 px-3 rounded-xl text-xs font-medium"
             aria-label="Open advanced filters"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
@@ -455,7 +454,7 @@ export default function DiscoverPage() {
               variant="ghost"
               size="sm"
               onClick={resetFilters}
-              className="h-9.5 text-xs text-muted-foreground hover:text-foreground gap-1 px-2.5"
+              className="h-10 text-xs text-muted-foreground hover:text-foreground gap-1 px-2.5 rounded-xl"
               title="Reset all filters"
             >
               <RotateCcw className="w-3 h-3" />
@@ -512,7 +511,7 @@ export default function DiscoverPage() {
           )}
 
           {selectedSkills.map((skill) => (
-            <Badge key={skill} variant="purple" className="gap-1 pr-1.5">
+            <Badge key={skill} variant="accent" className="gap-1 pr-1.5">
               <span>Skill: {skill}</span>
               <button
                 onClick={() => toggleSkill(skill)}
@@ -525,7 +524,7 @@ export default function DiscoverPage() {
           ))}
 
           {selectedTechs.map((tech) => (
-            <Badge key={tech} variant="purple" className="gap-1 pr-1.5">
+            <Badge key={tech} variant="accent" className="gap-1 pr-1.5">
               <span>Tech: {tech}</span>
               <button
                 onClick={() => toggleTech(tech)}
@@ -827,12 +826,12 @@ function RoleCard({
   };
 
   return (
-    <Card className="flex flex-col justify-between hover:border-primary/40 transition-colors group">
+    <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-border-strong hover:shadow-xs transition-colors rounded-xl bg-card border border-border group gap-3">
       <div>
         {/* Card Header Metadata Bar */}
-        <div className="flex items-start justify-between gap-2 mb-2.5">
+        <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Badge variant="purple" className="text-[11px]">
+            <Badge variant="secondary" className="text-[11px] font-medium">
               {role.project.projectType}
             </Badge>
             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -850,7 +849,7 @@ function RoleCard({
             aria-label={role.isBookmarked ? "Remove from bookmarks" : "Save role to bookmarks"}
             title={role.isBookmarked ? "Bookmarked" : "Bookmark this role"}
             className={cn(
-              "p-1.5 rounded-lg border transition-colors",
+              "p-1.5 rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               role.isBookmarked
                 ? "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900"
                 : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -865,7 +864,7 @@ function RoleCard({
 
         {/* Role Title and Project Name */}
         <div className="space-y-1">
-          <h2 className="font-semibold text-base sm:text-lg text-foreground leading-snug group-hover:text-primary transition-colors">
+          <h2 className="font-semibold text-base text-foreground leading-snug group-hover:text-primary transition-colors">
             <Link href={`/projects/${role.project.id}`}>{role.title}</Link>
           </h2>
           <p className="text-xs text-muted-foreground">
@@ -881,18 +880,18 @@ function RoleCard({
 
         {/* Short Description */}
         {role.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-2 leading-relaxed">
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5 leading-relaxed">
             {role.description.replace(/<[^>]*>/g, "")}
           </p>
         )}
 
         {/* Required Skills */}
         {role.requiredSkills && role.requiredSkills.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
+          <div className="flex flex-wrap gap-1.5 mt-2.5">
             {role.requiredSkills.slice(0, 4).map((skill) => (
               <span
                 key={skill}
-                className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium border border-border"
+                className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium border border-border/70"
               >
                 {skill}
               </span>
@@ -906,7 +905,7 @@ function RoleCard({
         )}
 
         {/* Vacancy & Commitment Details */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-3 pt-2.5 border-t border-border">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2.5 pt-2 border-t border-border">
           <span className="flex items-center gap-1 font-medium">
             <Users className="w-3.5 h-3.5 text-primary" />
             {role.openSpots > 0 ? (
@@ -921,7 +920,7 @@ function RoleCard({
 
         {/* Match Compatibility Information */}
         {!isGuest && role.compatibility && (
-          <div className="mt-3 p-2.5 rounded-xl bg-secondary/50 border border-border space-y-1">
+          <div className="mt-2.5 p-2 rounded-lg bg-secondary/60 border border-border space-y-1">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-foreground flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -939,7 +938,7 @@ function RoleCard({
       </div>
 
       {/* Card Footer: Project Lead + Actions */}
-      <div className="pt-3 border-t border-border mt-4 flex items-center justify-between gap-2">
+      <div className="pt-2.5 border-t border-border mt-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Avatar
             src={role.project.owner.image}
@@ -948,7 +947,7 @@ function RoleCard({
             className="w-6 h-6 text-[10px] shrink-0"
           />
           <div className="min-w-0">
-            <span className="text-xs text-muted-foreground truncate block font-medium">
+            <span className="text-xs text-muted-foreground truncate block font-medium max-w-[110px] sm:max-w-[130px]">
               {role.project.owner.name || "Project Lead"}
             </span>
           </div>

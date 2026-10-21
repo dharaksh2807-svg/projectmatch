@@ -167,8 +167,8 @@ export function Sidebar() {
     </nav>
   );
 
-  const renderUserFooter = (
-    <div className="p-3 border-t border-border bg-sidebar shrink-0 space-y-2">
+  const renderUserFooter = (onNavigate?: () => void) => (
+    <div className="p-3 border-t border-border bg-sidebar shrink-0 space-y-2.5">
       {status === "loading" ? (
         <div className="flex items-center gap-3 px-2 py-1.5 animate-pulse">
           <div className="w-8 h-8 rounded-xl bg-muted shrink-0" />
@@ -178,10 +178,11 @@ export function Sidebar() {
           </div>
         </div>
       ) : session?.user ? (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
+          {/* User Account Tile */}
           <Link
             href="/profile"
-            onClick={() => setMobileOpen(false)}
+            onClick={() => onNavigate?.()}
             className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-secondary transition-colors group"
           >
             {session.user.image ? (
@@ -204,12 +205,24 @@ export function Sidebar() {
             </div>
           </Link>
 
-          <div className="flex items-center justify-between pt-1 px-1">
-            <ModeToggle />
+          {/* Prominent, Clearly Discoverable Theme Switcher */}
+          <div className="px-1">
+            <ModeToggle showLabel={true} />
+          </div>
+
+          {/* Account Sub-actions */}
+          <div className="flex items-center justify-between pt-0.5 px-2 text-xs">
+            <Link
+              href="/profile"
+              onClick={() => onNavigate?.()}
+              className="text-muted-foreground hover:text-foreground font-medium transition-colors"
+            >
+              Settings
+            </Link>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               aria-label="Sign out of ProjectMatch"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+              className="flex items-center gap-1.5 py-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
             >
               <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Sign Out</span>
@@ -217,18 +230,16 @@ export function Sidebar() {
           </div>
         </div>
       ) : (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <ModeToggle />
-            <Link
-              href="/login"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <User className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Sign In</span>
-            </Link>
-          </div>
+        <div className="space-y-2 px-1">
+          <ModeToggle showLabel={true} />
+          <Link
+            href="/login"
+            onClick={() => onNavigate?.()}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+          >
+            <User className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Sign In</span>
+          </Link>
         </div>
       )}
     </div>
@@ -266,7 +277,7 @@ export function Sidebar() {
                 </Link>
               </div>
               {renderNavList(() => setMobileOpen(false))}
-              {renderUserFooter}
+              {renderUserFooter(() => setMobileOpen(false))}
             </SheetContent>
           </Sheet>
 
@@ -368,7 +379,7 @@ export function Sidebar() {
         {renderNavList()}
 
         {/* User Account / Footer */}
-        {renderUserFooter}
+        {renderUserFooter()}
       </aside>
     </>
   );

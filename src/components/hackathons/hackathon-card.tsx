@@ -332,9 +332,9 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
             {hackathon.eligibilityScope === "HOST_COLLEGE_ONLY" && (
               <Badge
                 variant="outline"
-                className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
+                className="bg-accent text-accent-foreground border-primary/25 dark:bg-accent/40 dark:text-primary dark:border-primary/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                 {(() => {
                   const isSrm =
                     hackathon.collegeSlug === "srm-ist" ||
@@ -392,9 +392,9 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
               className={cn(
                 "text-[10px] sm:text-[11px] px-2 py-0.5 gap-1 font-medium",
                 mode === "ONLINE"
-                  ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30"
+                  ? "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30"
                   : mode === "OFFLINE"
-                  ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30"
+                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30"
                   : "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-500/20 dark:text-teal-300 dark:border-teal-500/30"
               )}
             >

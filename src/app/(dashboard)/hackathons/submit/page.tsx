@@ -959,8 +959,8 @@ export default function SubmitHackathonPage() {
                         title: "In-Person",
                         subtitle: "Offline on-campus hackathon",
                         icon: MapPin,
-                        color: "text-purple-400",
-                        selectedBg: "border-purple-500/60 bg-purple-500/10 ring-1 ring-purple-500/30",
+                        color: "text-amber-500 dark:text-amber-400",
+                        selectedBg: "border-amber-500/60 bg-amber-500/10 ring-1 ring-amber-500/30",
                       },
                       {
                         mode: "ONLINE" as ParticipationMode,

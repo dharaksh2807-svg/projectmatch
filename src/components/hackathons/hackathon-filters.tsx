@@ -210,14 +210,14 @@ export function HackathonFilters({
             className={cn(
               "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
               selectedCollege === "srm-ist"
-                ? "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 font-bold"
+                ? "bg-accent text-accent-foreground border-primary/40 dark:bg-accent/40 dark:text-primary dark:border-primary/50 font-bold"
                 : "bg-card text-muted-foreground hover:text-foreground border-border hover:bg-secondary"
             )}
           >
             <span>🏛️</span>
             <span>At SRM (Campus)</span>
             {selectedCollege === "srm-ist" && (
-              <Badge className="bg-purple-600 text-white dark:bg-purple-800 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+              <Badge className="bg-primary text-primary-foreground text-[10px] px-1 py-0 ml-0.5">Active</Badge>
             )}
           </button>
         )}

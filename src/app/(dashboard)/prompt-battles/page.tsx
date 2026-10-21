@@ -220,7 +220,7 @@ export default function PromptBattlesPage() {
               <div className="flex-1 flex flex-col min-w-0 min-h-[320px] border border-border rounded-2xl bg-card shadow-sm overflow-hidden">
                 <div className="p-3.5 bg-muted/40 border-b border-border flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
-                    <Bot className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <Bot className="w-4 h-4 text-primary" />
                     <span className="text-sm font-semibold text-foreground truncate">
                       {models.find(m => m.id === modelB)?.name || 'Model B'}
                     </span>
@@ -236,7 +236,7 @@ export default function PromptBattlesPage() {
                     <Button 
                       onClick={() => submitVote('modelB')}
                       variant="outline" 
-                      className="w-full rounded-xl border-purple-500/30 text-purple-700 dark:text-purple-400 hover:bg-purple-500/10"
+                      className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/10"
                     >
                       <CheckCircle2 className="w-4 h-4 mr-2" /> Vote for Model B
                     </Button>

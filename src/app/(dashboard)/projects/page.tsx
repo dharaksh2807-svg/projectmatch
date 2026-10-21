@@ -146,7 +146,7 @@ export default async function ProjectsPage({
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {isOwner ? (
-                        <Badge variant="purple" className="text-[10px]">
+                        <Badge variant="accent" className="text-[10px]">
                           Your Project
                         </Badge>
                       ) : (

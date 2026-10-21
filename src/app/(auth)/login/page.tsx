@@ -83,14 +83,14 @@ export default function LoginPage() {
       </div>
 
       {/* Card */}
-      <div className="glass-card rounded-2xl p-8 border border-border/50 shadow-xl">
+      <div className="rounded-xl p-6 sm:p-8 border border-border bg-card shadow-xs">
         {/* Logo */}
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl brand-gradient flex items-center justify-center glow mb-4">
-            <Sparkles className="w-7 h-7 text-white" />
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-3 shadow-xs">
+            <Sparkles className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Welcome to ProjectMatch</h1>
-          <p className="text-muted-foreground text-sm mt-2 max-w-xs">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome to ProjectMatch</h1>
+          <p className="text-muted-foreground text-sm mt-1.5 max-w-xs">
             Sign in to discover projects and teammates matched to your skills.
           </p>
         </div>

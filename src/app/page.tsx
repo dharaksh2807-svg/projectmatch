@@ -111,7 +111,7 @@ export default function HomePage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="purple">Hackathon</Badge>
+                  <Badge variant="secondary">Hackathon</Badge>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="w-3 h-3" /> 1–3 months
                   </span>

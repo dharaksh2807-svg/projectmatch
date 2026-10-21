@@ -4,16 +4,18 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "group/badge inline-flex w-fit shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&>svg]:pointer-events-none [&>svg]:size-3",
+  "group/badge inline-flex w-fit shrink-0 items-center justify-center gap-1.5 rounded-md border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&>svg]:pointer-events-none [&>svg]:size-3",
   {
     variants: {
       variant: {
         default:
-          "border-primary/20 bg-primary/10 text-primary font-semibold dark:bg-primary/20 dark:text-purple-300",
+          "border-primary/20 bg-primary/10 text-primary font-semibold dark:bg-primary/20 dark:text-primary dark:border-primary/30",
         secondary:
           "border-border bg-secondary text-secondary-foreground font-medium",
         outline:
           "border-border bg-card text-foreground font-medium",
+        accent:
+          "border-primary/25 bg-accent text-accent-foreground font-medium",
         success:
           "border-emerald-500/20 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-500/30 font-semibold",
         warning:
@@ -21,7 +23,7 @@ const badgeVariants = cva(
         destructive:
           "border-destructive/20 bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-red-300 font-semibold",
         purple:
-          "border-purple-500/20 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-500/30 font-semibold",
+          "border-primary/25 bg-accent text-accent-foreground font-medium",
       },
     },
     defaultVariants: {

@@ -526,8 +526,8 @@ export function DashboardView({
               title: "Direct Messages",
               desc: "Chat with teammates",
               icon: MessageSquare,
-              color: "text-purple-500",
-              bg: "bg-purple-500/10",
+              color: "text-primary",
+              bg: "bg-primary/10",
             },
             {
               href: "/prompt-battles",
@@ -1103,7 +1103,7 @@ export function DashboardView({
             <CardHeader className="p-4 pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-purple-500" /> Team Chats
+                  <MessageSquare className="w-4 h-4 text-primary" /> Team Chats
                 </CardTitle>
                 <Link href="/messages" className="text-xs text-primary hover:underline">
                   All
