@@ -27,30 +27,27 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "glass-card rounded-2xl border border-border/50 p-12 text-center flex flex-col items-center justify-center max-w-lg mx-auto",
+        "rounded-2xl border border-border bg-card p-8 sm:p-10 text-center flex flex-col items-center justify-center max-w-md mx-auto shadow-xs",
         className
       )}
     >
-      <div className="w-14 h-14 rounded-2xl bg-secondary/80 border border-border/60 flex items-center justify-center mb-4 text-muted-foreground shadow-sm">
+      <div className="w-12 h-12 rounded-xl bg-secondary border border-border flex items-center justify-center mb-3.5 text-primary shadow-xs">
         {icon}
       </div>
-      <h3 className="text-lg font-bold text-foreground mb-1.5">{title}</h3>
-      <p className="text-sm text-muted-foreground max-w-sm mb-6 leading-relaxed">
+      <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1.5">{title}</h3>
+      <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mb-5 leading-relaxed">
         {description}
       </p>
 
       {actionLabel && (
         actionHref ? (
           <Link href={actionHref}>
-            <Button className="brand-gradient text-white font-medium shadow-sm hover:opacity-90 transition-all">
+            <Button className="shadow-xs">
               {actionLabel}
             </Button>
           </Link>
         ) : onAction ? (
-          <Button
-            onClick={onAction}
-            className="brand-gradient text-white font-medium shadow-sm hover:opacity-90 transition-all"
-          >
+          <Button onClick={onAction} className="shadow-xs">
             {actionLabel}
           </Button>
         ) : null

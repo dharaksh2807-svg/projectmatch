@@ -14,7 +14,6 @@ import {
   ExternalLink,
   Plus,
   Loader2,
-  Paperclip,
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -81,6 +80,9 @@ export function WhatsAppChatInterface({
   );
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [inputText, setInputText] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -95,6 +97,17 @@ export function WhatsAppChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const targetInitiatedRef = useRef(false);
+
+  // Helper to switch conversation while preserving drafts
+  const selectConversation = useCallback((newId: string | null) => {
+    setActiveConversationId((currentId) => {
+      if (currentId) {
+        setDrafts((prev) => ({ ...prev, [currentId]: inputText }));
+      }
+      return newId;
+    });
+    setInputText(newId ? (drafts[newId] || "") : "");
+  }, [inputText, drafts]);
 
   // Scroll to bottom helper
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
@@ -269,8 +282,12 @@ export function WhatsAppChatInterface({
         }
       });
 
+      es.onopen = () => {
+        setIsReconnecting(false);
+      };
+
       es.onerror = () => {
-        // SSE dropped, will auto-reconnect or fallback
+        setIsReconnecting(true);
       };
     } catch (e) {
       console.error("EventSource initialization error:", e);
@@ -521,7 +538,7 @@ export function WhatsAppChatInterface({
               return (
                 <div
                   key={c.id}
-                  onClick={() => setActiveConversationId(c.id)}
+                  onClick={() => selectConversation(c.id)}
                   className={cn(
                     "flex items-center gap-3 p-3.5 cursor-pointer transition-colors hover:bg-accent/60 select-none",
                     isActive && "bg-accent border-l-4 border-primary pl-2.5"
@@ -595,22 +612,23 @@ export function WhatsAppChatInterface({
         {activeConversation ? (
           <>
             {/* Chat Header */}
-            <div className="h-16 px-4 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between shrink-0 z-10">
+            <div className="h-16 px-4 border-b border-border bg-card flex items-center justify-between shrink-0 z-10">
               <div className="flex items-center gap-3 min-w-0">
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setActiveConversationId(null)}
-                  className="md:hidden h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => selectConversation(null)}
+                  className="md:hidden h-8.5 w-8.5 text-muted-foreground hover:text-foreground"
+                  aria-label="Back to conversations"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ArrowLeft className="w-4 h-4" />
                 </Button>
 
                 <Avatar
                   src={activeConversation.otherUser?.image || undefined}
                   alt={activeConversation.otherUser?.name || "Teammate"}
                   size="sm"
-                  className="ring-1 ring-primary/40 shrink-0"
+                  className="ring-1 ring-border shrink-0"
                 />
 
                 <div className="min-w-0">
@@ -618,7 +636,7 @@ export function WhatsAppChatInterface({
                     <h3 className="font-semibold text-sm text-foreground truncate">
                       {activeConversation.otherUser?.name || activeConversation.otherUser?.email}
                     </h3>
-                    <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0">
+                    <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0 font-medium">
                       Teammate
                     </span>
                   </div>
@@ -630,44 +648,42 @@ export function WhatsAppChatInterface({
 
               {/* Context Actions */}
               <div className="flex items-center gap-2">
-                <div className="hidden sm:flex items-center bg-muted/70 rounded-full border border-border p-0.5 pr-1">
-                  <Input 
-                    placeholder="Enter WA number" 
-                    value={whatsappNumber} 
-                    onChange={(e) => setWhatsappNumber(e.target.value)} 
-                    className="h-7 w-32 border-0 bg-transparent text-xs text-foreground focus-visible:ring-0 placeholder:text-muted-foreground" 
-                  />
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-6 px-2 text-primary hover:text-primary hover:bg-accent rounded-full text-[10px]"
-                    onClick={() => {
-                      if (whatsappNumber.trim()) {
-                        window.open(`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}`, "_blank");
-                      }
-                    }}
-                  >
-                    Open WA
-                  </Button>
-                </div>
+                {isReconnecting && (
+                  <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                    Reconnecting...
+                  </span>
+                )}
+
                 {activeConversation.project && (
                   <Link
                     href={`/projects/${activeConversation.project.id}`}
-                    className="hidden sm:flex items-center gap-1.5 text-xs text-foreground hover:text-primary bg-muted/70 px-2.5 py-1 rounded-full border border-border transition-colors"
+                    className="hidden sm:flex items-center gap-1.5 text-xs text-foreground hover:text-primary bg-secondary px-2.5 py-1 rounded-lg border border-border transition-colors font-medium truncate max-w-[200px]"
                   >
-                    <span>{activeConversation.project.title}</span>
-                    <ExternalLink className="w-3 h-3" />
+                    <span className="truncate">{activeConversation.project.title}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
                   </Link>
                 )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsWhatsAppModalOpen(true)}
+                  className="text-xs h-8.5 rounded-xl border-border gap-1.5"
+                  title="Connect on WhatsApp"
+                >
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">WA</span>
+                  <span className="hidden sm:inline">WhatsApp</span>
+                </Button>
               </div>
             </div>
 
             {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:16px_16px] bg-background">
-              {/* Security Banner */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 bg-background">
+              {/* Privacy Notice Banner */}
               <div className="flex justify-center mb-4">
-                <span className="text-[11px] bg-card/90 border border-border text-muted-foreground px-3 py-1 rounded-full text-center max-w-md shadow-xs">
-                  🔒 Messages are delivered in real time via Upstash Redis & SSE.
+                <span className="text-[11px] bg-secondary text-secondary-foreground border border-border px-3 py-1 rounded-full text-center max-w-md shadow-xs">
+                  Direct conversation with your project teammate
                 </span>
               </div>
 
@@ -696,7 +712,7 @@ export function WhatsAppChatInterface({
                     <div key={msg.id || index} className="space-y-2">
                       {showDate && (
                         <div className="flex justify-center my-3">
-                          <span className="text-[10px] uppercase tracking-wider font-semibold bg-card text-muted-foreground px-2.5 py-0.5 rounded-md border border-border">
+                          <span className="text-[10px] uppercase tracking-wider font-semibold bg-secondary text-secondary-foreground px-2.5 py-0.5 rounded-md border border-border">
                             {new Date(msg.createdAt).toLocaleDateString([], {
                               weekday: "short",
                               month: "short",
@@ -723,10 +739,10 @@ export function WhatsAppChatInterface({
 
                         <div
                           className={cn(
-                            "relative max-w-[85%] sm:max-w-[70%] px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-xs break-words",
+                            "relative max-w-[85%] sm:max-w-[70%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed shadow-xs break-words",
                             isMe
-                              ? "brand-gradient text-white rounded-br-none"
-                              : "bg-card text-card-foreground border border-border rounded-bl-none"
+                              ? "bg-primary text-primary-foreground rounded-br-xs"
+                              : "bg-card text-card-foreground border border-border rounded-bl-xs"
                           )}
                         >
                           <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -734,7 +750,7 @@ export function WhatsAppChatInterface({
                           <div
                             className={cn(
                               "flex items-center justify-end gap-1 mt-1 text-[10px]",
-                              isMe ? "text-white/80" : "text-muted-foreground"
+                              isMe ? "text-primary-foreground/80" : "text-muted-foreground"
                             )}
                           >
                             <span>
@@ -748,7 +764,7 @@ export function WhatsAppChatInterface({
                                 {msg.isOptimistic ? (
                                   <Loader2 className="w-3 h-3 animate-spin inline" />
                                 ) : msg.isRead ? (
-                                  <CheckCheck className="w-3.5 h-3.5 text-white inline" />
+                                  <CheckCheck className="w-3.5 h-3.5 text-primary-foreground inline" />
                                 ) : (
                                   <Check className="w-3.5 h-3.5 inline" />
                                 )}
@@ -769,29 +785,18 @@ export function WhatsAppChatInterface({
               onSubmit={handleSendMessage}
               className="p-3 bg-card border-t border-border flex items-center gap-2 shrink-0"
             >
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground h-9 w-9 shrink-0"
-                title="Attach file (demo)"
-                onClick={() => toast("Attachment feature coming soon!", "info")}
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
-
               <div className="flex-1 relative flex items-center">
                 <Input
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                       e.preventDefault();
                       handleSendMessage();
                     }
                   }}
-                  placeholder="Type a message... (Press Enter to send)"
-                  className="bg-muted/60 border-border focus-visible:ring-primary/50 text-base md:text-sm h-10 rounded-full px-4 text-foreground placeholder:text-muted-foreground"
+                  placeholder="Type a message... (Press Enter to send, Shift+Enter for newline)"
+                  className="bg-secondary/60 border-border focus-visible:ring-primary text-base md:text-sm h-10 rounded-xl px-4 text-foreground placeholder:text-muted-foreground"
                 />
               </div>
 
@@ -799,12 +804,13 @@ export function WhatsAppChatInterface({
                 type="submit"
                 disabled={!inputText.trim() || sending}
                 className={cn(
-                  "h-10 w-10 rounded-full shrink-0 p-0 transition-transform active:scale-95",
+                  "h-10 w-10 rounded-xl shrink-0 p-0 transition-transform active:scale-95",
                   inputText.trim()
-                    ? "brand-gradient text-white hover:opacity-90 shadow-xs"
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
                     : "bg-muted text-muted-foreground cursor-not-allowed"
                 )}
                 title="Send Message"
+                aria-label="Send Message"
               >
                 {sending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -897,6 +903,64 @@ export function WhatsAppChatInterface({
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          WHATSAPP MODAL (Secondary action)
+          ───────────────────────────────────────────────────────────── */}
+      {isWhatsAppModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card border border-border rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-xl animate-fade-in font-sans">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-base text-foreground">Connect on WhatsApp</h3>
+              <button
+                onClick={() => setIsWhatsAppModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-md"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Continue coordinating with your teammate on WhatsApp. Enter their phone number with the country code (e.g. +91 for India).
+            </p>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground block">
+                WhatsApp Phone Number
+              </label>
+              <Input
+                placeholder="e.g. +91 98765 43210"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                className="text-xs h-10 rounded-xl"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsWhatsAppModalOpen(false)}
+                className="text-xs border-border"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!whatsappNumber.trim()}
+                onClick={() => {
+                  const cleaned = whatsappNumber.replace(/[^0-9]/g, "");
+                  if (cleaned) {
+                    window.open(`https://wa.me/${cleaned}`, "_blank");
+                    setIsWhatsAppModalOpen(false);
+                  }
+                }}
+                className="text-xs font-semibold"
+              >
+                Open WhatsApp Web
+              </Button>
+            </div>
           </div>
         </div>
       )}

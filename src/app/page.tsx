@@ -1,229 +1,312 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles, Users, Zap, Star, Code2, Palette, Brain } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkles,
+  Users,
+  Zap,
+  Star,
+  Compass,
+  Bot,
+  Clock,
+  Layers,
+} from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
-
-const features = [
-  {
-    icon: Zap,
-    title: "Smart Matching",
-    description:
-      "Our algorithm scores compatibility across skills, availability, interests, and experience — not just keyword search.",
-  },
-  {
-    icon: Users,
-    title: "Role-Based Teams",
-    description:
-      "Project owners define exact roles they need. Find teammates who fill specific gaps, not just anyone available.",
-  },
-  {
-    icon: Star,
-    title: "Reputation System",
-    description:
-      "Post-project ratings build verifiable reputations. Work with people who have a proven track record.",
-  },
-  {
-    icon: Sparkles,
-    title: "Instant Recommendations",
-    description:
-      "As soon as you build your profile, get ranked project recommendations tailored to exactly who you are.",
-  },
-];
-
-const useCases = [
-  { icon: Code2, label: "Hackathons" },
-  { icon: Brain, label: "Research" },
-  { icon: Palette, label: "Startups" },
-  { icon: Users, label: "Open Source" },
-];
-
-const stats = [
-  { value: "2K+", label: "Projects Posted" },
-  { value: "8K+", label: "Members" },
-  { value: "94%", label: "Match Rate" },
-  { value: "72hr", label: "Avg. Team Formed" },
-];
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg brand-gradient flex items-center justify-center glow-sm">
-              <Sparkles className="w-4 h-4 text-white" />
+    <div className="min-h-screen flex flex-col bg-background text-foreground font-sans">
+      {/* ─────────────────────────────────────────────────────────────
+          1. NAVIGATION BAR
+          ───────────────────────────────────────────────────────────── */}
+      <nav className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">
+              <Sparkles className="w-4 h-4" />
             </div>
-            <span className="font-bold text-lg tracking-tight">ProjectMatch</span>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="font-bold text-base tracking-tight text-foreground">ProjectMatch</span>
+          </Link>
+
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link
+              href="/discover"
+              className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-lg hover:bg-secondary hidden sm:inline-flex"
+            >
+              Discover Roles
+            </Link>
             <Link
               href="/hackathons"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-accent hidden sm:inline"
+              className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-lg hover:bg-secondary hidden sm:inline-flex"
             >
               Hackathons
             </Link>
             <Link
               href="/login"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3.5 py-1.5 rounded-lg hover:bg-accent"
+              className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-lg hover:bg-secondary"
             >
               Sign In
             </Link>
-            <Link
-              href="/login"
-              className="text-sm font-medium px-4 py-2 rounded-lg brand-gradient text-white hover:opacity-90 transition-opacity glow-sm"
-            >
-              Get Started
+            <Link href="/login">
+              <Button size="sm" className="font-semibold shadow-xs">
+                Get Started
+              </Button>
             </Link>
             <ModeToggle />
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative flex-1 flex items-center justify-center overflow-hidden py-32">
-        {/* Background orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-primary/10 blur-[120px]" />
-          <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-chart-5/10 blur-[120px]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-[140px]" />
-        </div>
+      <main className="flex-1">
+        {/* ─────────────────────────────────────────────────────────────
+            2. FOCUSED HERO SECTION
+            ───────────────────────────────────────────────────────────── */}
+        <section className="py-14 sm:py-20 border-b border-border/60 bg-gradient-to-b from-secondary/40 via-background to-background">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Skill-Based Team Formation Platform</span>
+            </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center animate-slide-up">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border border-primary/20 text-sm text-primary mb-8">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI-Powered Team Formation</span>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
+              Find your ideal teammates.{" "}
+              <span className="text-primary">Build something exceptional.</span>
+            </h1>
+
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              ProjectMatch connects students, developers, designers, and researchers with
+              open project roles — matched algorithmically on skills, availability, and
+              experience.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Link href="/discover" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto gap-2 font-semibold shadow-xs">
+                  <Compass className="w-4 h-4" />
+                  Find a Project
+                </Button>
+              </Link>
+              <Link href="/login" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2 font-semibold">
+                  <Users className="w-4 h-4 text-primary" />
+                  Build a Team
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────────────────────────────────────────────
+            3. COMPACT PRODUCT PREVIEW (CLEARLY LABELED AS EXAMPLE)
+            ───────────────────────────────────────────────────────────── */}
+        <section className="py-12 sm:py-16 max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-6">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-secondary px-2.5 py-1 rounded-full border border-border">
+              Illustrative Preview — Example Role Listing
+            </span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight mb-6">
-            Find your{" "}
-            <span className="brand-gradient-text">perfect team.</span>
-            <br />
-            Ship something{" "}
-            <span className="brand-gradient-text">great.</span>
-          </h1>
-
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed px-2">
-            ProjectMatch connects builders, designers, and researchers with the right
-            projects — matched algorithmically on skills, availability, and experience.
-            No more relying on who you already know.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto sm:max-w-none">
-            <Link
-              href="/login"
-              id="hero-cta-primary"
-              className="group flex items-center justify-center gap-2 px-8 py-4 rounded-xl brand-gradient text-white font-semibold text-base sm:text-lg hover:opacity-90 transition-all glow hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-h-[48px]"
-            >
-              Start Matching
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/hackathons"
-              id="hero-cta-secondary"
-              className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl glass border border-border hover:border-primary/30 text-foreground font-semibold text-base sm:text-lg transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto min-h-[48px]"
-            >
-              Browse Projects
-            </Link>
-          </div>
-
-          {/* Use cases */}
-          <div className="flex items-center justify-center gap-6 mt-12 flex-wrap">
-            {useCases.map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Icon className="w-4 h-4 text-primary" />
-                <span>{label}</span>
+          <div className="max-w-2xl mx-auto rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="purple">Hackathon</Badge>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> 1–3 months
+                  </span>
+                </div>
+                <h3 className="font-semibold text-base sm:text-lg text-foreground mt-1.5">
+                  Full-Stack TypeScript & AI Engineer
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  In project: <span className="text-foreground font-medium">Smart MedAssist</span> by Alex Chen
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Stats */}
-      <section className="py-16 border-y border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map(({ value, label }) => (
-              <div key={label} className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold brand-gradient-text mb-2">{value}</div>
-                <div className="text-sm text-muted-foreground">{label}</div>
+              <Badge variant="success" className="text-xs">
+                92% Compatibility Fit
+              </Badge>
+            </div>
+
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Looking for a collaborator experienced with Next.js App Router and Python backend APIs to build an offline-first assistive diagnosis prototype for an upcoming national hackathon.
+            </p>
+
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {["Next.js", "TypeScript", "Python", "FastAPI", "Tailwind CSS"].map((skill) => (
+                <span
+                  key={skill}
+                  className="px-2 py-0.5 rounded-md bg-secondary text-foreground text-xs font-medium border border-border"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+
+            <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+              <span>Part-time (10–15 hrs/wk) · 1 open spot</span>
+              <span className="font-semibold text-primary inline-flex items-center gap-1">
+                View Role Details <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────────────────────────────────────────────
+            4. THREE-STEP WORKFLOW
+            ───────────────────────────────────────────────────────────── */}
+        <section className="py-12 sm:py-16 border-t border-border/60 bg-secondary/30">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <div className="text-center max-w-xl mx-auto mb-10 space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                How ProjectMatch Works
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                A structured, transparent pathway from concept to high-performing team.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-bold text-sm flex items-center justify-center">
+                  1
+                </div>
+                <h3 className="font-semibold text-base text-foreground">Build Your Profile</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  List your verified technical skills, experience level, weekly availability, and portfolio links.
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Features */}
-      <section className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-              Matching that actually works
+              <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-bold text-sm flex items-center justify-center">
+                  2
+                </div>
+                <h3 className="font-semibold text-base text-foreground">Discover Opportunities</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Browse open team vacancies scored algorithmically against your profile, or post your own project roles.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-bold text-sm flex items-center justify-center">
+                  3
+                </div>
+                <h3 className="font-semibold text-base text-foreground">Apply & Collaborate</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Send applications with proof-of-work links, chat with teammates directly, and build peer reputation.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────────────────────────────────────────────
+            5. CORE PLATFORM CAPABILITIES
+            ───────────────────────────────────────────────────────────── */}
+        <section className="py-12 sm:py-16 max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-xl mx-auto mb-10 space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+              Built for Engineering Excellence
             </h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Built around a weighted compatibility algorithm — not just a directory of profiles.
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Practical developer features designed to remove team friction.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map(({ icon: Icon, title, description }) => (
-              <div
-                key={title}
-                className="group glass-card rounded-2xl p-6 hover:border-primary/30 hover:bg-accent/40 transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="w-12 h-12 rounded-xl brand-gradient flex items-center justify-center mb-4 glow-sm group-hover:scale-110 transition-transform">
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">{title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="rounded-2xl border border-border bg-card p-5 space-y-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Zap className="w-4 h-4" />
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <h3 className="font-semibold text-base text-foreground">Deterministic Compatibility Matching</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Evaluates weighted skill overlap, experience fit, time availability, and domain interests. Transparent factors instead of arbitrary black-box scores.
+              </p>
+            </div>
 
-      {/* CTA Banner */}
-      <section className="py-24">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative rounded-3xl overflow-hidden">
-            <div className="brand-gradient p-px rounded-3xl">
-              <div className="bg-background rounded-3xl p-12 text-center relative overflow-hidden">
-                <div className="absolute inset-0 brand-gradient opacity-5" />
-                <div className="relative">
-                  <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-                    Ready to find your team?
-                  </h2>
-                  <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-                    Join thousands of builders who&apos;ve found their dream collaborators on
-                    ProjectMatch.
-                  </p>
-                  <Link
-                    href="/login"
-                    id="bottom-cta"
-                    className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl brand-gradient text-white font-semibold text-lg hover:opacity-90 transition-all glow hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    Create Your Profile
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </div>
+            <div className="rounded-2xl border border-border bg-card p-5 space-y-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Layers className="w-4 h-4" />
               </div>
+              <h3 className="font-semibold text-base text-foreground">Granular Role-Based Recruitment</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Project owners define specific vacancies with required technologies and exact weekly hours. Find the missing puzzle piece, not just anyone available.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-5 space-y-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Star className="w-4 h-4" />
+              </div>
+              <h3 className="font-semibold text-base text-foreground">Peer-Reviewed Reputation</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Teammates endorse skills and rate collaboration after project milestones. Build verifiable reputation capital that showcases interpersonal reliability.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-5 space-y-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Bot className="w-4 h-4" />
+              </div>
+              <h3 className="font-semibold text-base text-foreground">Multi-Model AI Workspace (BYOK)</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Use your personal API keys for Google Gemini, Anthropic Claude, and OpenAI. Run side-by-side prompt battles to evaluate code and architecture designs.
+              </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* ─────────────────────────────────────────────────────────────
+            6. CONCISE CLOSING CALL TO ACTION
+            ───────────────────────────────────────────────────────────── */}
+        <section className="py-12 sm:py-16 border-t border-border bg-gradient-to-b from-secondary/30 to-background">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-5">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Ready to assemble your project squad?
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto">
+              Join students, developers, and researchers building impactful software projects and winning hackathons.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Link href="/login">
+                <Button size="lg" className="font-semibold shadow-xs">
+                  Get Started Free
+                </Button>
+              </Link>
+              <Link href="/hackathons">
+                <Button variant="outline" size="lg" className="font-semibold">
+                  Browse Hackathons
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* ─────────────────────────────────────────────────────────────
+          7. MINIMAL FOOTER
+          ───────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-border py-6 bg-background text-xs text-muted-foreground">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md brand-gradient flex items-center justify-center">
-              <Sparkles className="w-3 h-3 text-white" />
+            <div className="w-5 h-5 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
+              P
             </div>
-            <span className="text-sm font-semibold">ProjectMatch</span>
+            <span>© {new Date().getFullYear()} ProjectMatch. All rights reserved.</span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} ProjectMatch. Built to connect great teams.
-          </p>
+
+          <div className="flex items-center gap-4">
+            <Link href="/discover" className="hover:text-foreground transition-colors">
+              Discover
+            </Link>
+            <Link href="/hackathons" className="hover:text-foreground transition-colors">
+              Hackathons
+            </Link>
+            <Link href="/login" className="hover:text-foreground transition-colors">
+              Sign In
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

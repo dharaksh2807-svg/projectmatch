@@ -9,7 +9,6 @@ import {
   User,
   LogOut,
   Sparkles,
-  ChevronRight,
   Bell,
   Swords,
   Trophy,
@@ -18,6 +17,8 @@ import {
   Menu,
   ShieldAlert,
   FolderGit2,
+  Compass,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -25,25 +26,17 @@ import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/components/providers/notifications-provider";
 
-const navItems = [
-  { href: "/discover", icon: Sparkles, label: "Discover" },
-  { href: "/hackathons", icon: Trophy, label: "Hackathons" },
-  { href: "/messages", icon: MessageSquare, label: "Messages" },
-  { href: "/applications", icon: UserCheck, label: "Applications" },
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/projects", icon: FolderGit2, label: "My Projects" },
-  { href: "/chat", icon: Sparkles, label: "Agent Chat" },
-  { href: "/prompt-battles", icon: Swords, label: "Prompt Battles" },
-  { href: "/profile", icon: User, label: "My Profile" },
-];
+interface NavItem {
+  href: string;
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" | "false" }>;
+  label: string;
+  badge?: number;
+}
 
-const mobileBottomNavItems = [
-  { href: "/discover", icon: Sparkles, label: "Discover" },
-  { href: "/hackathons", icon: Trophy, label: "Hackathons" },
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/messages", icon: MessageSquare, label: "Messages", showBadge: true },
-  { href: "/applications", icon: UserCheck, label: "Apps" },
-];
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -51,146 +44,192 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { unreadCount } = useNotifications();
 
-  const navigationList = (onNavigate?: () => void) => (
-    <nav className="flex-1 p-4 space-y-1 overflow-y-auto" aria-label="Site navigation">
-      {navItems.map(({ href, icon: Icon, label }) => {
-        const isActive =
-          pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-        return (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => onNavigate?.()}
-            aria-current={isActive ? "page" : undefined}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-              isActive
-                ? "bg-primary/15 text-primary"
-                : "text-sidebar-foreground hover:bg-accent hover:text-accent-foreground"
-            )}
-          >
-            <Icon
-              className={cn(
-                "w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110",
-                isActive && "text-primary"
-              )}
-              aria-hidden="true"
-            />
-            <span>{label}</span>
-            {label === "Messages" && unreadCount > 0 && (
-              <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
-            {isActive && label !== "Messages" && (
-              <ChevronRight
-                className="w-3 h-3 ml-auto text-primary/60"
-                aria-hidden="true"
-              />
-            )}
-          </Link>
-        );
-      })}
-      
+  const navigationGroups: NavGroup[] = [
+    {
+      title: "Explore",
+      items: [
+        { href: "/discover", icon: Compass, label: "Discover" },
+        { href: "/hackathons", icon: Trophy, label: "Hackathons" },
+      ],
+    },
+    {
+      title: "Workspace",
+      items: [
+        { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+        { href: "/projects", icon: FolderGit2, label: "My Projects" },
+        { href: "/applications", icon: UserCheck, label: "Applications" },
+        {
+          href: "/messages",
+          icon: MessageSquare,
+          label: "Messages",
+          badge: unreadCount > 0 ? unreadCount : undefined,
+        },
+      ],
+    },
+    {
+      title: "AI Tools",
+      items: [
+        { href: "/chat", icon: Bot, label: "Agent Chat" },
+        { href: "/prompt-battles", icon: Swords, label: "Prompt Battles" },
+      ],
+    },
+    {
+      title: "Account",
+      items: [
+        { href: "/profile", icon: User, label: "My Profile" },
+        {
+          href: "/notifications",
+          icon: Bell,
+          label: "Notifications",
+          badge: unreadCount > 0 ? unreadCount : undefined,
+        },
+      ],
+    },
+  ];
+
+  const mobileBottomNavItems = [
+    { href: "/discover", icon: Compass, label: "Discover" },
+    { href: "/hackathons", icon: Trophy, label: "Hackathons" },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/projects", icon: FolderGit2, label: "Projects" },
+    { href: "/messages", icon: MessageSquare, label: "Messages", badge: unreadCount },
+  ];
+
+  const renderNavList = (onNavigate?: () => void) => (
+    <nav className="flex-1 px-3 py-3 space-y-5 overflow-y-auto" aria-label="Site navigation">
+      {navigationGroups.map((group) => (
+        <div key={group.title} className="space-y-1">
+          <div className="px-3 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider select-none">
+            {group.title}
+          </div>
+          {group.items.map(({ href, icon: Icon, label, badge }) => {
+            const isActive =
+              pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => onNavigate?.()}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  isActive
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-foreground/80 hover:bg-secondary hover:text-foreground font-medium"
+                )}
+              >
+                {/* Non-color active indicator */}
+                {isActive && (
+                  <span
+                    className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary"
+                    aria-hidden="true"
+                  />
+                )}
+                <Icon
+                  className={cn(
+                    "w-4 h-4 shrink-0 transition-transform group-hover:scale-105",
+                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  )}
+                  aria-hidden="true"
+                />
+                <span className="truncate">{label}</span>
+                {typeof badge === "number" && badge > 0 && (
+                  <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-4 text-center">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+
       {session?.user?.role === "ADMIN" && (
-        <div className="pt-4 mt-4 border-t">
+        <div className="pt-2 border-t border-border/60">
+          <div className="px-3 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider select-none">
+            Administration
+          </div>
           <Link
             href="/admin"
             onClick={() => onNavigate?.()}
             className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               pathname.startsWith("/admin")
-                ? "bg-destructive/15 text-destructive"
+                ? "bg-destructive/10 text-destructive font-semibold"
                 : "text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
             )}
           >
-            <ShieldAlert className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-            <span>Admin Dashboard</span>
+            <ShieldAlert className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span>Admin Center</span>
           </Link>
         </div>
       )}
     </nav>
   );
 
-  const userFooter = (
-    <div className="p-4 border-t border-border/50 space-y-2 shrink-0">
-      <Link
-        href="/notifications"
-        onClick={() => setMobileOpen(false)}
-        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-accent transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        aria-label="View Notifications"
-      >
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Bell className="w-4 h-4" aria-hidden="true" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive"></span>
-              </span>
-            )}
-          </div>
-          <span>Notifications</span>
-        </div>
-        {unreadCount > 0 && (
-          <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
-      </Link>
-
+  const renderUserFooter = (
+    <div className="p-3 border-t border-border bg-sidebar shrink-0 space-y-2">
       {status === "loading" ? (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-xl animate-pulse">
-          <div className="w-8 h-8 rounded-full bg-muted" />
-          <div className="flex-1 space-y-1.5">
-            <div className="h-3 bg-muted rounded w-24" />
-            <div className="h-2.5 bg-muted rounded w-32" />
+        <div className="flex items-center gap-3 px-2 py-1.5 animate-pulse">
+          <div className="w-8 h-8 rounded-xl bg-muted shrink-0" />
+          <div className="flex-1 space-y-1.5 min-w-0">
+            <div className="h-3 bg-muted rounded w-20" />
+            <div className="h-2.5 bg-muted rounded w-28" />
           </div>
         </div>
       ) : session?.user ? (
-        <>
+        <div className="space-y-1.5">
           <Link
             href="/profile"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-accent transition-all"
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-secondary transition-colors group"
           >
             {session.user.image ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={session.user.image}
-                alt={session.user.name || "User"}
-                className="w-8 h-8 rounded-full ring-2 ring-primary/20 shrink-0"
+                alt=""
+                className="w-8 h-8 rounded-xl object-cover ring-1 ring-border shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center text-white text-xs font-bold shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
                 {(session.user.name || session.user.email || "U")[0].toUpperCase()}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{session.user.name || "User"}</p>
-              <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+              <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                {session.user.name || "User Profile"}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">{session.user.email}</p>
             </div>
           </Link>
 
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            aria-label="Sign out of ProjectMatch"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
-          >
-            <LogOut className="w-4 h-4" aria-hidden="true" />
-            <span>Sign Out</span>
-          </button>
-        </>
+          <div className="flex items-center justify-between pt-1 px-1">
+            <ModeToggle />
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              aria-label="Sign out of ProjectMatch"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+            >
+              <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
       ) : (
-        <Link
-          href="/login"
-          onClick={() => setMobileOpen(false)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-primary hover:bg-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          aria-label="Sign in to ProjectMatch"
-        >
-          <User className="w-4 h-4" aria-hidden="true" />
-          <span>Sign In</span>
-        </Link>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <ModeToggle />
+            <Link
+              href="/login"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <User className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Sign In</span>
+            </Link>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -198,100 +237,73 @@ export function Sidebar() {
   return (
     <>
       {/* ─────────────────────────────────────────────────────────────
-          MOBILE TOP NAVBAR (< md)
+          MOBILE TOP BAR (< md)
           ───────────────────────────────────────────────────────────── */}
-      <header className="flex md:hidden h-14 items-center justify-between px-3 sm:px-4 border-b border-border/50 bg-sidebar/95 backdrop-blur-md shrink-0 z-30">
+      <header className="flex md:hidden h-14 items-center justify-between px-3 border-b border-border bg-sidebar/95 backdrop-blur-md shrink-0 z-30">
         <div className="flex items-center gap-2">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger render={
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-sidebar-foreground"
-                aria-label="Toggle navigation menu"
+                className="h-9 w-9 text-foreground"
+                aria-label="Open navigation menu"
               >
                 <Menu className="w-5 h-5" />
               </Button>
             } />
-            <SheetContent side="left" className="w-72 p-0 bg-sidebar border-border/60 text-sidebar-foreground flex flex-col h-full">
-              <div className="h-14 flex items-center justify-between px-6 border-b border-border/50">
+            <SheetContent side="left" className="w-[260px] p-0 bg-sidebar border-border text-foreground flex flex-col h-full">
+              <div className="h-14 flex items-center justify-between px-4 border-b border-border">
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2.5"
+                  className="flex items-center gap-2"
                 >
-                  <div className="w-7 h-7 rounded-lg brand-gradient flex items-center justify-center glow-sm">
-                    <Sparkles className="w-3.5 h-3.5 text-white" />
+                  <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                    <Sparkles className="w-4 h-4" />
                   </div>
                   <span className="font-bold text-sm tracking-tight">ProjectMatch</span>
                 </Link>
-                <ModeToggle />
               </div>
-              {navigationList(() => setMobileOpen(false))}
-              {userFooter}
+              {renderNavList(() => setMobileOpen(false))}
+              {renderUserFooter}
             </SheetContent>
           </Sheet>
 
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg brand-gradient flex items-center justify-center glow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-white" />
+            <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+              <Sparkles className="w-4 h-4" />
             </div>
             <span className="font-bold text-sm tracking-tight">ProjectMatch</span>
           </Link>
         </div>
 
-        {/* Right side controls in mobile header */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* Notifications icon with unread badge */}
+        <div className="flex items-center gap-1.5">
           <Link
             href="/notifications"
-            className="relative p-2 rounded-lg text-sidebar-foreground hover:bg-accent transition-colors"
-            aria-label="View notifications"
+            className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            aria-label="Notifications"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+              <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
               </span>
             )}
           </Link>
-
           <ModeToggle />
-
-          {/* User Profile Avatar Link */}
-          {session?.user && (
-            <Link
-              href="/profile"
-              className="p-1 rounded-full hover:ring-2 hover:ring-primary/40 transition-all shrink-0"
-              aria-label="My Profile"
-            >
-              {session.user.image ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={session.user.image}
-                  alt={session.user.name || "User"}
-                  className="w-7 h-7 rounded-full ring-1 ring-border"
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-full brand-gradient flex items-center justify-center text-white text-[11px] font-bold">
-                  {(session.user.name || session.user.email || "U")[0].toUpperCase()}
-                </div>
-              )}
-            </Link>
-          )}
         </div>
       </header>
 
       {/* ─────────────────────────────────────────────────────────────
-          MOBILE BOTTOM NAVIGATION BAR (< md)
-          Fixed primary destination toolbar for thumb-friendly mobile UX
+          MOBILE BOTTOM TOOLBAR (< md)
           ───────────────────────────────────────────────────────────── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 h-16 bg-sidebar/95 backdrop-blur-md border-t border-border/50 flex md:hidden items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)]"
+        className="fixed bottom-0 left-0 right-0 z-40 h-16 bg-sidebar/95 backdrop-blur-md border-t border-border flex md:hidden items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)]"
         aria-label="Mobile primary navigation"
       >
-        {mobileBottomNavItems.map(({ href, icon: Icon, label, showBadge }) => {
+        {mobileBottomNavItems.map(({ href, icon: Icon, label, badge }) => {
           const isActive =
             pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
@@ -300,7 +312,7 @@ export function Sidebar() {
               href={href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-xs font-medium transition-all relative min-w-[48px] min-h-[44px]",
+                "flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-xs font-medium transition-colors relative min-w-[52px] min-h-[44px]",
                 isActive
                   ? "text-primary font-semibold"
                   : "text-muted-foreground hover:text-foreground"
@@ -310,13 +322,13 @@ export function Sidebar() {
                 <Icon
                   className={cn(
                     "w-5 h-5 transition-transform",
-                    isActive && "scale-110 text-primary"
+                    isActive && "scale-105 text-primary"
                   )}
                   aria-hidden="true"
                 />
-                {showBadge && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-destructive text-destructive-foreground text-[9px] font-bold px-1 rounded-full min-w-[14px] text-center">
-                    {unreadCount > 9 ? "9+" : unreadCount}
+                {typeof badge === "number" && badge > 0 && (
+                  <span className="absolute -top-1 -right-2 bg-primary text-primary-foreground text-[9px] font-bold px-1 rounded-full min-w-[14px] text-center">
+                    {badge > 9 ? "9+" : badge}
                   </span>
                 )}
               </div>
@@ -324,7 +336,7 @@ export function Sidebar() {
                 {label}
               </span>
               {isActive && (
-                <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
+                <span className="absolute bottom-1 w-1.5 h-1 rounded-full bg-primary" />
               )}
             </Link>
           );
@@ -333,27 +345,30 @@ export function Sidebar() {
 
       {/* ─────────────────────────────────────────────────────────────
           DESKTOP SIDEBAR (>= md)
+          Width: 240px (meets 232–248px constraint)
           ───────────────────────────────────────────────────────────── */}
       <aside
-        className="hidden md:flex w-64 flex-shrink-0 flex-col border-r border-border/50 bg-sidebar h-full"
+        className="hidden md:flex w-[240px] shrink-0 flex-col border-r border-border bg-sidebar h-full select-none"
         aria-label="Main navigation"
       >
-        {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-border/50 shrink-0">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg brand-gradient flex items-center justify-center glow-sm">
-              <Sparkles className="w-4 h-4 text-white" aria-hidden="true" />
+        {/* Header with Brand Logo */}
+        <div className="h-16 flex items-center px-4 border-b border-border shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center transition-transform group-hover:scale-105 shadow-xs">
+              <Sparkles className="w-4 h-4" aria-hidden="true" />
             </div>
-            <span className="font-bold text-base tracking-tight">ProjectMatch</span>
+            <div className="flex flex-col">
+              <span className="font-bold text-sm tracking-tight text-foreground">ProjectMatch</span>
+              <span className="text-[10px] text-muted-foreground -mt-0.5">Team Collaboration</span>
+            </div>
           </Link>
-          <ModeToggle />
         </div>
 
-        {/* Navigation */}
-        {navigationList()}
+        {/* Grouped Navigation List */}
+        {renderNavList()}
 
-        {/* User section */}
-        {userFooter}
+        {/* User Account / Footer */}
+        {renderUserFooter}
       </aside>
     </>
   );

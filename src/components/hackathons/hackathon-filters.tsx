@@ -144,7 +144,7 @@ export function HackathonFilters({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search hackathons, organizers, colleges, or topics..."
-            className="pl-9 pr-9 bg-card/70 text-sm h-10 border-border/70 rounded-xl focus:border-emerald-500/60"
+            className="pl-9 pr-9 bg-card text-sm h-10 border-border rounded-xl focus:border-primary"
           />
           {searchQuery && (
             <button
@@ -159,7 +159,7 @@ export function HackathonFilters({
 
         {/* Sort Selector & Reset Button */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-card/60 border border-border/70 px-3 py-1.5 rounded-xl text-xs">
+          <div className="flex items-center gap-1.5 bg-card border border-border px-3 py-1.5 rounded-xl text-xs">
             <span className="text-muted-foreground font-medium shrink-0">Sort by:</span>
             <select
               value={sortBy}
@@ -167,7 +167,7 @@ export function HackathonFilters({
               className="bg-transparent text-foreground font-semibold focus:outline-none cursor-pointer pr-1"
             >
               <option value="ranked" className="bg-popover text-popover-foreground">
-                Priority Ranked (Default)
+                Smart Relevance (Default)
               </option>
               <option value="deadline" className="bg-popover text-popover-foreground">
                 Registration Deadline (Soonest)
@@ -186,7 +186,7 @@ export function HackathonFilters({
               variant="outline"
               size="sm"
               onClick={onResetFilters}
-              className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1 border-border/60"
+              className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1 border-border"
               title="Reset all filters"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -197,9 +197,9 @@ export function HackathonFilters({
       </div>
 
       {/* ── 1-CLICK QUICK SCOPE PILLS ── */}
-      <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-border/40 pb-3">
+      <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-border pb-3">
         <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1 shrink-0">
-          <Zap className="w-3.5 h-3.5 text-amber-400" />
+          <Zap className="w-3.5 h-3.5 text-amber-500" />
           Quick Scope:
         </span>
 
@@ -210,14 +210,14 @@ export function HackathonFilters({
             className={cn(
               "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
               selectedCollege === "srm-ist"
-                ? "bg-violet-500/20 text-violet-200 border-violet-500/60 shadow-sm ring-1 ring-violet-500/30 font-bold"
-                : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
+                ? "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 font-bold"
+                : "bg-card text-muted-foreground hover:text-foreground border-border hover:bg-secondary"
             )}
           >
             <span>🏛️</span>
             <span>At SRM (Campus)</span>
             {selectedCollege === "srm-ist" && (
-              <Badge className="bg-violet-500/40 text-violet-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+              <Badge className="bg-purple-600 text-white dark:bg-purple-800 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
             )}
           </button>
         )}
@@ -229,14 +229,14 @@ export function HackathonFilters({
             className={cn(
               "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
               selectedCity === "Chennai" && selectedCollege === "ALL"
-                ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/60 shadow-sm ring-1 ring-emerald-500/30 font-bold"
-                : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 font-bold"
+                : "bg-card text-muted-foreground hover:text-foreground border-border hover:bg-secondary"
             )}
           >
             <span>📍</span>
             <span>In Chennai (City)</span>
             {selectedCity === "Chennai" && selectedCollege === "ALL" && (
-              <Badge className="bg-emerald-500/40 text-emerald-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+              <Badge className="bg-emerald-600 text-white dark:bg-emerald-800 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
             )}
           </button>
         )}
@@ -247,14 +247,14 @@ export function HackathonFilters({
           className={cn(
             "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
             selectedMode === "ONLINE"
-              ? "bg-blue-500/20 text-blue-200 border-blue-500/60 shadow-sm ring-1 ring-blue-500/30 font-bold"
-              : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
+              ? "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 font-bold"
+              : "bg-card text-muted-foreground hover:text-foreground border-border hover:bg-secondary"
           )}
         >
           <span>🌐</span>
           <span>Online / Virtual</span>
           {selectedMode === "ONLINE" && (
-            <Badge className="bg-blue-500/40 text-blue-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+            <Badge className="bg-blue-600 text-white dark:bg-blue-800 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
           )}
         </button>
 
@@ -264,14 +264,14 @@ export function HackathonFilters({
           className={cn(
             "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
             openRegOnly
-              ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/60 shadow-sm ring-1 ring-emerald-500/30 font-bold"
-              : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
+              ? "bg-teal-50 text-teal-700 border-teal-300 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800 font-bold"
+              : "bg-card text-muted-foreground hover:text-foreground border-border hover:bg-secondary"
           )}
         >
           <span>⚡</span>
           <span>Open Reg Only</span>
           {openRegOnly && (
-            <Badge className="bg-emerald-500/40 text-emerald-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+            <Badge className="bg-teal-600 text-white dark:bg-teal-800 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
           )}
         </button>
 
@@ -281,19 +281,19 @@ export function HackathonFilters({
           className={cn(
             "px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border shrink-0",
             nationalOnly
-              ? "bg-amber-500/20 text-amber-200 border-amber-500/60 shadow-sm ring-1 ring-amber-500/30 font-bold"
-              : "bg-card/60 text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted/50"
+              ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 font-bold"
+              : "bg-card text-muted-foreground hover:text-foreground border-border hover:bg-secondary"
           )}
         >
-          <Award className={cn("w-3.5 h-3.5", nationalOnly ? "text-amber-400" : "text-muted-foreground")} />
+          <Award className={cn("w-3.5 h-3.5", nationalOnly ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")} />
           <span>National Flagships</span>
           {nationalOnly && (
-            <Badge className="bg-amber-500/40 text-amber-100 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
+            <Badge className="bg-amber-600 text-white dark:bg-amber-800 text-[10px] px-1 py-0 ml-0.5">Active</Badge>
           )}
         </button>
 
         {/* Participation Mode Segmented Pills */}
-        <div className="flex items-center p-0.5 rounded-xl bg-card/60 border border-border/60 ml-auto">
+        <div className="flex items-center p-0.5 rounded-xl bg-card border border-border ml-auto">
           {(
             [
               { id: "ALL", label: "All Modes", icon: null },
@@ -311,7 +311,7 @@ export function HackathonFilters({
                 className={cn(
                   "px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1 transition-all",
                   isSelected
-                    ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                    ? "bg-primary text-primary-foreground shadow-xs font-semibold"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -327,8 +327,8 @@ export function HackathonFilters({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
         {/* City Selector Dropdown */}
         {onCityChange && (
-          <div className="flex items-center gap-2 bg-card/60 border border-border/70 px-3 py-2 rounded-xl focus-within:border-emerald-500/70 transition-colors">
-            <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="flex items-center gap-2 bg-card border border-border px-3 py-2 rounded-xl focus-within:border-primary transition-colors">
+            <MapPin className="w-4 h-4 text-primary shrink-0" />
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">City</span>
               <select
@@ -357,8 +357,8 @@ export function HackathonFilters({
 
         {/* College Selector Dropdown */}
         {onCollegeChange && (
-          <div className="flex items-center gap-2 bg-card/60 border border-border/70 px-3 py-2 rounded-xl focus-within:border-violet-500/70 transition-colors">
-            <Building2 className="w-4 h-4 text-violet-400 shrink-0" />
+          <div className="flex items-center gap-2 bg-card border border-border px-3 py-2 rounded-xl focus-within:border-primary transition-colors">
+            <Building2 className="w-4 h-4 text-primary shrink-0" />
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">College</span>
               <select
@@ -387,8 +387,8 @@ export function HackathonFilters({
 
         {/* Eligibility Selector Dropdown */}
         {onEligibilityChange && (
-          <div className="flex items-center gap-2 bg-card/60 border border-border/70 px-3 py-2 rounded-xl focus-within:border-amber-500/70 transition-colors">
-            <GraduationCap className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="flex items-center gap-2 bg-card border border-border px-3 py-2 rounded-xl focus-within:border-primary transition-colors">
+            <GraduationCap className="w-4 h-4 text-primary shrink-0" />
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Eligibility</span>
               <select
@@ -431,8 +431,8 @@ export function HackathonFilters({
               className={cn(
                 "px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all border shrink-0",
                 isSelected
-                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm"
-                  : "bg-card/60 text-muted-foreground border-border/50 hover:bg-muted/70 hover:text-foreground"
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
+                  : "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80 hover:text-foreground"
               )}
             >
               {cat}

@@ -105,65 +105,64 @@ function HackathonsPageContent() {
   return (
     <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-in font-sans min-w-0 overflow-x-hidden">
       {/* ─────────────────────────────────────────────────────────────
-          1. HERO BANNER (Preserved ProjectMatch Visual Identity)
+          1. COMPACT PAGE HEADER & SECONDARY ACTIONS
           ───────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-emerald-950/20 dark:from-zinc-950 dark:via-zinc-900 dark:to-emerald-950/40 p-4 sm:p-6 md:p-10 shadow-xl">
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-64 h-64 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border">
+        <div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-2">
             <Trophy className="w-3.5 h-3.5" />
-            Hackathon Arena
+            <span>Hackathons & Competitions</span>
           </div>
-
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
-            Find Your Winning Hackathon Team
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Find Your Winning Team
           </h1>
-
-          <p className="text-muted-foreground text-xs sm:text-sm md:text-base leading-relaxed">
-            Browse verified national competitions and student hackathons, find teammates with complementary skills, or pitch your squad project to win together.
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+            Browse verified collegiate and national hackathons, connect with builders matching your skill set, or register your project.
           </p>
+        </div>
 
-          <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLoadAiMatches}
+            className="text-xs font-medium gap-1.5 border-border"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <span>{loadingAi ? "Analyzing..." : "AI Matchmaker"}</span>
+          </Button>
+
+          <Link href="/projects/new">
             <Button
-              onClick={handleLoadAiMatches}
-              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs sm:text-sm gap-2 shadow-lg shadow-emerald-900/20"
-            >
-              <Sparkles className="w-4 h-4 text-emerald-200" />
-              {loadingAi ? "Analyzing Skills with Gemini..." : "AI Hackathon Matchmaker"}
-            </Button>
-
-            <Link href="/projects/new" className="w-full sm:w-auto">
-              <Button
-                variant="outline"
-                className="w-full sm:w-auto border-border text-foreground hover:bg-accent text-xs sm:text-sm gap-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                Pitch a Project
-              </Button>
-            </Link>
-
-            <Link href="/hackathons/submit" className="w-full sm:w-auto">
-              <Button
-                className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm gap-1.5 shadow-lg shadow-emerald-950/40 border border-emerald-400/30"
-              >
-                <Plus className="w-4 h-4" />
-                + Post a Hackathon
-              </Button>
-            </Link>
-
-            <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={refresh}
-              className="text-muted-foreground hover:text-foreground hover:bg-accent text-xs gap-1.5 ml-auto hidden sm:inline-flex"
-              title="Refresh database feed"
+              className="text-xs font-medium gap-1.5 border-border text-foreground"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
-              Sync Feed
+              <Plus className="w-3.5 h-3.5" />
+              <span>Pitch Project</span>
             </Button>
-          </div>
+          </Link>
+
+          <Link href="/hackathons/submit">
+            <Button
+              size="sm"
+              className="text-xs font-semibold gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Post Hackathon</span>
+            </Button>
+          </Link>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={refresh}
+            className="h-8.5 w-8.5 text-muted-foreground hover:text-foreground"
+            title="Refresh database feed"
+            aria-label="Refresh database feed"
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+          </Button>
         </div>
       </div>
 

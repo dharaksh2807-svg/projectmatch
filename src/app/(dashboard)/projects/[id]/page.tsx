@@ -138,7 +138,7 @@ export default function ProjectDetailPage() {
                   <Clock className="w-3.5 h-3.5" /> {project.duration}
                 </span>
                 {!project.isPublished && (
-                  <Badge variant="secondary" className="bg-amber-500/10 text-amber-500">Draft</Badge>
+                  <Badge variant="warning">Draft</Badge>
                 )}
               </div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-4">{project.title}</h1>

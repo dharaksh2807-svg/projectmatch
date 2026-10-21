@@ -32,11 +32,11 @@ interface NotificationItem {
 }
 
 const TYPE_CONFIG = {
-  APPLICATION_RECEIVED: { icon: Briefcase, color: "text-blue-500 bg-blue-500/10" },
-  APPLICATION_ACCEPTED: { icon: CheckCircle2, color: "text-emerald-500 bg-emerald-500/10" },
+  APPLICATION_RECEIVED: { icon: Briefcase, color: "text-blue-600 dark:text-blue-400 bg-blue-500/10" },
+  APPLICATION_ACCEPTED: { icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10" },
   APPLICATION_REJECTED: { icon: XCircle, color: "text-destructive bg-destructive/10" },
   NEW_MESSAGE: { icon: Bell, color: "text-primary bg-primary/10" },
-  SYSTEM: { icon: Megaphone, color: "text-amber-500 bg-amber-500/10" },
+  SYSTEM: { icon: Megaphone, color: "text-amber-600 dark:text-amber-400 bg-amber-500/10" },
 };
 
 export default function NotificationsPage() {
@@ -177,16 +177,16 @@ export default function NotificationsPage() {
             const content = (
               <Card
                 className={cn(
-                  "p-3.5 sm:p-4 transition-all border",
+                  "p-3.5 sm:p-4 transition-all border rounded-2xl",
                   n.isRead
-                    ? "bg-card/40 border-transparent"
-                    : "bg-card border-primary/20 shadow-sm"
+                    ? "bg-card/50 border-border/60 hover:border-border"
+                    : "bg-card border-primary/30 shadow-sm hover:border-primary/50"
                 )}
               >
-                <div className="flex gap-3 sm:gap-4">
+                <div className="flex gap-3 sm:gap-4 items-start">
                   <div
                     className={cn(
-                      "w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
+                      "w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5",
                       cfg.color
                     )}
                   >
@@ -194,14 +194,22 @@ export default function NotificationsPage() {
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-4">
-                      <h3
-                        className={cn(
-                          "font-semibold text-sm",
-                          n.isRead ? "text-foreground/80" : "text-foreground"
+                      <div className="flex items-center gap-2">
+                        {!n.isRead && (
+                          <span
+                            className="w-2 h-2 rounded-full bg-primary shrink-0"
+                            title="Unread notification"
+                          />
                         )}
-                      >
-                        {n.title}
-                      </h3>
+                        <h3
+                          className={cn(
+                            "font-semibold text-sm",
+                            n.isRead ? "text-muted-foreground" : "text-foreground"
+                          )}
+                        >
+                          {n.title}
+                        </h3>
+                      </div>
                       <span className="text-[11px] sm:text-xs text-muted-foreground shrink-0">
                         {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
                       </span>

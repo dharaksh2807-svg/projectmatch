@@ -732,11 +732,11 @@ export function DashboardView({
                           className={cn(
                             "text-xs px-2.5 py-0.5 rounded-full font-semibold border",
                             app.status === "ACCEPTED"
-                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                               : app.status === "PENDING"
-                              ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
                               : app.status === "REJECTED"
-                              ? "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                              ? "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30"
                               : "bg-muted text-muted-foreground border-border"
                           )}
                         >
@@ -799,7 +799,7 @@ export function DashboardView({
                             className={cn(
                               "text-xs font-bold px-2 py-0.5 rounded-full border",
                               role.matchPercent >= 75
-                                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                                 : role.matchPercent >= 50
                                 ? "bg-primary/15 text-primary border-primary/30"
                                 : "bg-secondary text-muted-foreground border-border/40"

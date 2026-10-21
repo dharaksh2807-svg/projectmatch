@@ -120,12 +120,12 @@ const STATUS_CONFIG = {
   PENDING: {
     label: "Pending Review",
     icon: Clock,
-    className: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+    className: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30",
   },
   ACCEPTED: {
     label: "Accepted",
     icon: CheckCircle2,
-    className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
   },
   REJECTED: {
     label: "Rejected",
@@ -135,7 +135,7 @@ const STATUS_CONFIG = {
   WITHDRAWN: {
     label: "Withdrawn",
     icon: XCircle,
-    className: "bg-muted/10 text-muted-foreground border-muted/30",
+    className: "bg-muted text-muted-foreground border-border",
   },
 };
 
@@ -387,7 +387,7 @@ export default function ApplicationsPage() {
             <Users className="w-3.5 h-3.5 text-emerald-500" />
             Review Applicants
             {metrics.pending > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold">
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
                 {metrics.pending}
               </span>
             )}
@@ -421,17 +421,17 @@ export default function ApplicationsPage() {
             </Card>
 
             <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-3.5 sm:p-4 space-y-1 min-w-0">
-              <span className="text-xs text-amber-400 font-medium flex items-center gap-1 truncate">
+              <span className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1 truncate">
                 <Clock className="w-3 h-3 shrink-0" /> Pending Review
               </span>
-              <p className="text-xl sm:text-2xl font-bold text-amber-400">{metrics.pending}</p>
+              <p className="text-xl sm:text-2xl font-bold text-amber-700 dark:text-amber-400">{metrics.pending}</p>
             </Card>
 
             <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-3.5 sm:p-4 space-y-1 min-w-0">
-              <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 truncate">
+              <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1 truncate">
                 <CheckCircle2 className="w-3 h-3 shrink-0" /> Accepted Teammates
               </span>
-              <p className="text-xl sm:text-2xl font-bold text-emerald-400">{metrics.accepted}</p>
+              <p className="text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400">{metrics.accepted}</p>
             </Card>
 
             <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-3.5 sm:p-4 space-y-1 min-w-0">
@@ -615,12 +615,12 @@ export default function ApplicationsPage() {
                                 className={cn(
                                   "inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-medium border",
                                   hasMatch
-                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                                     : "bg-muted/50 text-muted-foreground border-border/40"
                                 )}
                               >
                                 {hasMatch ? (
-                                  <Check className="w-3 h-3 text-emerald-400" />
+                                  <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                                 ) : (
                                   <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
                                 )}
@@ -901,7 +901,7 @@ export default function ApplicationsPage() {
                             size="sm"
                             disabled={isMessaging}
                             onClick={() => handleDirectChat(app.user.id, app.project.id)}
-                            className="text-xs h-8 gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                            className="text-xs h-8 gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
                           >
                             {isMessaging ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -946,7 +946,7 @@ export default function ApplicationsPage() {
                           )}
 
                           {app.status === "ACCEPTED" && (
-                            <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-800/40">
+                            <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-500/30">
                               <CheckCircle2 className="w-3.5 h-3.5" /> Teammate Accepted
                             </span>
                           )}
@@ -1027,7 +1027,7 @@ export default function ApplicationsPage() {
                             onClick={() =>
                               handleDirectChat(app.project.owner.id!, app.project.id)
                             }
-                            className="text-xs h-7 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1"
+                            className="text-xs h-7 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1"
                           >
                             <MessageSquare className="w-3 h-3" />
                             Chat with Lead

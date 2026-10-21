@@ -247,13 +247,13 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
   return (
     <Card
       className={cn(
-        "flex flex-col justify-between relative transition-all duration-200 group overflow-hidden border font-sans",
+        "flex flex-col justify-between relative transition-all duration-200 group overflow-hidden border font-sans rounded-2xl",
         // Prominent distinction for verified national competitions
         (isNationalVerified || variant === "featured")
-          ? "border-amber-500/50 bg-gradient-to-b from-amber-950/20 via-card/80 to-card/90 shadow-lg shadow-amber-950/20 hover:border-amber-400 hover:shadow-amber-500/10 hover:shadow-2xl ring-1 ring-amber-500/20"
+          ? "border-amber-500/40 bg-gradient-to-b from-amber-500/5 via-card to-card shadow-md dark:from-amber-950/20 hover:border-amber-400"
           : isVerified
-          ? "border-emerald-500/40 bg-card/75 backdrop-blur-sm hover:border-emerald-400/80 hover:shadow-xl hover:shadow-emerald-950/20"
-          : "border-border/70 bg-card/60 backdrop-blur-sm hover:border-border hover:shadow-md"
+          ? "border-emerald-500/40 bg-card hover:border-emerald-500/70 hover:shadow-md"
+          : "border-border bg-card hover:border-primary/40 hover:shadow-md"
       )}
     >
       {/* Decorative Top Accent Line */}
@@ -261,16 +261,16 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
         className={cn(
           "h-1.5 w-full transition-all group-hover:h-2",
           (isNationalVerified || variant === "featured")
-            ? "bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-600 shadow-sm"
+            ? "bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600"
             : isVerified
             ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-primary"
-            : "bg-gradient-to-r from-zinc-600 via-zinc-500 to-zinc-700"
+            : "bg-gradient-to-r from-muted-foreground/30 via-muted-foreground/20 to-muted-foreground/40"
         )}
       />
 
       {/* Optional Banner Image */}
       {hackathon.bannerUrl ? (
-        <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-muted/40 border-b border-border/40">
+        <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-muted border-b border-border">
           <img
             src={hackathon.bannerUrl}
             alt={hackathon.name || "Hackathon Banner"}
@@ -279,7 +279,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
               (e.currentTarget.parentElement as HTMLElement).style.display = "none";
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent" />
         </div>
       ) : null}
 
@@ -287,17 +287,17 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
         {/* Badges Bar: Campus, Eligibility, Organizer Tag, National, Verification, Mode */}
         <div className="flex flex-wrap items-center gap-1.5 justify-between">
           <div className="flex flex-wrap items-center gap-1.5">
-            {/* Campus / Local Stream Badge: e.g. "🏛️ SRM KTR Campus" or "🏛️ IIT Madras, Chennai" */}
+            {/* Campus / Local Stream Badge */}
             {campusBadgeText && (
               <Badge
                 variant="outline"
-                className="bg-indigo-500/15 text-indigo-300 border-indigo-500/30 text-[11px] px-2 py-0.5 gap-1 font-semibold"
+                className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 text-[11px] px-2 py-0.5 gap-1 font-semibold"
               >
                 {campusBadgeText}
               </Badge>
             )}
 
-            {/* Organizer Club Tag: e.g. "Org: GDSC SRMIST" */}
+            {/* Organizer Club Tag */}
             {(hackathon.organizerClubName || hackathon.organizerName) && (
               <Badge
                 variant="outline"
@@ -310,31 +310,31 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
               </Badge>
             )}
 
-            {/* Eligibility Scope Badge (Green: Open to All, Amber: Any College Student, Blue/Purple: SRM Students Only) */}
+            {/* Eligibility Scope Badge */}
             {hackathon.eligibilityScope === "OPEN_TO_ALL" && (
               <Badge
                 variant="outline"
-                className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
+                className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Open to All
               </Badge>
             )}
             {hackathon.eligibilityScope === "ANY_COLLEGE_STUDENT" && (
               <Badge
                 variant="outline"
-                className="bg-amber-500/15 text-amber-300 border-amber-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
+                className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 Any College Student
               </Badge>
             )}
             {hackathon.eligibilityScope === "HOST_COLLEGE_ONLY" && (
               <Badge
                 variant="outline"
-                className="bg-violet-500/15 text-violet-300 border-violet-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
+                className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 text-[10px] px-2 py-0.5 gap-1 font-medium"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                 {(() => {
                   const isSrm =
                     hackathon.collegeSlug === "srm-ist" ||
@@ -353,25 +353,25 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
             {isNationalVerified ? (
               <Badge
                 variant="outline"
-                className="bg-amber-500/15 text-amber-300 border-amber-500/40 font-semibold text-[11px] px-2 py-0.5 gap-1 shadow-sm"
+                className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-semibold text-[11px] px-2 py-0.5 gap-1 shadow-xs"
               >
-                <Award className="w-3 h-3 text-amber-400" />
+                <Award className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                 National Flagship
               </Badge>
             ) : isNational ? (
               <Badge
                 variant="outline"
-                className="bg-amber-500/10 text-amber-400/90 border-amber-500/20 text-[11px] px-2 py-0.5 gap-1"
+                className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20 text-[11px] px-2 py-0.5 gap-1"
               >
-                <Award className="w-3 h-3" />
+                <Award className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                 National Level
               </Badge>
             ) : isVerified ? (
               <Badge
                 variant="outline"
-                className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 text-[11px] px-2 py-0.5 gap-1"
+                className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 text-[11px] px-2 py-0.5 gap-1"
               >
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                 Verified
               </Badge>
             ) : null}
@@ -379,9 +379,9 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
             {isFlagged && (
               <Badge
                 variant="outline"
-                className="bg-red-500/15 text-red-300 border-red-500/30 text-[10px] px-2 py-0.5 gap-1"
+                className="bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30 text-[10px] px-2 py-0.5 gap-1"
               >
-                <AlertCircle className="w-3 h-3 text-red-400" />
+                <AlertCircle className="w-3 h-3 text-red-500" />
                 Needs Verification
               </Badge>
             )}
@@ -392,10 +392,10 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
               className={cn(
                 "text-[10px] sm:text-[11px] px-2 py-0.5 gap-1 font-medium",
                 mode === "ONLINE"
-                  ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                  ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30"
                   : mode === "OFFLINE"
-                  ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                  : "bg-teal-500/10 text-teal-400 border-teal-500/20"
+                  ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30"
+                  : "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-500/20 dark:text-teal-300 dark:border-teal-500/30"
               )}
             >
               {mode === "ONLINE" && <Globe className="w-3 h-3" />}
@@ -406,15 +406,15 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
 
             {/* Registration Status Badge */}
             {regStatus === "OPEN" ? (
-              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px] px-2 py-0.5 font-semibold">
+              <Badge className="bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 text-[10px] px-2 py-0.5 font-semibold">
                 Reg Open
               </Badge>
             ) : regStatus === "COMING_SOON" ? (
-              <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/30 text-[10px] px-2 py-0.5">
+              <Badge className="bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30 text-[10px] px-2 py-0.5">
                 Opens Soon
               </Badge>
             ) : regStatus === "CLOSED" ? (
-              <Badge variant="outline" className="bg-zinc-800/80 text-zinc-400 border-zinc-700 text-[10px] px-2 py-0.5">
+              <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] px-2 py-0.5">
                 Reg Closed
               </Badge>
             ) : null}
@@ -422,7 +422,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
 
           {/* Teams recruiting counter */}
           {projectCount > 0 && (
-            <span className="text-[11px] font-medium text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/40 shrink-0">
+            <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40 shrink-0">
               <Users className="w-3 h-3" />
               {projectCount} {projectCount === 1 ? "Team" : "Teams"} Recruiting
             </span>
@@ -479,10 +479,10 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
               className={cn(
                 "flex items-center gap-1.5 text-xs pt-1 font-medium",
                 deadlineInfo.isUrgent
-                  ? "text-amber-400 font-semibold animate-pulse"
+                  ? "text-amber-700 dark:text-amber-300 font-semibold"
                   : deadlineInfo.isPast
-                  ? "text-zinc-500"
-                  : "text-emerald-400/90"
+                  ? "text-muted-foreground"
+                  : "text-emerald-700 dark:text-emerald-400"
               )}
             >
               <Clock className="w-3.5 h-3.5 shrink-0" />
@@ -502,8 +502,8 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
           {/* Prize pool info when available */}
           {formattedPrize && (
-            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold">
-              <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-300 text-xs font-semibold">
+              <Trophy className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>{formattedPrize}</span>
             </div>
           )}
@@ -559,7 +559,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
           <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50 space-y-1.5 mt-2">
             <div className="flex items-center justify-between text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
               <span>Recruiting Teams on ProjectMatch:</span>
-              <span className="text-emerald-500 dark:text-emerald-400">{openRoles.length} open roles</span>
+              <span className="text-emerald-600 dark:text-emerald-400">{openRoles.length} open roles</span>
             </div>
             <div className="space-y-1">
               {openRoles.slice(0, 2).map((role) => (
@@ -579,7 +579,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
         )}
       </CardContent>
 
-      <CardFooter className="p-4 sm:p-5 pt-3 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap bg-card/30">
+      <CardFooter className="p-4 sm:p-5 pt-3 border-t border-border flex items-center justify-between gap-2 flex-wrap bg-card">
         <div className="flex items-center gap-1.5 flex-wrap">
           {/* Website Link */}
           {hackathon.websiteUrl && (
@@ -587,7 +587,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
               href={hackathon.websiteUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2.5 py-1 rounded-md hover:bg-muted transition-colors border border-border/40"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-secondary transition-colors border border-border font-medium"
               title="Official Website"
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -601,10 +601,10 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
               href={hackathon.registrationUrl || hackathon.devpostUrl!}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-800/40 transition-colors"
+              className="text-xs text-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-colors font-medium"
               title="Registration Link"
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
               <span>Register</span>
             </a>
           )}
@@ -621,8 +621,8 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
             ? hackathon.collegeName.split(" ")[0]
             : null;
           const buttonLabel = collegePrefix
-            ? `👥 Find Teammates in ${collegePrefix}`
-            : "👥 Find Teammates";
+            ? `Find Teammates in ${collegePrefix}`
+            : "Find Teammates";
 
           const teamParams = new URLSearchParams();
           teamParams.set("hackathonId", hackathon.id);
@@ -638,7 +638,7 @@ export function HackathonCard({ hackathon, variant = "default" }: HackathonCardP
             <Link href={teamsUrl}>
               <Button
                 size="sm"
-                className="text-xs h-8 gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold shadow-sm"
+                className="text-xs h-8.5 rounded-xl gap-1.5 font-semibold"
               >
                 <span>{buttonLabel}</span>
                 <ArrowRight className="w-3.5 h-3.5" />

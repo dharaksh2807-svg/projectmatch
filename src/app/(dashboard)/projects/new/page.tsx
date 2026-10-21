@@ -1,13 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { projectSchema, type ProjectInput } from "@/lib/validations";
-import { Loader2, Plus, Trash2, Save, Rocket, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  Save,
+  Rocket,
+  AlertCircle,
+} from "lucide-react";
 import { TagInput } from "@/components/shared/tag-input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { GoogleDriveIcon } from "@/components/shared/social-icons";
 
 const TECH_SUGGESTIONS = [
@@ -26,7 +37,7 @@ export default function NewProjectPage() {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<ProjectInput>({
     // @ts-expect-error type mismatch with Zod resolver
     resolver: zodResolver(projectSchema),
@@ -53,12 +64,25 @@ export default function NewProjectPage() {
     },
   });
 
+  // Protection against accidental loss of unsaved work
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty && status !== "submitting") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty, status]);
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: "roles",
   });
 
   const techStack = watch("techStack");
+  const formValues = watch();
 
   const onSubmit = async (data: any) => {
     setStatus("submitting");
@@ -80,245 +104,420 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-fade-in min-w-0 overflow-x-hidden">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Post a New Project</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Share your idea and find the right teammates to bring it to life.
+    <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-fade-in min-w-0 overflow-x-hidden font-sans">
+      <div className="pb-3 border-b border-border">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          Create & Post a Project
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+          Tell prospective teammates about your project vision, target tech stack, and open vacancies.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 sm:space-y-12">
-        {/* Basic Details */}
-        <div className="space-y-5 sm:space-y-6 bg-card p-4 sm:p-6 rounded-2xl border shadow-sm">
-          <h2 className="text-lg sm:text-xl font-semibold">Project Details</h2>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Title *</label>
-            <input
-              {...register("title")}
-              className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
-              placeholder="e.g. AI Content Generator"
-            />
-            {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Description *</label>
-            <textarea
-              {...register("description")}
-              className="w-full h-32 px-4 py-3 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20 resize-none"
-              placeholder="What are you building? Why does it matter?"
-            />
-            {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Project Type</label>
-              <select
-                {...register("projectType")}
-                className="w-full h-11 px-4 rounded-xl border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
-              >
-                {["Hackathon", "Startup", "Research", "Open Source", "Side Project", "Competition"].map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
+        {/* ── SECTION 1: PROJECT BASICS ── */}
+        <Card className="rounded-2xl border-border bg-card shadow-xs">
+          <CardHeader className="p-5 sm:p-6 pb-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                1
+              </span>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-semibold text-foreground">
+                  Project Basics
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Give your project an identifiable title, category, and core technologies.
+                </CardDescription>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Expected Duration</label>
+          </CardHeader>
+
+          <CardContent className="p-5 sm:p-6 space-y-5">
+            <div className="space-y-1.5">
+              <label htmlFor="project-title" className="text-xs font-semibold text-foreground block">
+                Project Title <span className="text-destructive">*</span>
+              </label>
+              <Input
+                id="project-title"
+                {...register("title")}
+                placeholder="e.g. SRM Campus Marketplace, Autonomous Quadcopter AI"
+                className="bg-background text-sm"
+              />
+              <p className="text-[11px] text-muted-foreground">A concise, descriptive name (3-100 characters).</p>
+              {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="project-type" className="text-xs font-semibold text-foreground block">
+                  Project Type
+                </label>
+                <select
+                  id="project-type"
+                  {...register("projectType")}
+                  className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-ring focus:outline-none"
+                >
+                  {["Hackathon", "Startup", "Research", "Open Source", "Side Project", "Competition"].map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">Helps teammates filter by intent and timeline.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground block">
+                  Primary Tech Stack
+                </label>
+                <TagInput
+                  id="techStack"
+                  value={techStack || []}
+                  onChange={(tags) => setValue("techStack", tags, { shouldDirty: true })}
+                  placeholder="e.g. Next.js, PyTorch, Supabase..."
+                  suggestions={TECH_SUGGESTIONS}
+                  maxTags={15}
+                />
+                <p className="text-[11px] text-muted-foreground">Core frameworks, languages, or tools.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── SECTION 2: GOALS & DESCRIPTION ── */}
+        <Card className="rounded-2xl border-border bg-card shadow-xs">
+          <CardHeader className="p-5 sm:p-6 pb-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                2
+              </span>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-semibold text-foreground">
+                  Goals & Description
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Detail what you are building, the problem being solved, and relevant links.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-5 sm:p-6 space-y-5">
+            <div className="space-y-1.5">
+              <label htmlFor="project-desc" className="text-xs font-semibold text-foreground block">
+                Detailed Description <span className="text-destructive">*</span>
+              </label>
+              <Textarea
+                id="project-desc"
+                {...register("description")}
+                rows={4}
+                placeholder="What is the objective of this project? What stage is it at (ideation, prototype, active development)? What will teammates learn or achieve?"
+                className="bg-background text-sm resize-none"
+              />
+              {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-4 pt-1">
+              <div className="space-y-1.5">
+                <label htmlFor="repo-url" className="text-xs font-semibold text-foreground block">
+                  Code Repository (optional)
+                </label>
+                <Input
+                  id="repo-url"
+                  type="url"
+                  {...register("repoUrl")}
+                  placeholder="https://github.com/..."
+                  className="bg-background text-xs"
+                />
+                {errors.repoUrl && <p className="text-xs text-destructive">{errors.repoUrl.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="website-url" className="text-xs font-semibold text-foreground block">
+                  Live Preview / Demo (optional)
+                </label>
+                <Input
+                  id="website-url"
+                  type="url"
+                  {...register("websiteUrl")}
+                  placeholder="https://..."
+                  className="bg-background text-xs"
+                />
+                {errors.websiteUrl && <p className="text-xs text-destructive">{errors.websiteUrl.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="drive-url" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <GoogleDriveIcon className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Specs or Slides (optional)</span>
+                </label>
+                <Input
+                  id="drive-url"
+                  type="url"
+                  {...register("driveUrl")}
+                  placeholder="https://drive.google.com/..."
+                  className="bg-background text-xs"
+                />
+                {errors.driveUrl && <p className="text-xs text-destructive">{errors.driveUrl.message}</p>}
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              💡 For Google Drive links, verify permissions are set to &ldquo;Anyone with link can view&rdquo;.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* ── SECTION 3: OPEN ROLES & SKILLS ── */}
+        <Card className="rounded-2xl border-border bg-card shadow-xs">
+          <CardHeader className="p-5 sm:p-6 pb-3 border-b border-border flex flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                3
+              </span>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-semibold text-foreground">
+                  Open Roles & Skills
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  List specific roles you need to fill and required skills for each.
+                </CardDescription>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ title: "", description: "", requiredSkills: [], requiredExperienceLevel: "Any", timeCommitment: "Part-time (10-15h/week)", headcount: 1 })}
+              className="h-8.5 gap-1.5 text-xs font-medium border-border"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Role
+            </Button>
+          </CardHeader>
+
+          <CardContent className="p-5 sm:p-6 space-y-4">
+            {errors.roles?.root && (
+              <p className="text-xs text-destructive">{errors.roles.root.message as string}</p>
+            )}
+
+            <div className="space-y-4">
+              {fields.map((field, index) => (
+                <div key={field.id} className="relative bg-secondary/30 p-4 sm:p-5 rounded-2xl border border-border">
+                  {fields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => remove(index)}
+                      className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors p-1"
+                      aria-label={`Remove role ${index + 1}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge variant="purple" className="text-[10px]">
+                      Role #{index + 1}
+                    </Badge>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4 mb-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-foreground block">
+                        Role Title <span className="text-destructive">*</span>
+                      </label>
+                      <Input
+                        {...register(`roles.${index}.title` as const)}
+                        placeholder="e.g. Frontend Engineer, UI/UX Designer, ML Researcher"
+                        className="bg-background text-xs"
+                      />
+                      {(errors.roles as any)?.[index]?.title && (
+                        <p className="text-xs text-destructive">{(errors.roles as any)[index]?.title?.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-foreground block">
+                        Experience Level
+                      </label>
+                      <select
+                        {...register(`roles.${index}.requiredExperienceLevel` as const)}
+                        className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-ring focus:outline-none"
+                      >
+                        {["Any", "Beginner", "Intermediate", "Advanced", "Expert"].map((l) => (
+                          <option key={l} value={l}>{l}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4 mb-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-foreground block">
+                        Spots Needed (Headcount)
+                      </label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={10}
+                        {...register(`roles.${index}.headcount` as const, { valueAsNumber: true })}
+                        className="bg-background text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-foreground block">
+                        Role Time Commitment
+                      </label>
+                      <Input
+                        {...register(`roles.${index}.timeCommitment` as const)}
+                        placeholder="e.g. 10-15 hrs/week, Weekend sprints"
+                        className="bg-background text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground block">
+                      Required Skills & proficiencies
+                    </label>
+                    <TagInput
+                      id={`roles.${index}.requiredSkills`}
+                      value={watch(`roles.${index}.requiredSkills`) || []}
+                      onChange={(tags) => setValue(`roles.${index}.requiredSkills`, tags, { shouldDirty: true })}
+                      placeholder="e.g. TailwindCSS, Figma, PyTorch (press enter to add)"
+                      suggestions={TECH_SUGGESTIONS}
+                      maxTags={10}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── SECTION 4: AVAILABILITY & DURATION ── */}
+        <Card className="rounded-2xl border-border bg-card shadow-xs">
+          <CardHeader className="p-5 sm:p-6 pb-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                4
+              </span>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-semibold text-foreground">
+                  Availability, Duration & Expectations
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Establish a clear timeline to set upfront expectations for all applicants.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-5 sm:p-6 space-y-4">
+            <div className="space-y-1.5 max-w-sm">
+              <label htmlFor="duration-select" className="text-xs font-semibold text-foreground block">
+                Estimated Project Lifespan
+              </label>
               <select
+                id="duration-select"
                 {...register("duration")}
-                className="w-full h-11 px-4 rounded-xl border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
+                className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-ring focus:outline-none"
               >
                 {["< 1 week", "1-4 weeks", "1-3 months", "3-6 months", "6+ months"].map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Tech Stack</label>
-            <TagInput
-              id="techStack"
-              value={techStack || []}
-              onChange={(tags) => setValue("techStack", tags, { shouldDirty: true })}
-              placeholder="Add technologies..."
-              suggestions={TECH_SUGGESTIONS}
-              maxTags={20}
-            />
-          </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Transparent project duration and workload benchmarks reduce drop-off rates and ensure team accountability during critical milestones.
+            </p>
+          </CardContent>
+        </Card>
 
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">GitHub / Repo (optional)</label>
-              <input
-                type="url"
-                {...register("repoUrl")}
-                className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
-                placeholder="https://github.com/..."
-              />
-              {errors.repoUrl && <p className="text-xs text-destructive">{errors.repoUrl.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Live Website (optional)</label>
-              <input
-                type="url"
-                {...register("websiteUrl")}
-                className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
-                placeholder="https://..."
-              />
-              {errors.websiteUrl && <p className="text-xs text-destructive">{errors.websiteUrl.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-1.5">
-                <GoogleDriveIcon className="w-4 h-4 text-blue-500" />
-                Project Specs / Slides (optional)
-              </label>
-              <input
-                type="url"
-                {...register("driveUrl")}
-                className="w-full h-11 px-4 rounded-xl border bg-transparent text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
-                placeholder="https://drive.google.com/..."
-              />
-              {errors.driveUrl && <p className="text-xs text-destructive">{errors.driveUrl.message}</p>}
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground -mt-3">
-            💡 Have project slides (PPT), a PDF spec report, or research paper? Paste your Google Drive link and ensure it&apos;s set to &ldquo;Anyone with link can view&rdquo;.
-          </p>
-        </div>
-
-        {/* Roles */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Open Roles</h2>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ title: "", description: "", requiredSkills: [], requiredExperienceLevel: "Any", timeCommitment: "Part-time", headcount: 1 })}
-              className="h-9 gap-1 text-xs"
-            >
-              <Plus className="w-3 h-3" /> Add Role
-            </Button>
-          </div>
-
-          {errors.roles?.root && (
-            <p className="text-sm text-destructive">{errors.roles.root.message as string}</p>
-          )}
-
-          <div className="space-y-4">
-            {fields.map((field, index) => (
-              <div key={field.id} className="relative bg-secondary/20 p-4 sm:p-5 rounded-2xl border shadow-sm">
-                {fields.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors p-1"
-                    aria-label={`Remove role ${index + 1}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-                
-                <h3 className="font-medium text-sm mb-4">Role #{index + 1}</h3>
-                
-                <div className="grid sm:grid-cols-2 gap-4 mb-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Role Title *</label>
-                    <input
-                      {...register(`roles.${index}.title` as const)}
-                      className="w-full h-10 px-3 rounded-lg border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
-                      placeholder="e.g. Frontend Dev"
-                    />
-                    {(errors.roles as any)?.[index]?.title && <p className="text-xs text-destructive">{(errors.roles as any)[index]?.title?.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Time Commitment</label>
-                    <input
-                      {...register(`roles.${index}.timeCommitment` as const)}
-                      className="w-full h-10 px-3 rounded-lg border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
-                      placeholder="e.g. 10hrs/week"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4 mb-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Experience Level</label>
-                    <select
-                      {...register(`roles.${index}.requiredExperienceLevel` as const)}
-                      className="w-full h-10 px-3 rounded-lg border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
-                    >
-                      {["Any", "Beginner", "Intermediate", "Advanced", "Expert"].map((l) => (
-                        <option key={l} value={l}>{l}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Headcount</label>
-                    <input
-                      type="number"
-                      min={1}
-                      {...register(`roles.${index}.headcount` as const)}
-                      className="w-full h-10 px-3 rounded-lg border bg-background text-base sm:text-sm focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">Required Skills</label>
-                  <TagInput
-                    id={`roles.${index}.requiredSkills`}
-                    value={watch(`roles.${index}.requiredSkills`) || []}
-                    onChange={(tags) => setValue(`roles.${index}.requiredSkills`, tags, { shouldDirty: true })}
-                    placeholder="e.g. React, UI Design..."
-                    suggestions={TECH_SUGGESTIONS}
-                    maxTags={10}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Submit */}
-        <div className="pt-4 border-t flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="isPublished"
-              {...register("isPublished")}
-              className="rounded border-input text-primary focus:ring-primary/20 w-4 h-4"
-            />
-            <label htmlFor="isPublished" className="text-sm cursor-pointer select-none">
-              Publish immediately (uncheck to save as draft)
-            </label>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {status === "error" && (
-              <span className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4 shrink-0" /> {errorMessage}
+        {/* ── SECTION 5: REVIEW & PUBLISH ── */}
+        <Card className="rounded-2xl border-border bg-card shadow-xs">
+          <CardHeader className="p-5 sm:p-6 pb-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                5
               </span>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-semibold text-foreground">
+                  Review & Publish
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Finalize listing visibility and post your project.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-5 sm:p-6 space-y-5">
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-secondary/30 border border-border">
+              <input
+                type="checkbox"
+                id="isPublished"
+                {...register("isPublished")}
+                className="mt-0.5 rounded border-input text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+              />
+              <label htmlFor="isPublished" className="text-xs cursor-pointer select-none">
+                <span className="font-semibold text-foreground block">
+                  Publish immediately to ProjectMatch Discover
+                </span>
+                <span className="text-muted-foreground">
+                  When enabled, qualified members will see this vacancy immediately and can apply. Uncheck to keep it in Draft mode.
+                </span>
+              </label>
+            </div>
+
+            {status === "error" && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
             )}
-            <Button
-              type="submit"
-              disabled={status === "submitting"}
-              className="brand-gradient text-white gap-2 shadow-sm min-w-32 min-h-[44px] w-full sm:w-auto"
-            >
-              {status === "submitting" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : watch("isPublished") ? (
-                <><Rocket className="w-4 h-4" /> Post Project</>
-              ) : (
-                <><Save className="w-4 h-4" /> Save Draft</>
-              )}
-            </Button>
-          </div>
-        </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+              <p className="text-xs text-muted-foreground">
+                {fields.length} open {fields.length === 1 ? "role" : "roles"} defined • {formValues.title ? formValues.title : "Untitled project"}
+              </p>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push("/projects")}
+                  className="text-xs border-border"
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  type="submit"
+                  disabled={status === "submitting"}
+                  className="text-xs font-semibold min-w-36 gap-2"
+                >
+                  {status === "submitting" ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving Project...</span>
+                    </>
+                  ) : watch("isPublished") ? (
+                    <>
+                      <Rocket className="w-3.5 h-3.5" />
+                      <span>Publish Project</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save as Draft</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </form>
     </div>
   );

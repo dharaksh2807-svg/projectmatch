@@ -94,7 +94,7 @@ export default function ChatPage() {
               className={cn(
                 "px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
                 chatTab === "direct"
-                  ? "bg-emerald-600 text-white shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -106,7 +106,7 @@ export default function ChatPage() {
               className={cn(
                 "px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
                 chatTab === "agent"
-                  ? "bg-blue-600 text-white shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -117,7 +117,7 @@ export default function ChatPage() {
         </div>
 
         <span className="text-[11px] text-muted-foreground hidden sm:inline">
-          {chatTab === "direct" ? "Direct Chat Split-Pane • Live Redis SSE" : "LLM Multi-Agent Sandbox"}
+          {chatTab === "direct" ? "Direct & Team Messaging" : "AI Multi-Agent Workspace"}
         </span>
       </div>
 
