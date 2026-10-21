@@ -26,6 +26,10 @@ import { ReputationBadge } from "@/components/ratings/reputation-badge";
 import { ReportModal } from "@/components/shared/report-modal";
 import { GoogleDriveIcon } from "@/components/shared/social-icons";
 import { ApplyModal } from "@/components/applications/apply-modal";
+import {
+  ContextualChatDrawer,
+  type ContextualChatContext,
+} from "@/components/chat/contextual-chat-drawer";
 
 interface Role {
   id: string;
@@ -76,6 +80,8 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState("");
   const [selectedRoleForApply, setSelectedRoleForApply] = useState<Role | null>(null);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [activeChatContext, setActiveChatContext] = useState<ContextualChatContext | null>(null);
 
   useEffect(() => {
     async function loadProject() {
@@ -106,6 +112,23 @@ export default function ProjectDetailPage() {
     setIsApplyModalOpen(true);
   };
 
+  const handleOpenChat = () => {
+    if (sessionStatus !== "authenticated") {
+      toast("Please log in to message the lead.", "info");
+      router.push("/login");
+      return;
+    }
+    if (!project) return;
+    setActiveChatContext({
+      recipientId: project.ownerId,
+      recipientName: project.owner.name,
+      recipientImage: project.owner.image,
+      projectId: project.id,
+      projectTitle: project.title,
+    });
+    setChatDrawerOpen(true);
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
@@ -124,9 +147,18 @@ export default function ProjectDetailPage() {
   return (
     <div className="min-h-screen bg-background p-3.5 sm:p-6 md:p-8 animate-fade-in pb-20 min-w-0 overflow-x-hidden">
       <div className="max-w-5xl mx-auto">
-        <Link href="/discover" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6">
+        <button
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) {
+              router.back();
+            } else {
+              router.push("/discover");
+            }
+          }}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors cursor-pointer"
+        >
           <ChevronLeft className="w-4 h-4" /> Back to Discover
-        </Link>
+        </button>
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-8">
           {/* Main Content */}
@@ -233,11 +265,13 @@ export default function ProjectDetailPage() {
                   <p className="text-sm text-muted-foreground line-clamp-3">{project.owner.bio}</p>
                 )}
                 {!isOwner && session?.user?.id && (
-                  <Link href={`/messages?userId=${project.owner.id}&projectId=${project.id}`} className="block w-full">
-                    <Button variant="outline" className="w-full gap-2 border-primary/30 text-primary hover:bg-primary hover:text-white transition-colors">
-                      <MessageSquare className="w-4 h-4" /> Message Lead
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="outline"
+                    onClick={handleOpenChat}
+                    className="w-full gap-2 border-primary/30 text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer"
+                  >
+                    <MessageSquare className="w-4 h-4" /> Message Lead
+                  </Button>
                 )}
                 <div className="text-xs text-muted-foreground pt-2 border-t border-border/50">
                   Posted {formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}
@@ -308,6 +342,12 @@ export default function ProjectDetailPage() {
             .then((data) => setProject(data))
             .catch(() => {});
         }}
+      />
+
+      <ContextualChatDrawer
+        isOpen={chatDrawerOpen}
+        onClose={() => setChatDrawerOpen(false)}
+        context={activeChatContext}
       />
     </div>
   );

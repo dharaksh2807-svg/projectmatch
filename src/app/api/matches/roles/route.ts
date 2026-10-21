@@ -2,43 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-
-/**
- * Helper to match tags with normalization and punctuation removal
- */
-function tagMatches(candidate: string, target: string): boolean {
-  const c = candidate.toLowerCase().trim();
-  const t = target.toLowerCase().trim();
-  if (!c || !t) return false;
-  if (c === t) return true;
-
-  const cClean = c.replace(/[^a-z0-9]/g, "");
-  const tClean = t.replace(/[^a-z0-9]/g, "");
-  if (cClean && tClean && cClean === tClean) return true;
-
-  // Handle word boundaries (e.g., "tailwind" vs "tailwind css")
-  const cWords = c.split(/[\s\-_/.]+/).filter(Boolean);
-  const tWords = t.split(/[\s\-_/.]+/).filter(Boolean);
-  if (cWords.includes(t) || tWords.includes(c)) return true;
-
-  // Handle common extensions like "react" vs "reactjs" or "next" vs "nextjs"
-  if (cClean.length >= 3 && tClean.length >= 3) {
-    if (cClean === tClean + "js" || tClean === cClean + "js") return true;
-    if (cClean === tClean + "ts" || tClean === cClean + "ts") return true;
-  }
-  return false;
-}
+import {
+  tagMatches,
+  normalizeTag,
+  matchesTagList,
+  matchesRoleCategory,
+  ALL_PREDEFINED_TECHS,
+  STANDARD_SKILLS,
+} from "@/lib/filters/normalize";
 
 /**
  * GET /api/matches/roles
+ * 
+ * Advanced hackathon & project role discovery endpoint with:
+ * - Multi-criteria filtering (Tech, Skills, Hackathon, Team/Recruitment, Compatibility)
+ * - ANY vs ALL matching semantics for technologies and skills
+ * - Alias normalization (e.g. nextjs -> Next.js)
+ * - Transparent requirement-coverage scoring
+ * - Stable cursor pagination & sorting
  */
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id;
 
-    // Fetch user profile and applications/bookmarks
+    // Fetch user profile and applications/bookmarks if authenticated
     let userSkills: string[] = [];
     let appliedRoleIds: string[] = [];
     let bookmarkedRoleIds: string[] = [];
@@ -69,61 +57,76 @@ export async function GET(req: NextRequest) {
     }
 
     const searchParams = req.nextUrl.searchParams;
-    const typeFilter = searchParams.get("type");
-    const durationFilter = searchParams.get("duration");
-    const expFilter = searchParams.get("exp");
 
-    // Multi-select support for skill and tech parameters
-    const rawSkills = searchParams.getAll("skill");
-    const skillList = rawSkills
-      .flatMap((s) => s.split(","))
-      .map((s) => s.trim())
-      .filter(Boolean);
+    // ─── Query Parameters ───────────────────────────────────────────────────
+    const query = searchParams.get("q")?.trim();
+    const typeFilter = searchParams.get("type"); // Project type (Hackathon, Startup, etc.)
+    const durationFilter = searchParams.get("duration"); // Duration (< 1 week, 1-4 weeks, etc.)
+    const expFilter = searchParams.get("exp"); // Experience level (Beginner, Intermediate, etc.)
+    const roleCategory = searchParams.get("role") || searchParams.get("roleCategory"); // Role category
+    const beginnerFriendly = searchParams.get("beginnerFriendly") === "true";
 
+    // Multi-select technologies & skills
     const rawTechs = searchParams.getAll("tech");
     const techList = rawTechs
       .flatMap((t) => t.split(","))
       .map((t) => t.trim())
       .filter(Boolean);
+    const techMode = (searchParams.get("techMode")?.toLowerCase() === "all" ? "all" : "any") as "any" | "all";
 
-    const query = searchParams.get("q")?.trim();
-    const minScoreParam = searchParams.get("minScore");
-    const minScoreThreshold = minScoreParam ? parseInt(minScoreParam, 10) / 100 : 0;
+    const rawSkills = searchParams.getAll("skill");
+    const skillList = rawSkills
+      .flatMap((s) => s.split(","))
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const skillMode = (searchParams.get("skillMode")?.toLowerCase() === "all" ? "all" : "any") as "any" | "all";
+
+    // Hackathon filters
+    const hackathonId = searchParams.get("hackathonId");
+    const hackathonMode = searchParams.get("mode") || searchParams.get("participationMode"); // ONLINE | OFFLINE | HYBRID
+    const hackathonTrack = searchParams.get("track") || searchParams.get("domain");
+    const openRegOnly = searchParams.get("openRegOnly") === "true";
+    const collegeSlug = searchParams.get("college") || searchParams.get("collegeSlug");
+
+    // Recruitment filters
     const openOnly = searchParams.get("openOnly") === "true";
+    const minSpots = parseInt(searchParams.get("minSpots") || "0", 10);
+    const commitment = searchParams.get("commitment"); // Part-time, Full-time, Flexible
     const hideApplied = searchParams.get("hideApplied") === "true";
     const bookmarkedOnly = searchParams.get("bookmarkedOnly") === "true";
+
+    // Scoring & Pagination
+    const minScoreParam = searchParams.get("minScore");
+    const minScoreThreshold = minScoreParam ? parseInt(minScoreParam, 10) / 100 : 0;
     const sortBy = searchParams.get("sort") || "match";
     const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "12", 10), 1), 50);
     const cursor = searchParams.get("cursor");
 
-    // ─── Candidate Skills Pool ──────────────────────────────────────────────
-    // Candidate skills from active sidebar filter selections ONLY.
-    // We do NOT inject DB profile skills here because the user is actively filtering
-    // in Discover and expects the calculation to reflect exactly the skills they selected.
-    const candidateSkillsSet = new Set<string>();
-    techList.forEach((t) => {
-      if (t.trim()) candidateSkillsSet.add(t.trim());
-    });
-    skillList.forEach((s) => {
-      if (s.trim()) candidateSkillsSet.add(s.trim());
-    });
-    const candidateSkills = Array.from(candidateSkillsSet);
-    const hasSkillFilters = candidateSkills.length > 0;
-
-    // Active sidebar filters count (to know if filters are actively set)
+    // Calculate active filter count
     let activeFilterCount = 0;
+    if (query) activeFilterCount += 1;
     if (typeFilter && typeFilter !== "All") activeFilterCount += 1;
     if (durationFilter && durationFilter !== "All") activeFilterCount += 1;
     if (expFilter && expFilter !== "All") activeFilterCount += 1;
+    if (roleCategory && roleCategory !== "All") activeFilterCount += 1;
+    if (beginnerFriendly) activeFilterCount += 1;
     if (techList.length > 0) activeFilterCount += techList.length;
     if (skillList.length > 0) activeFilterCount += skillList.length;
-    if (query) activeFilterCount += 1;
+    if (hackathonId && hackathonId !== "All") activeFilterCount += 1;
+    if (hackathonMode && hackathonMode !== "ALL") activeFilterCount += 1;
+    if (hackathonTrack && hackathonTrack !== "All") activeFilterCount += 1;
+    if (openRegOnly) activeFilterCount += 1;
+    if (collegeSlug && collegeSlug !== "ALL") activeFilterCount += 1;
+    if (openOnly) activeFilterCount += 1;
+    if (minSpots > 0) activeFilterCount += 1;
+    if (commitment && commitment !== "All") activeFilterCount += 1;
+    if (hideApplied) activeFilterCount += 1;
+    if (bookmarkedOnly) activeFilterCount += 1;
+    if (minScoreThreshold > 0) activeFilterCount += 1;
 
     const hasActiveFilters = activeFilterCount > 0;
 
-    // ─── Build WHERE clause ─────────────────────────────────────────────────
-    // Soft scoring is used for filter criteria so roles are ranked by match %
-    // rather than abruptly discarded by SQL where clauses.
+    // ─── Build Prisma Query ─────────────────────────────────────────────────
     const andConditions: any[] = [
       { isOpen: true },
       { project: { isPublished: true } },
@@ -145,8 +148,10 @@ export async function GET(req: NextRequest) {
           appliedRoleIds,
           bookmarkedRoleIds,
           allUniqueTechs: [],
+          allUniqueSkills: STANDARD_SKILLS,
+          availableHackathons: [],
           userHasSkills: userSkills.length > 0,
-          activeFilterCount: 0,
+          activeFilterCount,
         });
       }
       andConditions.push({
@@ -154,43 +159,231 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Fetch all open published roles
-    const roles = await prisma.role.findMany({
-      where: { AND: andConditions },
-      include: {
+    // Direct relational filter on project type if specified
+    if (typeFilter && typeFilter !== "All") {
+      andConditions.push({
         project: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            projectType: true,
-            duration: true,
-            techStack: true,
-            ownerId: true,
-            owner: {
-              select: { name: true, image: true, reputationScore: true },
+          projectType: {
+            equals: typeFilter,
+            mode: "insensitive",
+          },
+        },
+      });
+    }
+
+    // Direct relational filter on hackathon if specified
+    if (hackathonId && hackathonId !== "All") {
+      andConditions.push({
+        project: {
+          hackathonId,
+        },
+      });
+    }
+
+    // Query roles and available hackathons in parallel
+    const [roles, availableHackathonsRaw] = await Promise.all([
+      prisma.role.findMany({
+        where: { AND: andConditions },
+        include: {
+          project: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              projectType: true,
+              duration: true,
+              techStack: true,
+              ownerId: true,
+              hackathonId: true,
+              hackathon: {
+                select: {
+                  id: true,
+                  name: true,
+                  participationMode: true,
+                  status: true,
+                  registrationStatus: true,
+                  city: true,
+                  collegeName: true,
+                  collegeSlug: true,
+                  eligibilityScope: true,
+                  tags: true,
+                  themes: true,
+                  startDate: true,
+                  endDate: true,
+                  registrationDeadline: true,
+                },
+              },
+              owner: {
+                select: {
+                  name: true,
+                  image: true,
+                  reputationScore: true,
+                  timezone: true,
+                  city: true,
+                  collegeName: true,
+                  collegeSlug: true,
+                },
+              },
             },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.hackathon.findMany({
+        select: {
+          id: true,
+          name: true,
+          participationMode: true,
+          city: true,
+          status: true,
+          registrationStatus: true,
+        },
+        take: 40,
+        orderBy: { name: "asc" },
+      }),
+    ]);
 
-    // Extract all unique techStack items across published projects
+    // Format available hackathons list for filter dropdown
+    const availableHackathons = availableHackathonsRaw.map((h) => ({
+      id: h.id,
+      name: h.name,
+      mode: h.participationMode,
+      city: h.city,
+      status: h.status,
+      registrationStatus: h.registrationStatus,
+    }));
+
+    // Extract all unique techStack items and skills across published projects
     const allUniqueTechsSet = new Set<string>();
-    roles.forEach((r) => {
-      r.project.techStack?.forEach((t) => allUniqueTechsSet.add(t));
-    });
-    const allUniqueTechs = Array.from(allUniqueTechsSet).slice(0, 30);
+    const allUniqueSkillsSet = new Set<string>(STANDARD_SKILLS);
 
-    // ─── Role Requirements Coverage Matching Engine ─────────────────────────
-    // Denominator is the role's requirements (what the lead requires):
-    // - Each required skill specified for the role = 1 factor
-    // - Non-skill filters (Type, Duration, Experience level, Query) add 1 factor
-    //   each to the role's requirements when selected by the user.
-    // If the lead requires 4 skills and the candidate only has 2 of them:
-    //   Score = 2 / 4 = 50% Match (NOT 100%!).
-    let results = roles.map((role) => {
+    roles.forEach((r) => {
+      r.project.techStack?.forEach((t) => {
+        allUniqueTechsSet.add(normalizeTag(t));
+      });
+      r.requiredSkills?.forEach((s) => {
+        allUniqueSkillsSet.add(s.trim());
+      });
+    });
+
+    // Merge predefined tech taxonomy so searchable options are always available
+    ALL_PREDEFINED_TECHS.forEach((t) => allUniqueTechsSet.add(t));
+    const allUniqueTechs = Array.from(allUniqueTechsSet).slice(0, 50);
+    const allUniqueSkills = Array.from(allUniqueSkillsSet).slice(0, 30);
+
+    // ─── Filter Evaluation & Compatibility Scoring ──────────────────────────
+    const candidateSkillsPool = new Set<string>();
+    techList.forEach((t) => candidateSkillsPool.add(t));
+    skillList.forEach((s) => candidateSkillsPool.add(s));
+    const candidateSkills = Array.from(candidateSkillsPool);
+    const hasSkillFilters = candidateSkills.length > 0;
+
+    const filtered = roles.filter((role) => {
+      const openSpots = Math.max(role.headcount - role.filledCount, 0);
+
+      // 1. Open spots filter
+      if (openOnly && openSpots <= 0) return false;
+      if (minSpots > 0 && openSpots < minSpots) return false;
+
+      // 2. Duration filter
+      if (durationFilter && durationFilter !== "All") {
+        if (role.project.duration.toLowerCase().trim() !== durationFilter.toLowerCase().trim()) {
+          return false;
+        }
+      }
+
+      // 3. Experience level & Beginner-friendly filter
+      if (beginnerFriendly) {
+        const lvl = role.requiredExperienceLevel.toLowerCase().trim();
+        if (lvl !== "beginner" && lvl !== "any") return false;
+      } else if (expFilter && expFilter !== "All") {
+        const rExp = role.requiredExperienceLevel.toLowerCase().trim();
+        const fExp = expFilter.toLowerCase().trim();
+        if (rExp !== fExp && rExp !== "any") return false;
+      }
+
+      // 4. Role category filter
+      if (roleCategory && roleCategory !== "All") {
+        if (!matchesRoleCategory(role.title, role.description, role.requiredSkills, roleCategory)) {
+          return false;
+        }
+      }
+
+      // 5. Time commitment filter
+      if (commitment && commitment !== "All") {
+        const roleComm = (role.timeCommitment || "").toLowerCase();
+        if (!roleComm.includes(commitment.toLowerCase())) return false;
+      }
+
+      // 6. Technology multi-select filter (ANY vs ALL)
+      if (techList.length > 0) {
+        const combinedProjectTechs = [
+          ...(role.project.techStack || []),
+          ...(role.requiredSkills || []),
+        ];
+        if (!matchesTagList(techList, combinedProjectTechs, techMode)) {
+          return false;
+        }
+      }
+
+      // 7. Skills multi-select filter (ANY vs ALL)
+      if (skillList.length > 0) {
+        const targetSkills =
+          role.requiredSkills.length > 0
+            ? role.requiredSkills
+            : role.project.techStack || [];
+        if (!matchesTagList(skillList, targetSkills, skillMode)) {
+          return false;
+        }
+      }
+
+      // 8. Hackathon-specific filters
+      if (hackathonMode && hackathonMode !== "ALL") {
+        const pMode = role.project.hackathon?.participationMode;
+        if (pMode !== hackathonMode) return false;
+      }
+
+      if (hackathonTrack && hackathonTrack !== "All") {
+        const hTags = role.project.hackathon?.tags || [];
+        const hThemes = role.project.hackathon?.themes || [];
+        const pTechs = role.project.techStack || [];
+        const combinedTracks = [...hTags, ...hThemes, ...pTechs];
+        const hasTrack = combinedTracks.some((t) => tagMatches(t, hackathonTrack));
+        if (!hasTrack) return false;
+      }
+
+      if (openRegOnly) {
+        const regStatus = role.project.hackathon?.registrationStatus;
+        if (regStatus !== "OPEN") return false;
+      }
+
+      if (collegeSlug && collegeSlug !== "ALL") {
+        const hCollege = role.project.hackathon?.collegeSlug;
+        const oCollege = role.project.owner?.collegeSlug;
+        if (hCollege !== collegeSlug && oCollege !== collegeSlug) return false;
+      }
+
+      // 9. Free-text Search Query
+      if (query) {
+        const q = query.toLowerCase();
+        const inRoleTitle = role.title.toLowerCase().includes(q);
+        const inRoleDesc = (role.description || "").toLowerCase().includes(q);
+        const inProjTitle = role.project.title.toLowerCase().includes(q);
+        const inProjDesc = (role.project.description || "").toLowerCase().includes(q);
+        const inSkills = (role.requiredSkills || []).some((s) => s.toLowerCase().includes(q));
+        const inTechs = (role.project.techStack || []).some((t) => t.toLowerCase().includes(q));
+        const inHackathon = (role.project.hackathon?.name || "").toLowerCase().includes(q);
+
+        if (!inRoleTitle && !inRoleDesc && !inProjTitle && !inProjDesc && !inSkills && !inTechs && !inHackathon) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // ─── Score Computation for Filtered Roles ───────────────────────────────
+    let results = filtered.map((role) => {
       const openSpots = Math.max(role.headcount - role.filledCount, 0);
       const isApplied = appliedRoleIds.includes(role.id);
       const isBookmarked = bookmarkedRoleIds.includes(role.id);
@@ -211,99 +404,77 @@ export async function GET(req: NextRequest) {
           }
         | undefined = undefined;
 
-      if (hasActiveFilters) {
-        // 1. Required Skills (What the lead requires)
-        let totalRoleSkills = 0;
+      if (hasActiveFilters || userSkills.length > 0) {
+        // Comparison pool: active candidate skills or user's profile skills
+        const activePool = hasSkillFilters ? candidateSkills : userSkills;
+        const targetSkills =
+          role.requiredSkills.length > 0
+            ? role.requiredSkills
+            : role.project.techStack.length > 0
+            ? role.project.techStack
+            : [];
+
         let matchedSkillsCount = 0;
-
-        if (hasSkillFilters) {
-          const targetSkills =
-            role.requiredSkills.length > 0
-              ? role.requiredSkills
-              : (role.project.techStack.length > 0 ? role.project.techStack : []);
-
-          totalRoleSkills = targetSkills.length;
-
-          if (totalRoleSkills > 0) {
-            for (const reqSkill of targetSkills) {
-              const hasMatch = candidateSkills.some((candSkill) =>
-                tagMatches(candSkill, reqSkill)
-              );
-              if (hasMatch) {
-                matchedSkillsCount += 1;
-              }
-            }
+        if (targetSkills.length > 0 && activePool.length > 0) {
+          for (const reqSkill of targetSkills) {
+            const hasMatch = activePool.some((cSkill) => tagMatches(cSkill, reqSkill));
+            if (hasMatch) matchedSkillsCount += 1;
           }
         }
 
-        // 2. Non-skill requirements selected in sidebar
-        let nonSkillRequirementsCount = 0;
-        let nonSkillMatchedCount = 0;
-        let matchedType = 0;
-        let matchedDuration = 0;
-        let matchedExp = 0;
+        const skillOverlapRatio =
+          targetSkills.length > 0 ? matchedSkillsCount / targetSkills.length : 0.5;
 
+        // Non-skill factors
+        let nonSkillRequirements = 0;
+        let nonSkillMatches = 0;
+
+        let typeFit = 0;
         if (typeFilter && typeFilter !== "All") {
-          nonSkillRequirementsCount += 1;
-          if (role.project.projectType.toLowerCase().trim() === typeFilter.toLowerCase().trim()) {
-            nonSkillMatchedCount += 1;
-            matchedType = 1;
+          nonSkillRequirements += 1;
+          if (role.project.projectType.toLowerCase() === typeFilter.toLowerCase()) {
+            typeFit = 1;
+            nonSkillMatches += 1;
           }
         }
 
+        let durationFit = 0;
         if (durationFilter && durationFilter !== "All") {
-          nonSkillRequirementsCount += 1;
-          if (role.project.duration.toLowerCase().trim() === durationFilter.toLowerCase().trim()) {
-            nonSkillMatchedCount += 1;
-            matchedDuration = 1;
+          nonSkillRequirements += 1;
+          if (role.project.duration.toLowerCase() === durationFilter.toLowerCase()) {
+            durationFit = 1;
+            nonSkillMatches += 1;
           }
         }
 
+        let experienceFit = 0;
         if (expFilter && expFilter !== "All") {
-          nonSkillRequirementsCount += 1;
-          const rExp = role.requiredExperienceLevel.toLowerCase().trim();
-          const fExp = expFilter.toLowerCase().trim();
+          nonSkillRequirements += 1;
+          const rExp = role.requiredExperienceLevel.toLowerCase();
+          const fExp = expFilter.toLowerCase();
           if (rExp === fExp || rExp === "any") {
-            nonSkillMatchedCount += 1;
-            matchedExp = 1;
+            experienceFit = 1;
+            nonSkillMatches += 1;
           }
         }
 
-        if (query) {
-          nonSkillRequirementsCount += 1;
-          const q = query.toLowerCase().trim();
-          const inRoleTitle = role.title.toLowerCase().includes(q);
-          const inRoleDesc = (role.description || "").toLowerCase().includes(q);
-          const inProjTitle = role.project.title.toLowerCase().includes(q);
-          const inProjDesc = (role.project.description || "").toLowerCase().includes(q);
-          const inSkills = (role.requiredSkills || []).some((s) => s.toLowerCase().includes(q));
-          const inTechs = (role.project.techStack || []).some((t) => t.toLowerCase().includes(q));
-
-          if (inRoleTitle || inRoleDesc || inProjTitle || inProjDesc || inSkills || inTechs) {
-            nonSkillMatchedCount += 1;
-          }
-        }
-
-        // Denominator is the role's requirements
-        const totalRoleRequirements = totalRoleSkills + nonSkillRequirementsCount;
-        const totalMatchedRequirements = matchedSkillsCount + nonSkillMatchedCount;
+        const totalFactors = targetSkills.length + nonSkillRequirements;
+        const totalMatches = matchedSkillsCount + nonSkillMatches;
 
         const score =
-          totalRoleRequirements > 0
-            ? Math.round((totalMatchedRequirements / totalRoleRequirements) * 100) / 100
-            : 0;
+          totalFactors > 0 ? Math.round((totalMatches / totalFactors) * 100) / 100 : 0.5;
 
         compatibility = {
           score,
-          factorsMatched: totalMatchedRequirements,
-          totalFactors: totalRoleRequirements,
+          factorsMatched: totalMatches,
+          totalFactors: totalFactors || 1,
           hasActiveFilters: true,
           breakdown: {
-            skillOverlap: totalRoleSkills > 0 ? Math.round((matchedSkillsCount / totalRoleSkills) * 100) / 100 : 0,
+            skillOverlap: Math.round(skillOverlapRatio * 100) / 100,
             techOverlap: 0,
-            typeFit: matchedType,
-            durationFit: matchedDuration,
-            experienceFit: matchedExp,
+            typeFit,
+            durationFit,
+            experienceFit,
           },
         };
       }
@@ -317,40 +488,38 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // Filter "Spots available"
-    if (openOnly) {
-      results = results.filter((r) => r.openSpots > 0);
-    }
-
-    // Filter "minScore" (if user adjusted slider and filters are active)
-    if (hasActiveFilters && minScoreThreshold > 0) {
+    // Enforce minScore threshold if requested
+    if (minScoreThreshold > 0) {
       results = results.filter(
         (r) => r.compatibility && r.compatibility.score >= minScoreThreshold
       );
     }
 
-    // Sorting: Best Match sorts highest score first when filters are active
+    // ─── Sorting ─────────────────────────────────────────────────────────────
     results.sort((a, b) => {
-      if (sortBy === "match" && hasActiveFilters) {
+      if (sortBy === "match" && (hasActiveFilters || userSkills.length > 0)) {
         const sa = a.compatibility?.score ?? 0;
         const sb = b.compatibility?.score ?? 0;
         if (sb !== sa) return sb - sa;
 
-        // Tie-breaker: roles with more total factors/skills matched rank higher
-        const fa = a.compatibility?.factorsMatched ?? 0;
-        const fb = b.compatibility?.factorsMatched ?? 0;
-        if (fb !== fa) return fb - fa;
+        // Tie-breaker: open spots
+        if (b.openSpots !== a.openSpots) return b.openSpots - a.openSpots;
       } else if (sortBy === "spots") {
         if (b.openSpots !== a.openSpots) return b.openSpots - a.openSpots;
       } else if (sortBy === "title") {
         return a.title.localeCompare(b.title);
+      } else if (sortBy === "deadline") {
+        const da = a.project.hackathon?.registrationDeadline ? new Date(a.project.hackathon.registrationDeadline).getTime() : Infinity;
+        const db = b.project.hackathon?.registrationDeadline ? new Date(b.project.hackathon.registrationDeadline).getTime() : Infinity;
+        if (da !== db) return da - db;
       }
+      // Default: newest first
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     const totalAvailable = results.length;
 
-    // Cursor pagination
+    // ─── Cursor Pagination ──────────────────────────────────────────────────
     let startIndex = 0;
     if (cursor) {
       const foundIdx = results.findIndex((r) => r.id === cursor);
@@ -372,6 +541,8 @@ export async function GET(req: NextRequest) {
       appliedRoleIds,
       bookmarkedRoleIds,
       allUniqueTechs,
+      allUniqueSkills,
+      availableHackathons,
       userHasSkills: userSkills.length > 0,
       activeFilterCount,
     });
@@ -380,4 +551,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch roles" }, { status: 500 });
   }
 }
-

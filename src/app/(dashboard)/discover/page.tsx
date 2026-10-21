@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Search,
@@ -15,8 +16,9 @@ import {
   Send,
   Heart,
   X,
-  Check,
   Compass,
+  MessageSquare,
+  Trophy,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,14 +30,18 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  ContextualChatDrawer,
+  type ContextualChatContext,
+} from "@/components/chat/contextual-chat-drawer";
 import { ApplyModal } from "@/components/applications/apply-modal";
+import {
+  AdvancedFiltersDrawer,
+  type AvailableHackathon,
+} from "@/components/discover/advanced-filters-drawer";
+import {
+  ROLE_CATEGORIES,
+  STANDARD_SKILLS,
+} from "@/lib/filters/normalize";
 
 interface MatchedRole {
   id: string;
@@ -57,10 +63,23 @@ interface MatchedRole {
     duration: string;
     techStack: string[];
     ownerId: string;
+    hackathonId?: string | null;
+    hackathon?: {
+      id: string;
+      name: string;
+      participationMode?: string | null;
+      status?: string | null;
+      registrationStatus?: string | null;
+      city?: string | null;
+      collegeName?: string | null;
+      tags?: string[];
+    } | null;
     owner: {
       name: string | null;
       image: string | null;
       reputationScore?: number;
+      city?: string | null;
+      collegeName?: string | null;
     };
   };
   compatibility?: {
@@ -74,9 +93,6 @@ interface MatchedRole {
       typeFit?: number;
       durationFit?: number;
       experienceFit: number;
-      availabilityFit?: number;
-      interestAlignment?: number;
-      reputationScore?: number;
     };
   };
 }
@@ -105,9 +121,13 @@ const SORT_OPTIONS = [
   { label: "Newest First", value: "newest" },
   { label: "Most Open Spots", value: "spots" },
   { label: "Role Title (A–Z)", value: "title" },
+  { label: "Hackathon Deadline", value: "deadline" },
 ];
 
-export default function DiscoverPage() {
+function DiscoverContent() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const { data: session, status } = useSession();
   const currentUserId = (session?.user as { id?: string })?.id;
   const isGuest = status === "unauthenticated";
@@ -120,29 +140,173 @@ export default function DiscoverPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedType, setSelectedType] = useState("All");
-  const [selectedExp, setSelectedExp] = useState("All");
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
-  const [openOnly, setOpenOnly] = useState(false);
-  const [hideApplied, setHideApplied] = useState(false);
-  const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
-  const [sortBy, setSortBy] = useState("match");
+  // ─── Filter States (Hydrated from URL parameters) ─────────────────────────
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") || "");
+  const [selectedType, setSelectedType] = useState(() => searchParams.get("type") || "All");
+  const [selectedRoleCategory, setSelectedRoleCategory] = useState(
+    () => searchParams.get("role") || "All"
+  );
+  const [selectedExp, setSelectedExp] = useState(() => searchParams.get("exp") || "All");
+  const [selectedDuration, setSelectedDuration] = useState(
+    () => searchParams.get("duration") || "All"
+  );
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(() => {
+    const raw = searchParams.getAll("skill");
+    return raw.flatMap((s) => s.split(",")).map((s) => s.trim()).filter(Boolean);
+  });
+  const [skillMode, setSkillMode] = useState<"any" | "all">(() =>
+    searchParams.get("skillMode") === "all" ? "all" : "any"
+  );
+  const [selectedTechs, setSelectedTechs] = useState<string[]>(() => {
+    const raw = searchParams.getAll("tech");
+    return raw.flatMap((t) => t.split(",")).map((t) => t.trim()).filter(Boolean);
+  });
+  const [techMode, setTechMode] = useState<"any" | "all">(() =>
+    searchParams.get("techMode") === "all" ? "all" : "any"
+  );
 
-  // Advanced Filter Modal / Drawer state
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  // Hackathon filters
+  const [selectedHackathonId, setSelectedHackathonId] = useState(
+    () => searchParams.get("hackathonId") || "All"
+  );
+  const [selectedMode, setSelectedMode] = useState(
+    () => searchParams.get("mode") || "ALL"
+  );
+  const [selectedTrack, setSelectedTrack] = useState(
+    () => searchParams.get("track") || "All"
+  );
+  const [openRegOnly, setOpenRegOnly] = useState(
+    () => searchParams.get("openRegOnly") === "true"
+  );
+  const [selectedCollege, setSelectedCollege] = useState(
+    () => searchParams.get("college") || "ALL"
+  );
+
+  // Recruitment filters
+  const [minSpots, setMinSpots] = useState(() =>
+    parseInt(searchParams.get("minSpots") || "0", 10)
+  );
+  const [selectedCommitment, setSelectedCommitment] = useState(
+    () => searchParams.get("commitment") || "All"
+  );
+  const [beginnerFriendly, setBeginnerFriendly] = useState(
+    () => searchParams.get("beginnerFriendly") === "true"
+  );
+  const [openOnly, setOpenOnly] = useState(
+    () => searchParams.get("openOnly") === "true"
+  );
+  const [hideApplied, setHideApplied] = useState(
+    () => searchParams.get("hideApplied") === "true"
+  );
+  const [bookmarkedOnly, setBookmarkedOnly] = useState(
+    () => searchParams.get("bookmarkedOnly") === "true"
+  );
+  const [minScore, setMinScore] = useState(() =>
+    parseInt(searchParams.get("minScore") || "0", 10)
+  );
+  const [sortBy, setSortBy] = useState(() => searchParams.get("sort") || "match");
+
+  // Metadata from backend
   const [availableTechs, setAvailableTechs] = useState<string[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<string[]>(STANDARD_SKILLS);
+  const [availableHackathons, setAvailableHackathons] = useState<AvailableHackathon[]>([]);
 
+  // Advanced Filters Drawer state
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
-  // Default sort for guests
+  // Contextual Chat Drawer state
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [activeChatContext, setActiveChatContext] = useState<ContextualChatContext | null>(null);
+
+  // Ref to prevent duplicate initial fetches & track requests
+  const requestIdRef = useRef(0);
+
+  const handleOpenChat = (chatContext: ContextualChatContext) => {
+    if (isGuest) {
+      window.location.href = "/login?callbackUrl=/discover";
+      return;
+    }
+    setActiveChatContext(chatContext);
+    setChatDrawerOpen(true);
+  };
+
+  // Adjust default sort for guests
   useEffect(() => {
     if (isGuest && sortBy === "match") {
       setSortBy("newest");
     }
   }, [isGuest, sortBy]);
 
+  // ─── URL Query Parameter Serialization ────────────────────────────────────
+  const syncUrlParams = useCallback(() => {
+    const params = new URLSearchParams();
+
+    if (searchQuery.trim()) params.set("q", searchQuery.trim());
+    if (selectedType !== "All") params.set("type", selectedType);
+    if (selectedRoleCategory !== "All") params.set("role", selectedRoleCategory);
+    if (selectedExp !== "All") params.set("exp", selectedExp);
+    if (selectedDuration !== "All") params.set("duration", selectedDuration);
+
+    if (selectedSkills.length > 0) {
+      selectedSkills.forEach((s) => params.append("skill", s));
+      if (skillMode === "all") params.set("skillMode", "all");
+    }
+
+    if (selectedTechs.length > 0) {
+      selectedTechs.forEach((t) => params.append("tech", t));
+      if (techMode === "all") params.set("techMode", "all");
+    }
+
+    if (selectedHackathonId !== "All") params.set("hackathonId", selectedHackathonId);
+    if (selectedMode !== "ALL") params.set("mode", selectedMode);
+    if (selectedTrack !== "All") params.set("track", selectedTrack);
+    if (openRegOnly) params.set("openRegOnly", "true");
+    if (selectedCollege !== "ALL") params.set("college", selectedCollege);
+
+    if (minSpots > 0) params.set("minSpots", minSpots.toString());
+    if (selectedCommitment !== "All") params.set("commitment", selectedCommitment);
+    if (beginnerFriendly) params.set("beginnerFriendly", "true");
+    if (openOnly) params.set("openOnly", "true");
+    if (hideApplied) params.set("hideApplied", "true");
+    if (bookmarkedOnly) params.set("bookmarkedOnly", "true");
+    if (minScore > 0) params.set("minScore", minScore.toString());
+    if (sortBy && sortBy !== "match") params.set("sort", sortBy);
+
+    const queryStr = params.toString();
+    const targetUrl = queryStr ? `${pathname}?${queryStr}` : pathname;
+    window.history.replaceState(null, "", targetUrl);
+  }, [
+    searchQuery,
+    selectedType,
+    selectedRoleCategory,
+    selectedExp,
+    selectedDuration,
+    selectedSkills,
+    skillMode,
+    selectedTechs,
+    techMode,
+    selectedHackathonId,
+    selectedMode,
+    selectedTrack,
+    openRegOnly,
+    selectedCollege,
+    minSpots,
+    selectedCommitment,
+    beginnerFriendly,
+    openOnly,
+    hideApplied,
+    bookmarkedOnly,
+    minScore,
+    sortBy,
+    pathname,
+  ]);
+
+  // Sync to URL whenever state changes
+  useEffect(() => {
+    syncUrlParams();
+  }, [syncUrlParams]);
+
+  // ─── Toggles & Helpers ────────────────────────────────────────────────────
   const toggleTech = (tech: string) => {
     setSelectedTechs((prev) =>
       prev.includes(tech) ? prev.filter((t) => t !== tech) : [...prev, tech]
@@ -155,9 +319,36 @@ export default function DiscoverPage() {
     );
   };
 
-  // Main Fetch function
+  const resetFilters = () => {
+    setSearchQuery("");
+    setSelectedType("All");
+    setSelectedRoleCategory("All");
+    setSelectedExp("All");
+    setSelectedDuration("All");
+    setSelectedSkills([]);
+    setSkillMode("any");
+    setSelectedTechs([]);
+    setTechMode("any");
+    setSelectedHackathonId("All");
+    setSelectedMode("ALL");
+    setSelectedTrack("All");
+    setOpenRegOnly(false);
+    setSelectedCollege("ALL");
+    setMinSpots(0);
+    setSelectedCommitment("All");
+    setBeginnerFriendly(false);
+    setOpenOnly(false);
+    setHideApplied(false);
+    setBookmarkedOnly(false);
+    setMinScore(0);
+    setSortBy(isGuest ? "newest" : "match");
+  };
+
+  // ─── Fetch Roles Function ─────────────────────────────────────────────────
   const fetchRoles = useCallback(
     async (isLoadMore = false, cursorToUse?: string | null) => {
+      const currentRequestId = ++requestIdRef.current;
+
       if (isLoadMore) {
         setLoadingMore(true);
       } else {
@@ -166,30 +357,47 @@ export default function DiscoverPage() {
 
       try {
         const queryParams = new URLSearchParams();
+        if (searchQuery.trim()) queryParams.append("q", searchQuery.trim());
         if (selectedType !== "All") queryParams.append("type", selectedType);
+        if (selectedRoleCategory !== "All") queryParams.append("role", selectedRoleCategory);
         if (selectedExp !== "All") queryParams.append("exp", selectedExp);
+        if (selectedDuration !== "All") queryParams.append("duration", selectedDuration);
 
         if (selectedSkills.length > 0) {
           selectedSkills.forEach((s) => queryParams.append("skill", s));
+          if (skillMode === "all") queryParams.append("skillMode", "all");
         }
 
         if (selectedTechs.length > 0) {
           selectedTechs.forEach((t) => queryParams.append("tech", t));
+          if (techMode === "all") queryParams.append("techMode", "all");
         }
 
-        if (searchQuery.trim()) queryParams.append("q", searchQuery.trim());
+        if (selectedHackathonId !== "All") queryParams.append("hackathonId", selectedHackathonId);
+        if (selectedMode !== "ALL") queryParams.append("mode", selectedMode);
+        if (selectedTrack !== "All") queryParams.append("track", selectedTrack);
+        if (openRegOnly) queryParams.append("openRegOnly", "true");
+        if (selectedCollege !== "ALL") queryParams.append("college", selectedCollege);
+
+        if (minSpots > 0) queryParams.append("minSpots", minSpots.toString());
+        if (selectedCommitment !== "All") queryParams.append("commitment", selectedCommitment);
+        if (beginnerFriendly) queryParams.append("beginnerFriendly", "true");
         if (openOnly) queryParams.append("openOnly", "true");
         if (hideApplied) queryParams.append("hideApplied", "true");
         if (bookmarkedOnly) queryParams.append("bookmarkedOnly", "true");
+        if (minScore > 0) queryParams.append("minScore", minScore.toString());
         if (sortBy) queryParams.append("sort", sortBy);
-        queryParams.append("limit", "12");
 
+        queryParams.append("limit", "12");
         if (isLoadMore && cursorToUse) {
           queryParams.append("cursor", cursorToUse);
         }
 
         const res = await fetch(`/api/matches/roles?${queryParams.toString()}`);
         if (res.ok) {
+          // Ignore stale responses
+          if (currentRequestId !== requestIdRef.current) return;
+
           const data = await res.json();
           const fetchedResults: MatchedRole[] = data.results || [];
 
@@ -206,24 +414,45 @@ export default function DiscoverPage() {
           if (data.allUniqueTechs && data.allUniqueTechs.length > 0) {
             setAvailableTechs(data.allUniqueTechs);
           }
+          if (data.allUniqueSkills && data.allUniqueSkills.length > 0) {
+            setAvailableSkills(data.allUniqueSkills);
+          }
+          if (data.availableHackathons && data.availableHackathons.length > 0) {
+            setAvailableHackathons(data.availableHackathons);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch roles:", err);
         toast("Failed to load roles. Please try again.", "error");
       } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        if (currentRequestId === requestIdRef.current) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
     },
     [
-      selectedType,
-      selectedExp,
-      selectedSkills,
-      selectedTechs,
       searchQuery,
+      selectedType,
+      selectedRoleCategory,
+      selectedExp,
+      selectedDuration,
+      selectedSkills,
+      skillMode,
+      selectedTechs,
+      techMode,
+      selectedHackathonId,
+      selectedMode,
+      selectedTrack,
+      openRegOnly,
+      selectedCollege,
+      minSpots,
+      selectedCommitment,
+      beginnerFriendly,
       openOnly,
       hideApplied,
       bookmarkedOnly,
+      minScore,
       sortBy,
       toast,
     ]
@@ -237,47 +466,58 @@ export default function DiscoverPage() {
     return () => clearTimeout(timer);
   }, [fetchRoles]);
 
-  const resetFilters = () => {
-    setSearchQuery("");
-    setSelectedType("All");
-    setSelectedExp("All");
-    setSelectedSkills([]);
-    setSelectedTechs([]);
-    setOpenOnly(false);
-    setHideApplied(false);
-    setBookmarkedOnly(false);
-    setSortBy(isGuest ? "newest" : "match");
-  };
-
+  // ─── Active Filter Calculation ────────────────────────────────────────────
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (searchQuery.trim()) count++;
     if (selectedType !== "All") count++;
+    if (selectedRoleCategory !== "All") count++;
     if (selectedExp !== "All") count++;
+    if (selectedDuration !== "All") count++;
     if (selectedSkills.length > 0) count += selectedSkills.length;
     if (selectedTechs.length > 0) count += selectedTechs.length;
+    if (selectedHackathonId !== "All") count++;
+    if (selectedMode !== "ALL") count++;
+    if (selectedTrack !== "All") count++;
+    if (openRegOnly) count++;
+    if (selectedCollege !== "ALL") count++;
+    if (minSpots > 0) count++;
+    if (selectedCommitment !== "All") count++;
+    if (beginnerFriendly) count++;
     if (openOnly) count++;
     if (hideApplied) count++;
     if (bookmarkedOnly) count++;
+    if (minScore > 0) count++;
     return count;
   }, [
     searchQuery,
     selectedType,
+    selectedRoleCategory,
     selectedExp,
+    selectedDuration,
     selectedSkills,
     selectedTechs,
+    selectedHackathonId,
+    selectedMode,
+    selectedTrack,
+    openRegOnly,
+    selectedCollege,
+    minSpots,
+    selectedCommitment,
+    beginnerFriendly,
     openOnly,
     hideApplied,
     bookmarkedOnly,
+    minScore,
   ]);
 
+  // Bookmark Toggle
   const handleToggleBookmark = async (roleId: string, currentBookmarked: boolean) => {
     if (!currentUserId) {
       toast("Please sign in to bookmark roles.", "info");
       return;
     }
 
-    // Optimistic update
     setRoles((prev) =>
       prev.map((r) =>
         r.id === roleId ? { ...r, isBookmarked: !currentBookmarked } : r
@@ -298,7 +538,6 @@ export default function DiscoverPage() {
           "success"
         );
       } else {
-        // Revert on failure
         setRoles((prev) =>
           prev.map((r) =>
             r.id === roleId ? { ...r, isBookmarked: currentBookmarked } : r
@@ -322,10 +561,17 @@ export default function DiscoverPage() {
     );
   };
 
+  // Selected Hackathon Name helper
+  const selectedHackathonName = useMemo(() => {
+    if (selectedHackathonId === "All") return "";
+    const found = availableHackathons.find((h) => h.id === selectedHackathonId);
+    return found ? found.name : "Event";
+  }, [selectedHackathonId, availableHackathons]);
+
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in font-sans min-w-0">
       {/* ─────────────────────────────────────────────────────────────
-          1. CONCISE PAGE HEADER
+          1. HEADER
           ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
@@ -333,7 +579,7 @@ export default function DiscoverPage() {
             Discover Opportunities
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Browse open team vacancies scored algorithmically against your skills and availability.
+            Browse hackathon teams, startup projects, and open vacancies with intelligent multi-factor matching.
           </p>
         </div>
 
@@ -364,16 +610,16 @@ export default function DiscoverPage() {
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          2. HORIZONTAL SEARCH & FILTER CONTROL BAR
+          2. HORIZONTAL SEARCH & QUICK FILTERS CONTROL BAR
           ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border shadow-xs">
-        {/* Search Input - gets greatest horizontal space */}
-        <div className="relative flex-1 min-w-[260px]">
+        {/* Search Input */}
+        <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search roles, required skills, or projects..."
+            placeholder="Search roles, technologies, projects, or hackathons..."
             className="pl-9 pr-8 h-10 text-sm rounded-xl border-input bg-card focus-visible:ring-primary"
             aria-label="Search roles and projects"
           />
@@ -388,7 +634,7 @@ export default function DiscoverPage() {
           )}
         </div>
 
-        {/* Quick Filters & Sorting */}
+        {/* Quick Filter Selectors */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Project Type */}
           <select
@@ -400,6 +646,20 @@ export default function DiscoverPage() {
             {PROJECT_TYPES.map((type) => (
               <option key={type} value={type}>
                 {type === "All" ? "All Types" : type}
+              </option>
+            ))}
+          </select>
+
+          {/* Role Category */}
+          <select
+            value={selectedRoleCategory}
+            onChange={(e) => setSelectedRoleCategory(e.target.value)}
+            className="h-10 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
+            aria-label="Filter by role category"
+          >
+            {ROLE_CATEGORIES.map((role) => (
+              <option key={role.value} value={role.value}>
+                {role.label}
               </option>
             ))}
           </select>
@@ -432,13 +692,16 @@ export default function DiscoverPage() {
             ))}
           </select>
 
-          {/* Advanced Filters Drawer Button */}
+          {/* Advanced Filters Button */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setFilterDrawerOpen(true)}
-            className="gap-1.5 h-10 px-3 rounded-xl text-xs font-medium"
-            aria-label="Open advanced filters"
+            className={cn(
+              "gap-1.5 h-10 px-3 rounded-xl text-xs font-medium transition-colors",
+              activeFiltersCount > 0 && "border-primary/50 bg-primary/5 text-primary"
+            )}
+            aria-label="Open advanced discovery filters"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
             <span>Filters</span>
@@ -465,7 +728,7 @@ export default function DiscoverPage() {
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          3. APPLIED FILTER CHIPS WITH INDIVIDUAL REMOVAL
+          3. ACTIVE FILTER CHIPS (WITH INDIVIDUAL REMOVAL)
           ───────────────────────────────────────────────────────────── */}
       {activeFiltersCount > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
@@ -477,7 +740,7 @@ export default function DiscoverPage() {
               <button
                 onClick={() => setSearchQuery("")}
                 className="hover:text-destructive p-0.5 rounded-full"
-                aria-label="Remove search filter"
+                aria-label="Remove search query filter"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -497,6 +760,21 @@ export default function DiscoverPage() {
             </Badge>
           )}
 
+          {selectedRoleCategory !== "All" && (
+            <Badge variant="secondary" className="gap-1 pr-1.5">
+              <span>
+                Role: {ROLE_CATEGORIES.find((r) => r.value === selectedRoleCategory)?.label || selectedRoleCategory}
+              </span>
+              <button
+                onClick={() => setSelectedRoleCategory("All")}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label="Remove role category filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+
           {selectedExp !== "All" && (
             <Badge variant="secondary" className="gap-1 pr-1.5">
               <span>Exp: {selectedExp}</span>
@@ -510,9 +788,35 @@ export default function DiscoverPage() {
             </Badge>
           )}
 
+          {selectedDuration !== "All" && (
+            <Badge variant="secondary" className="gap-1 pr-1.5">
+              <span>Duration: {selectedDuration}</span>
+              <button
+                onClick={() => setSelectedDuration("All")}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label="Remove duration filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+
+          {selectedTechs.map((tech) => (
+            <Badge key={tech} variant="accent" className="gap-1 pr-1.5">
+              <span>Tech: {tech} ({techMode.toUpperCase()})</span>
+              <button
+                onClick={() => toggleTech(tech)}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label={`Remove ${tech} technology filter`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+
           {selectedSkills.map((skill) => (
             <Badge key={skill} variant="accent" className="gap-1 pr-1.5">
-              <span>Skill: {skill}</span>
+              <span>Skill: {skill} ({skillMode.toUpperCase()})</span>
               <button
                 onClick={() => toggleSkill(skill)}
                 className="hover:text-destructive p-0.5 rounded-full"
@@ -523,18 +827,97 @@ export default function DiscoverPage() {
             </Badge>
           ))}
 
-          {selectedTechs.map((tech) => (
-            <Badge key={tech} variant="accent" className="gap-1 pr-1.5">
-              <span>Tech: {tech}</span>
+          {selectedHackathonId !== "All" && (
+            <Badge variant="secondary" className="gap-1 pr-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30">
+              <Trophy className="w-3 h-3" />
+              <span>Event: {selectedHackathonName}</span>
               <button
-                onClick={() => toggleTech(tech)}
+                onClick={() => setSelectedHackathonId("All")}
                 className="hover:text-destructive p-0.5 rounded-full"
-                aria-label={`Remove ${tech} technology filter`}
+                aria-label="Remove hackathon filter"
               >
                 <X className="w-3 h-3" />
               </button>
             </Badge>
-          ))}
+          )}
+
+          {selectedMode !== "ALL" && (
+            <Badge variant="secondary" className="gap-1 pr-1.5">
+              <span>Mode: {selectedMode}</span>
+              <button
+                onClick={() => setSelectedMode("ALL")}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label="Remove participation mode filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+
+          {selectedTrack !== "All" && (
+            <Badge variant="secondary" className="gap-1 pr-1.5">
+              <span>Track: {selectedTrack}</span>
+              <button
+                onClick={() => setSelectedTrack("All")}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label="Remove track filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+
+          {openRegOnly && (
+            <Badge variant="secondary" className="gap-1 pr-1.5">
+              <span>Open Registration Only</span>
+              <button
+                onClick={() => setOpenRegOnly(false)}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label="Remove open registration filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+
+          {minSpots > 0 && (
+            <Badge variant="secondary" className="gap-1 pr-1.5">
+              <span>Min Spots: {minSpots}+</span>
+              <button
+                onClick={() => setMinSpots(0)}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label="Remove min spots filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+
+          {selectedCommitment !== "All" && (
+            <Badge variant="secondary" className="gap-1 pr-1.5">
+              <span>Commitment: {selectedCommitment}</span>
+              <button
+                onClick={() => setSelectedCommitment("All")}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label="Remove commitment filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+
+          {beginnerFriendly && (
+            <Badge variant="secondary" className="gap-1 pr-1.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30">
+              <span>Beginner Friendly</span>
+              <button
+                onClick={() => setBeginnerFriendly(false)}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label="Remove beginner friendly filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
 
           {openOnly && (
             <Badge variant="secondary" className="gap-1 pr-1.5">
@@ -575,6 +958,19 @@ export default function DiscoverPage() {
             </Badge>
           )}
 
+          {minScore > 0 && (
+            <Badge variant="secondary" className="gap-1 pr-1.5">
+              <span>Score ≥ {minScore}%</span>
+              <button
+                onClick={() => setMinScore(0)}
+                className="hover:text-destructive p-0.5 rounded-full"
+                aria-label="Remove minimum score filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+
           <button
             onClick={resetFilters}
             className="text-xs text-primary hover:underline font-semibold ml-2"
@@ -603,7 +999,6 @@ export default function DiscoverPage() {
 
       {/* ─────────────────────────────────────────────────────────────
           5. ROLE RESULTS GRID
-          Spacious 3-column / 2-column grid without narrow cramping
           ───────────────────────────────────────────────────────────── */}
       {loading && roles.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -634,13 +1029,13 @@ export default function DiscoverPage() {
       ) : roles.length === 0 ? (
         <EmptyState
           icon={<Compass className="w-6 h-6 text-primary" />}
-          title={activeFiltersCount > 0 ? "No matching roles found" : "No open roles available"}
+          title={activeFiltersCount > 0 ? "No matching opportunities found" : "No open roles available"}
           description={
             activeFiltersCount > 0
-              ? "Try adjusting your search query, clearing specific skill filters, or resetting your criteria."
+              ? "Try broadening your criteria, switching matching mode from 'Match All' to 'Match Any', or resetting specific filters."
               : "There are currently no open project vacancies. Be the first to post a project and recruit teammates!"
           }
-          actionLabel={activeFiltersCount > 0 ? "Reset Filters" : "Post a Project"}
+          actionLabel={activeFiltersCount > 0 ? "Reset All Filters" : "Post a Project"}
           actionHref={activeFiltersCount > 0 ? undefined : "/projects/new"}
           onAction={activeFiltersCount > 0 ? resetFilters : undefined}
         />
@@ -654,6 +1049,7 @@ export default function DiscoverPage() {
               isGuest={isGuest}
               onBookmarkToggle={handleToggleBookmark}
               onApplied={handleRoleApplied}
+              onMessageClick={handleOpenChat}
             />
           ))}
         </div>
@@ -682,111 +1078,61 @@ export default function DiscoverPage() {
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          6. ADVANCED FILTER MODAL / DRAWER
+          6. ADVANCED FILTER DRAWER
           ───────────────────────────────────────────────────────────── */}
-      <Dialog open={filterDrawerOpen} onOpenChange={setFilterDrawerOpen}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-primary" />
-              <span>Advanced Filters</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Refine your discovery results by technology stack, preferences, and availability.
-            </DialogDescription>
-          </DialogHeader>
+      <AdvancedFiltersDrawer
+        isOpen={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        activeFiltersCount={activeFiltersCount}
+        onResetAll={resetFilters}
+        selectedTechs={selectedTechs}
+        onToggleTech={toggleTech}
+        onClearTechs={() => setSelectedTechs([])}
+        techMode={techMode}
+        setTechMode={setTechMode}
+        selectedSkills={selectedSkills}
+        onToggleSkill={toggleSkill}
+        onClearSkills={() => setSelectedSkills([])}
+        skillMode={skillMode}
+        setSkillMode={setSkillMode}
+        availableTechs={availableTechs}
+        availableSkills={availableSkills}
+        availableHackathons={availableHackathons}
+        selectedHackathonId={selectedHackathonId}
+        setSelectedHackathonId={setSelectedHackathonId}
+        selectedMode={selectedMode}
+        setSelectedMode={setSelectedMode}
+        selectedTrack={selectedTrack}
+        setSelectedTrack={setSelectedTrack}
+        openRegOnly={openRegOnly}
+        setOpenRegOnly={setOpenRegOnly}
+        selectedCollege={selectedCollege}
+        setSelectedCollege={setSelectedCollege}
+        selectedDuration={selectedDuration}
+        setSelectedDuration={setSelectedDuration}
+        minSpots={minSpots}
+        setMinSpots={setMinSpots}
+        selectedCommitment={selectedCommitment}
+        setSelectedCommitment={setSelectedCommitment}
+        beginnerFriendly={beginnerFriendly}
+        setBeginnerFriendly={setBeginnerFriendly}
+        openOnly={openOnly}
+        setOpenOnly={setOpenOnly}
+        hideApplied={hideApplied}
+        setHideApplied={setHideApplied}
+        minScore={minScore}
+        setMinScore={setMinScore}
+        isGuest={isGuest}
+      />
 
-          <div className="space-y-5 py-2">
-            {/* Preferences Toggles */}
-            <div className="space-y-2.5">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                Preferences
-              </span>
-
-              <label className="flex items-center justify-between text-xs cursor-pointer p-2 rounded-xl hover:bg-secondary transition-colors border border-border">
-                <span className="font-medium text-foreground flex items-center gap-2">
-                  <Users className="w-4 h-4 text-primary" />
-                  Spots Available Only
-                </span>
-                <input
-                  type="checkbox"
-                  checked={openOnly}
-                  onChange={(e) => setOpenOnly(e.target.checked)}
-                  className="w-4 h-4 rounded text-primary border-input focus:ring-primary"
-                />
-              </label>
-
-              {!isGuest && (
-                <label className="flex items-center justify-between text-xs cursor-pointer p-2 rounded-xl hover:bg-secondary transition-colors border border-border">
-                  <span className="font-medium text-foreground flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    Hide Already Applied
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={hideApplied}
-                    onChange={(e) => setHideApplied(e.target.checked)}
-                    className="w-4 h-4 rounded text-primary border-input focus:ring-primary"
-                  />
-                </label>
-              )}
-            </div>
-
-            {/* Tech Stack Multi-Select */}
-            {availableTechs.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Technologies ({selectedTechs.length} selected)
-                  </span>
-                  {selectedTechs.length > 0 && (
-                    <button
-                      onClick={() => setSelectedTechs([])}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1 border border-border rounded-xl bg-card">
-                  {availableTechs.map((tech) => {
-                    const isSelected = selectedTechs.includes(tech);
-                    return (
-                      <button
-                        key={tech}
-                        type="button"
-                        onClick={() => toggleTech(tech)}
-                        className={cn(
-                          "text-xs px-2.5 py-1 rounded-lg border transition-colors font-medium flex items-center gap-1",
-                          isSelected
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-secondary text-secondary-foreground border-border hover:bg-muted"
-                        )}
-                      >
-                        {isSelected && <Check className="w-3 h-3" />}
-                        <span>{tech}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="flex sm:justify-between items-center pt-2 border-t border-border">
-            <Button variant="ghost" size="sm" onClick={resetFilters} className="text-xs">
-              Reset All
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setFilterDrawerOpen(false)}
-              className="font-semibold shadow-xs"
-            >
-              Apply Filters ({activeFiltersCount})
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ─────────────────────────────────────────────────────────────
+          7. CONTEXTUAL IN-PAGE MESSAGING DRAWER
+          ───────────────────────────────────────────────────────────── */}
+      <ContextualChatDrawer
+        isOpen={chatDrawerOpen}
+        onClose={() => setChatDrawerOpen(false)}
+        context={activeChatContext}
+      />
     </div>
   );
 }
@@ -800,6 +1146,7 @@ interface RoleCardProps {
   isGuest: boolean;
   onBookmarkToggle: (roleId: string, currentBookmarked: boolean) => void;
   onApplied: (roleId: string) => void;
+  onMessageClick: (context: ContextualChatContext) => void;
 }
 
 function RoleCard({
@@ -808,6 +1155,7 @@ function RoleCard({
   isGuest,
   onBookmarkToggle,
   onApplied,
+  onMessageClick,
 }: RoleCardProps) {
   const [applied, setApplied] = useState(role.isApplied || false);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
@@ -819,10 +1167,27 @@ function RoleCard({
   const handleApplyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isGuest) {
-      window.location.href = "/login";
+      window.location.href = "/login?callbackUrl=/discover";
       return;
     }
     setIsApplyModalOpen(true);
+  };
+
+  const handleMessageClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isGuest) {
+      window.location.href = "/login?callbackUrl=/discover";
+      return;
+    }
+    onMessageClick({
+      recipientId: role.project.ownerId,
+      recipientName: role.project.owner.name,
+      recipientImage: role.project.owner.image,
+      projectId: role.project.id,
+      projectTitle: role.project.title,
+      roleId: role.id,
+      roleTitle: role.title,
+    });
   };
 
   return (
@@ -834,12 +1199,24 @@ function RoleCard({
             <Badge variant="secondary" className="text-[11px] font-medium">
               {role.project.projectType}
             </Badge>
+
+            {role.project.hackathon && (
+              <Badge
+                variant="outline"
+                className="text-[11px] font-medium border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 gap-1"
+                title={role.project.hackathon.name}
+              >
+                <Trophy className="w-3 h-3 text-amber-500" />
+                <span className="truncate max-w-[130px]">{role.project.hackathon.name}</span>
+              </Badge>
+            )}
+
             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
               <Clock className="w-3 h-3" /> {role.project.duration}
             </span>
           </div>
 
-          {/* Separate Accessible Bookmark Control */}
+          {/* Bookmark Action */}
           <button
             type="button"
             onClick={(e) => {
@@ -930,7 +1307,7 @@ function RoleCard({
             </div>
             {role.compatibility.breakdown && (
               <p className="text-[11px] text-muted-foreground">
-                Matched on skills ({Math.round(role.compatibility.breakdown.skillOverlap * 100)}%) and experience level.
+                Matched on skills ({Math.round(role.compatibility.breakdown.skillOverlap * 100)}%) and experience requirements.
               </p>
             )}
           </div>
@@ -953,9 +1330,22 @@ function RoleCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+          {!isOwner && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMessageClick}
+              className="h-8 px-2.5 text-xs font-medium gap-1.5 border-border hover:border-primary/40 hover:text-primary transition-colors"
+              aria-label={`Message ${role.project.owner.name || "project lead"} about ${role.title}`}
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-primary" />
+              <span>Message</span>
+            </Button>
+          )}
+
           <Link href={`/projects/${role.project.id}`}>
-            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs">
+            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground">
               View Role
             </Button>
           </Link>
@@ -998,5 +1388,30 @@ function RoleCard({
         }}
       />
     </Card>
+  );
+}
+
+function DiscoverSkeleton() {
+  return (
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-64 rounded-xl" />
+        <Skeleton className="h-4 w-96 rounded-xl" />
+      </div>
+      <Skeleton className="h-14 w-full rounded-xl" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Skeleton key={i} className="h-64 rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function DiscoverPage() {
+  return (
+    <Suspense fallback={<DiscoverSkeleton />}>
+      <DiscoverContent />
+    </Suspense>
   );
 }
