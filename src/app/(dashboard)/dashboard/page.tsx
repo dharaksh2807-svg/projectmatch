@@ -91,6 +91,7 @@ export default async function DashboardPage() {
       unreadMessagesCount,
       promptBattlesCount,
       rawRecommendedRoles,
+      savedSearches,
     ] = await Promise.all([
       // 1. User Profile
       prisma.user.findUnique({
@@ -317,6 +318,13 @@ export default async function DashboardPage() {
         take: 16,
         orderBy: { createdAt: "desc" },
       }),
+
+      // 12. User Saved Searches
+      prisma.savedSearch.findMany({
+        where: { userId },
+        orderBy: { updatedAt: "desc" },
+        take: 5,
+      }),
     ]);
 
     if (!user) {
@@ -404,6 +412,7 @@ export default async function DashboardPage() {
         activeHackathons,
         recentConversations: formattedConversations,
         recentNotifications: notifications,
+        savedSearches: savedSearches || [],
       })
     );
   } catch (error) {

@@ -99,6 +99,7 @@ model User {
   applications     Application[]
   notifications    Notification[]
   roleBookmarks    RoleBookmark[]
+  savedSearches    SavedSearch[]
   previousProjects PreviousProject[]
 
   // Relations — Direct Messaging
@@ -352,6 +353,25 @@ model RoleBookmark {
   @@unique([userId, roleId])
   @@index([userId])
   @@index([roleId])
+}
+
+/// A saved discovery search filter configuration owned by a user
+model SavedSearch {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String   // User-defined search name (e.g. "AI Hackathon Teams")
+  context   String   @default("ROLES") // "ROLES" | "HACKATHONS"
+  version   Int      @default(1)       // Schema version for future-proof payload evolution
+  filters   Json                       // Validated, versioned filter payload
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, context])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 /// An application from a user to a specific Role

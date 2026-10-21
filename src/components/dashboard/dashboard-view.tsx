@@ -20,6 +20,8 @@ import {
   Calendar,
   ChevronRight,
   UserCheck,
+  Bookmark,
+  Play,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +39,16 @@ import {
   GoogleDriveIcon,
 } from "@/components/shared/social-icons";
 import { cn } from "@/lib/utils";
+import { generateShareableSearchUrl } from "@/lib/filters/saved-searches";
+
+export interface SerializedSavedSearch {
+  id: string;
+  name: string;
+  context: string;
+  filters: any;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface SerializedUser {
   id: string;
@@ -239,6 +251,7 @@ interface DashboardViewProps {
   activeHackathons: SerializedHackathon[];
   recentConversations: SerializedConversation[];
   recentNotifications: SerializedNotification[];
+  savedSearches?: SerializedSavedSearch[];
 }
 
 export function DashboardView({
@@ -251,6 +264,7 @@ export function DashboardView({
   activeHackathons,
   recentConversations,
   recentNotifications,
+  savedSearches = [],
 }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "projects" | "applications" | "recommendations">("overview");
 
@@ -867,6 +881,62 @@ export function DashboardView({
 
         {/* ── RIGHT COLUMN (Collaboration, Hackathons, Profiles) ── */}
         <div className="space-y-6">
+          {/* Saved Searches Quick Access */}
+          <Card className="glass-card border-border/60">
+            <CardHeader className="p-4 pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Bookmark className="w-4 h-4 text-primary" /> Saved Searches
+                </CardTitle>
+                <Link href="/discover" className="text-xs text-primary hover:underline">
+                  Discovery
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-2 space-y-2">
+              {savedSearches && savedSearches.length > 0 ? (
+                savedSearches.map((search) => {
+                  const searchUrl = generateShareableSearchUrl(search.filters || {}, "/discover");
+                  return (
+                    <div
+                      key={search.id}
+                      className="p-2.5 rounded-xl bg-secondary/50 border border-border/40 hover:border-primary/40 transition-colors flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-foreground truncate">
+                          {search.name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {search.context === "ROLES" ? "Role Discovery" : "Hackathons"} • Updated{" "}
+                          {new Date(search.updatedAt).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                      </div>
+                      <Link href={searchUrl}>
+                        <Button size="xs" variant="outline" className="h-7 text-[11px] gap-1">
+                          <Play className="w-2.5 h-2.5 fill-current" />
+                          <span>Run</span>
+                        </Button>
+                      </Link>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-3">
+                  <p className="text-xs text-muted-foreground mb-1.5">No saved searches yet.</p>
+                  <Link href="/discover">
+                    <Button size="xs" variant="outline" className="gap-1">
+                      <Bookmark className="w-3 h-3 text-primary" />
+                      Browse & Save
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Active Hackathons */}
           <Card className="glass-card border-border/60">
             <CardHeader className="p-4 pb-2">

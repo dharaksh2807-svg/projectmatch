@@ -19,6 +19,8 @@ import {
   Compass,
   MessageSquare,
   Trophy,
+  Bookmark,
+  FolderHeart,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,9 +41,23 @@ import {
   type AvailableHackathon,
 } from "@/components/discover/advanced-filters-drawer";
 import {
+  SaveSearchModal,
+} from "@/components/discover/save-search-modal";
+import {
+  SavedSearchesDrawer,
+} from "@/components/discover/saved-searches-drawer";
+import {
+  FilterPresetsBar,
+} from "@/components/discover/filter-presets-bar";
+import {
   ROLE_CATEGORIES,
   STANDARD_SKILLS,
 } from "@/lib/filters/normalize";
+import {
+  SavedSearchFilters,
+  FilterPreset,
+  generateShareableSearchUrl,
+} from "@/lib/filters/saved-searches";
 
 interface MatchedRole {
   id: string;
@@ -214,6 +230,29 @@ function DiscoverContent() {
   // Advanced Filters Drawer state
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
+  // Saved Searches state
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
+  const [savedSearchesCount, setSavedSearchesCount] = useState<number>(0);
+
+  // Fetch count of saved searches on mount
+  const fetchSavedSearchesCount = useCallback(async () => {
+    if (isGuest) return;
+    try {
+      const res = await fetch("/api/saved-searches?context=ROLES");
+      if (res.ok) {
+        const data = await res.json();
+        setSavedSearchesCount(data.savedSearches?.length || 0);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [isGuest]);
+
+  useEffect(() => {
+    fetchSavedSearchesCount();
+  }, [fetchSavedSearchesCount]);
+
   // Contextual Chat Drawer state
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [activeChatContext, setActiveChatContext] = useState<ContextualChatContext | null>(null);
@@ -236,6 +275,119 @@ function DiscoverContent() {
       setSortBy("newest");
     }
   }, [isGuest, sortBy]);
+
+  // Serialized current filters snapshot
+  const currentFiltersSnapshot: SavedSearchFilters = useMemo(
+    () => ({
+      q: searchQuery.trim(),
+      type: selectedType,
+      role: selectedRoleCategory,
+      exp: selectedExp,
+      duration: selectedDuration,
+      skill: selectedSkills,
+      skillMode,
+      tech: selectedTechs,
+      techMode,
+      hackathonId: selectedHackathonId,
+      mode: selectedMode as any,
+      track: selectedTrack,
+      openRegOnly,
+      college: selectedCollege,
+      minSpots,
+      commitment: selectedCommitment,
+      beginnerFriendly,
+      openOnly,
+      hideApplied,
+      bookmarkedOnly,
+      minScore,
+      sort: sortBy,
+    }),
+    [
+      searchQuery,
+      selectedType,
+      selectedRoleCategory,
+      selectedExp,
+      selectedDuration,
+      selectedSkills,
+      skillMode,
+      selectedTechs,
+      techMode,
+      selectedHackathonId,
+      selectedMode,
+      selectedTrack,
+      openRegOnly,
+      selectedCollege,
+      minSpots,
+      selectedCommitment,
+      beginnerFriendly,
+      openOnly,
+      hideApplied,
+      bookmarkedOnly,
+      minScore,
+      sortBy,
+    ]
+  );
+
+  // Apply a saved search
+  const handleApplySavedSearch = useCallback(
+    (savedFilters: SavedSearchFilters) => {
+      setSearchQuery(savedFilters.q || "");
+      setSelectedType(savedFilters.type || "All");
+      setSelectedRoleCategory(savedFilters.role || "All");
+      setSelectedExp(savedFilters.exp || "All");
+      setSelectedDuration(savedFilters.duration || "All");
+      setSelectedSkills(savedFilters.skill || []);
+      setSkillMode(savedFilters.skillMode || "any");
+      setSelectedTechs(savedFilters.tech || []);
+      setTechMode(savedFilters.techMode || "any");
+      setSelectedHackathonId(savedFilters.hackathonId || "All");
+      setSelectedMode(savedFilters.mode || "ALL");
+      setSelectedTrack(savedFilters.track || "All");
+      setOpenRegOnly(Boolean(savedFilters.openRegOnly));
+      setSelectedCollege(savedFilters.college || "ALL");
+      setMinSpots(savedFilters.minSpots || 0);
+      setSelectedCommitment(savedFilters.commitment || "All");
+      setBeginnerFriendly(Boolean(savedFilters.beginnerFriendly));
+      setOpenOnly(Boolean(savedFilters.openOnly));
+      setHideApplied(Boolean(savedFilters.hideApplied));
+      setBookmarkedOnly(Boolean(savedFilters.bookmarkedOnly));
+      setMinScore(savedFilters.minScore || 0);
+      if (savedFilters.sort) {
+        setSortBy(savedFilters.sort);
+      }
+    },
+    []
+  );
+
+  // Apply a preset
+  const handleApplyPreset = useCallback(
+    (preset: FilterPreset) => {
+      const f = preset.filters;
+      if (f.openOnly !== undefined) setOpenOnly(f.openOnly);
+      if (f.minSpots !== undefined) setMinSpots(f.minSpots);
+      if (f.beginnerFriendly !== undefined) setBeginnerFriendly(f.beginnerFriendly);
+      if (f.exp !== undefined) setSelectedExp(f.exp);
+      if (f.role !== undefined) setSelectedRoleCategory(f.role);
+      if (f.type !== undefined) setSelectedType(f.type);
+      if (f.mode !== undefined) setSelectedMode(f.mode);
+      if (f.tech !== undefined) setSelectedTechs(f.tech);
+      if (f.techMode !== undefined) setTechMode(f.techMode);
+      toast(`Applied preset: ${preset.name}`, "info");
+    },
+    [toast]
+  );
+
+  // Copy clean share link
+  const handleCopyCurrentShareLink = useCallback(async () => {
+    try {
+      const relative = generateShareableSearchUrl(currentFiltersSnapshot, "/discover");
+      const full = `${window.location.origin}${relative}`;
+      await navigator.clipboard.writeText(full);
+      toast("Search link copied to clipboard!", "success");
+    } catch {
+      toast("Failed to copy link to clipboard.", "error");
+    }
+  }, [currentFiltersSnapshot, toast]);
 
   // ─── URL Query Parameter Serialization ────────────────────────────────────
   const syncUrlParams = useCallback(() => {
@@ -586,6 +738,24 @@ function DiscoverContent() {
         <div className="flex items-center gap-2.5 flex-wrap">
           {!isGuest && (
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSavedSearchesOpen(true)}
+              className="gap-1.5 h-9"
+              title="View and run your saved searches"
+            >
+              <FolderHeart className="w-3.5 h-3.5 text-primary" />
+              <span>Saved Searches</span>
+              {savedSearchesCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
+                  {savedSearchesCount}
+                </span>
+              )}
+            </Button>
+          )}
+
+          {!isGuest && (
+            <Button
               variant={bookmarkedOnly ? "default" : "outline"}
               size="sm"
               onClick={() => setBookmarkedOnly(!bookmarkedOnly)}
@@ -712,6 +882,21 @@ function DiscoverContent() {
             )}
           </Button>
 
+          {/* Save Search Button */}
+          {!isGuest && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSaveModalOpen(true)}
+              className="gap-1.5 h-10 px-3 rounded-xl text-xs font-medium border-border hover:border-primary/50 text-foreground"
+              title="Save current filter combination"
+              aria-label="Save current search filter combination"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-primary" />
+              <span>Save Search</span>
+            </Button>
+          )}
+
           {activeFiltersCount > 0 && (
             <Button
               variant="ghost"
@@ -726,6 +911,19 @@ function DiscoverContent() {
           )}
         </div>
       </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          2.5. FILTER PRESETS & SAVED SEARCH SHORTCUTS BAR
+          ───────────────────────────────────────────────────────────── */}
+      <FilterPresetsBar
+        currentFilters={currentFiltersSnapshot}
+        savedSearchesCount={savedSearchesCount}
+        onApplyPreset={handleApplyPreset}
+        onOpenSaveModal={() => setSaveModalOpen(true)}
+        onOpenSavedSearches={() => setSavedSearchesOpen(true)}
+        onCopyShareLink={handleCopyCurrentShareLink}
+        isGuest={isGuest}
+      />
 
       {/* ─────────────────────────────────────────────────────────────
           3. ACTIVE FILTER CHIPS (WITH INDIVIDUAL REMOVAL)
@@ -1132,6 +1330,41 @@ function DiscoverContent() {
         isOpen={chatDrawerOpen}
         onClose={() => setChatDrawerOpen(false)}
         context={activeChatContext}
+      />
+
+      {/* ─────────────────────────────────────────────────────────────
+          8. SAVE SEARCH MODAL
+          ───────────────────────────────────────────────────────────── */}
+      <SaveSearchModal
+        open={saveModalOpen}
+        onOpenChange={setSaveModalOpen}
+        activeFilters={currentFiltersSnapshot}
+        context="ROLES"
+        availableHackathons={availableHackathons}
+        onSearchSaved={() => {
+          setSavedSearchesCount((c) => c + 1);
+        }}
+        onShowToast={toast}
+      />
+
+      {/* ─────────────────────────────────────────────────────────────
+          9. SAVED SEARCHES DRAWER
+          ───────────────────────────────────────────────────────────── */}
+      <SavedSearchesDrawer
+        open={savedSearchesOpen}
+        onOpenChange={setSavedSearchesOpen}
+        currentFilters={currentFiltersSnapshot}
+        context="ROLES"
+        availableHackathons={availableHackathons}
+        availableTechs={availableTechs}
+        availableSkills={availableSkills}
+        onApplySavedSearch={handleApplySavedSearch}
+        onApplyPreset={handleApplyPreset}
+        onShowToast={toast}
+        onOpenSaveModal={() => {
+          setSavedSearchesOpen(false);
+          setSaveModalOpen(true);
+        }}
       />
     </div>
   );
