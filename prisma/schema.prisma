@@ -101,6 +101,8 @@ model User {
   roleBookmarks    RoleBookmark[]
   savedSearches    SavedSearch[]
   previousProjects PreviousProject[]
+  sentInvitations  TeamInvitation[] @relation("SentInvitations")
+  invitationRedemptions InvitationRedemption[]
 
   // Relations — Direct Messaging
   conversationsAsUserOne DirectConversation[] @relation("ConversationUserOne")
@@ -306,6 +308,7 @@ model Project {
   conversations DirectConversation[]
   reviews     Review[]
   reports     Report[]
+  invitations TeamInvitation[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -332,6 +335,8 @@ model Role {
 
   applications Application[]
   bookmarks    RoleBookmark[]
+  invitations  TeamInvitation[]
+  invitationRedemptions InvitationRedemption[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -416,6 +421,58 @@ model Notification {
 
   @@index([userId])
   @@index([userId, isRead])
+}
+
+// ─────────────────────────────────────────────
+// Team Invitations
+// ─────────────────────────────────────────────
+
+/// Secure, shareable team invitation links for authorized project owners
+model TeamInvitation {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  roleId      String?
+  role        Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  inviterId   String
+  inviter     User     @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  // Cryptographic token storage: ONLY the sha256 hash is persisted
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  maxUses     Int      @default(1)
+  usesCount   Int      @default(0)
+  isRevoked   Boolean  @default(false)
+  revokedAt   DateTime?
+
+  redemptions InvitationRedemption[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([roleId])
+  @@index([inviterId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@index([isRevoked])
+}
+
+/// Redemptions of team invitation links by users
+model InvitationRedemption {
+  id           String         @id @default(cuid())
+  invitationId String
+  invitation   TeamInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId       String
+  role         Role           @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  redeemedAt   DateTime       @default(now())
+
+  @@unique([invitationId, userId])
+  @@index([invitationId])
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────────
@@ -734,6 +791,7 @@ enum NotificationType {
   APPLICATION_REJECTED   // applicant gets this when rejected
   NEW_MESSAGE            // any new chat message
   SYSTEM                 // platform announcements
+  INVITATION_ACCEPTED    // project owner gets this when someone joins via invite link
 }
 
 enum UserRole {

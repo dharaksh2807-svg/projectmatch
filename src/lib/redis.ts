@@ -47,6 +47,26 @@ export const agentMutationRatelimit = hasRedisConfig
     })
   : null;
 
+// Rate limiter: 10 invite creations per 10 minutes per user
+export const inviteCreateRatelimit = hasRedisConfig
+  ? new Ratelimit({
+      redis: redis as Redis,
+      limiter: Ratelimit.slidingWindow(10, "10 m"),
+      analytics: true,
+      prefix: "projectmatch:invite-create",
+    })
+  : null;
+
+// Rate limiter: 20 invite redemptions/inspections per 10 minutes per user/IP
+export const inviteRedeemRatelimit = hasRedisConfig
+  ? new Ratelimit({
+      redis: redis as Redis,
+      limiter: Ratelimit.slidingWindow(20, "10 m"),
+      analytics: true,
+      prefix: "projectmatch:invite-redeem",
+    })
+  : null;
+
 /**
  * Check rate limit for a given identifier (userId or IP).
  * Returns { success: true } when Redis is not configured (dev fallback).
@@ -116,6 +136,50 @@ export async function checkAgentMutationRateLimit(
     };
   } catch (err) {
     console.error("Redis RateLimit error (checkAgentMutationRateLimit):", err);
+    return { success: true, remaining: 999 };
+  }
+}
+
+/**
+ * Check invite creation rate limit (10 creates / 10 min) for a given userId.
+ */
+export async function checkInviteCreateRateLimit(
+  userId: string
+): Promise<{ success: boolean; remaining?: number; reset?: number }> {
+  if (!inviteCreateRatelimit) {
+    return { success: true, remaining: 10 };
+  }
+  try {
+    const result = await inviteCreateRatelimit.limit(userId);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch (err) {
+    console.error("Redis RateLimit error (checkInviteCreateRateLimit):", err);
+    return { success: true, remaining: 999 };
+  }
+}
+
+/**
+ * Check invite redeem/lookup rate limit (20 req / 10 min) for a given identifier (userId or IP).
+ */
+export async function checkInviteRedeemRateLimit(
+  identifier: string
+): Promise<{ success: boolean; remaining?: number; reset?: number }> {
+  if (!inviteRedeemRatelimit) {
+    return { success: true, remaining: 20 };
+  }
+  try {
+    const result = await inviteRedeemRatelimit.limit(identifier);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch (err) {
+    console.error("Redis RateLimit error (checkInviteRedeemRateLimit):", err);
     return { success: true, remaining: 999 };
   }
 }

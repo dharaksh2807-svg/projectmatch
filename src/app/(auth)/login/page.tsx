@@ -1,8 +1,8 @@
 "use client";
 
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { Sparkles, GitBranch, Globe, Loader2, ArrowLeft } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -28,21 +28,23 @@ const DEMO_USERS = [
   },
 ];
 
-export default function LoginPage() {
+function LoginForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/discover";
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
 
   useEffect(() => {
     if (session?.user) {
-      router.replace("/discover");
+      router.replace(callbackUrl);
     }
-  }, [session, router]);
+  }, [session, router, callbackUrl]);
 
   const handleSignIn = async (provider: string) => {
     setLoadingProvider(provider);
     try {
-      await signIn(provider, { callbackUrl: "/discover" });
+      await signIn(provider, { callbackUrl });
     } catch {
       setLoadingProvider(null);
     }
@@ -53,7 +55,7 @@ export default function LoginPage() {
     try {
       await signIn("credentials", {
         email,
-        callbackUrl: "/discover",
+        callbackUrl,
       });
     } catch {
       setLoadingProvider(null);
@@ -188,5 +190,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

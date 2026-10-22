@@ -16,6 +16,8 @@ import {
   Loader2,
   Send,
   MessageSquare,
+  Link as LinkIcon,
+  UserPlus,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,8 @@ import {
   ContextualChatDrawer,
   type ContextualChatContext,
 } from "@/components/chat/contextual-chat-drawer";
+import { InviteModal } from "@/components/invitations/invite-modal";
+import { ProjectInvitationsList } from "@/components/invitations/project-invitations-list";
 
 interface Role {
   id: string;
@@ -82,6 +86,8 @@ export default function ProjectDetailPage() {
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [activeChatContext, setActiveChatContext] = useState<ContextualChatContext | null>(null);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [selectedRoleForInvite, setSelectedRoleForInvite] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProject() {
@@ -225,11 +231,24 @@ export default function ProjectDetailPage() {
                       
                       <div className="flex-shrink-0 w-full md:w-auto">
                         {isOwner ? (
-                          <Link href={`/projects/${project.id}/applications`} className="block w-full md:w-auto">
-                            <Button variant="outline" size="sm" className="w-full md:w-auto min-h-[44px]">
-                              View Apps
+                          <div className="flex items-center gap-2 w-full md:w-auto">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedRoleForInvite(role.id);
+                                setIsInviteModalOpen(true);
+                              }}
+                              className="w-full md:w-auto min-h-[44px] gap-1.5 cursor-pointer border-primary/30 text-primary hover:bg-primary/10"
+                            >
+                              <LinkIcon className="w-3.5 h-3.5" /> Invite
                             </Button>
-                          </Link>
+                            <Link href="/applications" className="block w-full md:w-auto">
+                              <Button variant="outline" size="sm" className="w-full md:w-auto min-h-[44px]">
+                                View Apps
+                              </Button>
+                            </Link>
+                          </div>
                         ) : !role.isOpen || role.filledCount >= role.headcount ? (
                           <Badge variant="secondary" className="px-3 py-1 bg-muted w-full md:w-auto text-center justify-center">Role Filled</Badge>
                         ) : (
@@ -247,6 +266,17 @@ export default function ProjectDetailPage() {
                 ))}
               </div>
             </div>
+
+            {/* Team Invitations Management Section for Project Owner */}
+            {isOwner && (
+              <div className="pt-2">
+                <ProjectInvitationsList
+                  projectId={project.id}
+                  projectTitle={project.title}
+                  roles={project.roles}
+                />
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -304,6 +334,15 @@ export default function ProjectDetailPage() {
             
             {isOwner && (
               <div className="pt-4 space-y-2">
+                <Button
+                  onClick={() => {
+                    setSelectedRoleForInvite(null);
+                    setIsInviteModalOpen(true);
+                  }}
+                  className="w-full brand-gradient text-white gap-2 font-semibold shadow-xs cursor-pointer min-h-[40px]"
+                >
+                  <UserPlus className="w-4 h-4" /> Invite Teammate
+                </Button>
                 <Link href={`/projects/${project.id}/edit`}>
                   <Button variant="outline" className="w-full">
                     Edit Project
@@ -348,6 +387,25 @@ export default function ProjectDetailPage() {
         isOpen={chatDrawerOpen}
         onClose={() => setChatDrawerOpen(false)}
         context={activeChatContext}
+      />
+
+      <InviteModal
+        isOpen={isInviteModalOpen}
+        onClose={() => {
+          setIsInviteModalOpen(false);
+          setSelectedRoleForInvite(null);
+        }}
+        projectId={project.id}
+        projectTitle={project.title}
+        roles={project.roles}
+        defaultRoleId={selectedRoleForInvite}
+        onSuccess={() => {
+          // Refresh project details
+          fetch(`/api/projects/${id}`)
+            .then((res) => res.json())
+            .then((data) => setProject(data))
+            .catch(() => {});
+        }}
       />
     </div>
   );
