@@ -121,7 +121,7 @@ export function FilterPresetsBar({
               <FolderHeart className="w-3.5 h-3.5 text-primary" />
               <span>Saved Searches</span>
               {savedSearchesCount > 0 && (
-                <span className="ml-0.5 px-1.5 py-0.2 bg-primary/10 text-primary rounded-full text-[10px] font-bold">
+                <span className="ml-0.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-bold">
                   {savedSearchesCount}
                 </span>
               )}

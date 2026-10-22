@@ -1,0 +1,426 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import {
+  Code2,
+  Search,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  RotateCcw,
+  Sparkles,
+  Layers,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { tagMatches, ALL_PREDEFINED_TECHS } from "@/lib/filters/normalize";
+import { resolveTechCategory } from "@/lib/filters/tech-catalog";
+
+const DEFAULT_POPULAR = [
+  "React",
+  "Next.js",
+  "Python",
+  "TypeScript",
+  "Node.js",
+  "PostgreSQL",
+  "FastAPI",
+  "Tailwind CSS",
+  "Docker",
+  "Java",
+  "PyTorch",
+  "Go",
+];
+
+export interface DiscoverTechFilterProps {
+  selectedTechs: string[];
+  techMode: "any" | "all";
+  onToggleTech: (tech: string) => void;
+  onClearTechs: () => void;
+  onSetTechMode: (mode: "any" | "all") => void;
+  availableTechs: string[];
+  techCounts?: Record<string, number>;
+  popularTechs?: string[];
+  categories?: Record<string, string[]>;
+  className?: string;
+}
+
+export function DiscoverTechFilter({
+  selectedTechs,
+  techMode,
+  onToggleTech,
+  onClearTechs,
+  onSetTechMode,
+  availableTechs = [],
+  techCounts = {},
+  popularTechs = [],
+  categories = {},
+  className,
+}: DiscoverTechFilterProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("All");
+
+  // Reliable list of all techs with fallback
+  const effectiveAvailableTechs = useMemo(() => {
+    if (availableTechs && availableTechs.length > 0) {
+      return availableTechs;
+    }
+    return ALL_PREDEFINED_TECHS;
+  }, [availableTechs]);
+
+  // Determine popular technologies list (fallback if empty)
+  const popularList = useMemo(() => {
+    if (popularTechs && popularTechs.length > 0) {
+      return popularTechs;
+    }
+    if (availableTechs && availableTechs.length > 0) {
+      return availableTechs.slice(0, 10);
+    }
+    return DEFAULT_POPULAR;
+  }, [popularTechs, availableTechs]);
+
+  // Available categories list
+  const categoryNames = useMemo(() => {
+    const defaultOrder = [
+      "All",
+      "Frontend",
+      "Backend",
+      "Languages",
+      "Databases",
+      "AI / ML",
+      "Cloud / DevOps",
+      "Mobile",
+      "Web3",
+      "Hardware / IoT",
+      "Other",
+    ];
+    // Keep categories that have items in categories object or default ones
+    const presentCats = new Set(Object.keys(categories));
+    return defaultOrder.filter((cat) => cat === "All" || presentCats.has(cat));
+  }, [categories]);
+
+  // Filtered technologies based on search query and category
+  const filteredTechs = useMemo(() => {
+    let pool = effectiveAvailableTechs;
+
+    if (activeCategory !== "All") {
+      if (categories[activeCategory]) {
+        pool = categories[activeCategory];
+      } else {
+        pool = pool.filter((t) => resolveTechCategory(t) === activeCategory);
+      }
+    }
+
+    if (!searchQuery.trim()) {
+      return pool;
+    }
+
+    const q = searchQuery.toLowerCase().trim();
+    return pool.filter((t) => {
+      // Direct substring match
+      if (t.toLowerCase().includes(q)) return true;
+      // Alias or fuzzy normalized match
+      return tagMatches(t, q) || tagMatches(q, t);
+    });
+  }, [availableTechs, activeCategory, categories, searchQuery]);
+
+  // Helper to check if a tech is currently selected
+  const isSelected = (tech: string) => {
+    return selectedTechs.some((t) => t.toLowerCase() === tech.toLowerCase());
+  };
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-border bg-card/80 backdrop-blur-xs shadow-xs p-3.5 sm:p-4.5 space-y-3 transition-all",
+        className
+      )}
+    >
+      {/* ── 1. HEADER ROW: Title, Badges, Match Toggle & Clear ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Code2 className="w-4 h-4" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs sm:text-sm font-bold text-foreground">
+              Technology Stack
+            </span>
+            {selectedTechs.length > 0 && (
+              <Badge variant="accent" className="text-[10px] h-5 px-1.5 font-bold">
+                {selectedTechs.length} selected
+              </Badge>
+            )}
+          </div>
+          {selectedTechs.length > 0 && (
+            <button
+              type="button"
+              onClick={onClearTechs}
+              className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 ml-1 hover:underline transition-colors"
+              title="Clear selected technologies"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Clear</span>
+            </button>
+          )}
+        </div>
+
+        {/* Match ANY vs Match ALL Segmented Toggle */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="text-[11px] text-muted-foreground font-medium hidden xs:inline">
+            Match:
+          </span>
+          <div
+            role="group"
+            aria-label="Technology match mode"
+            className="flex items-center bg-secondary/80 rounded-lg p-0.5 border border-border"
+          >
+            <button
+              type="button"
+              onClick={() => onSetTechMode("any")}
+              aria-pressed={techMode === "any"}
+              className={cn(
+                "px-2.5 py-1 text-xs rounded-md font-medium transition-all",
+                techMode === "any"
+                  ? "bg-primary text-primary-foreground shadow-2xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              title="Return projects containing at least one selected technology"
+            >
+              Match ANY
+            </button>
+            <button
+              type="button"
+              onClick={() => onSetTechMode("all")}
+              aria-pressed={techMode === "all"}
+              className={cn(
+                "px-2.5 py-1 text-xs rounded-md font-medium transition-all",
+                techMode === "all"
+                  ? "bg-primary text-primary-foreground shadow-2xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              title="Return projects strictly containing ALL selected technologies"
+            >
+              Match ALL
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. SEARCH INPUT & QUICK CONTROLS ── */}
+      <div className="relative">
+        <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            if (e.target.value.trim() && !isExpanded) {
+              setIsExpanded(true);
+            }
+          }}
+          placeholder="Search technologies (e.g. React, Next.js, Python, PostgreSQL, Docker)..."
+          className="pl-8.5 pr-8 h-9 text-xs rounded-xl bg-background/80 border-border focus-visible:ring-primary"
+          aria-label="Search technologies"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Clear technology search"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* ── 3. POPULAR TECHNOLOGIES (ALWAYS VISIBLE COMPACT ROW) ── */}
+      <div className="space-y-1.5 pt-0.5">
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            <span>Popular Technologies</span>
+          </span>
+          <span className="text-[10px] text-muted-foreground/80">
+            {effectiveAvailableTechs.length} total options
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          {popularList.map((tech) => {
+            const active = isSelected(tech);
+            const count = techCounts[tech] || 0;
+            return (
+              <button
+                key={tech}
+                type="button"
+                onClick={() => onToggleTech(tech)}
+                aria-pressed={active}
+                className={cn(
+                  "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium flex items-center gap-1.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  active
+                    ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
+                    : "bg-secondary/60 text-secondary-foreground border-border hover:bg-secondary hover:border-primary/40"
+                )}
+              >
+                {active ? (
+                  <Check className="w-3 h-3 text-primary-foreground shrink-0" />
+                ) : null}
+                <span>{tech}</span>
+                {count > 0 && (
+                  <span
+                    className={cn(
+                      "text-[10px] px-1 py-0.5 rounded-md font-mono",
+                      active
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── 4. ACTIVE SELECTED CHIPS STRIP (WHEN ANY ARE SELECTED) ── */}
+      {selectedTechs.length > 0 && (
+        <div className="pt-1.5 border-t border-border/60">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground font-medium mr-1">
+              Active:
+            </span>
+            {selectedTechs.map((tech) => (
+              <Badge
+                key={tech}
+                variant="accent"
+                className="gap-1 pr-1 pl-2 py-0.5 text-xs font-medium bg-primary/10 text-primary border-primary/30 hover:bg-primary/15 transition-colors"
+              >
+                <span>{tech}</span>
+                <button
+                  type="button"
+                  onClick={() => onToggleTech(tech)}
+                  className="hover:bg-destructive/20 hover:text-destructive rounded-full p-0.5 transition-colors"
+                  aria-label={`Remove ${tech} filter`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            ))}
+            <span className="text-[10px] text-muted-foreground ml-1">
+              ({techMode === "all" ? "Must have ALL" : "Matches ANY"})
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── 5. EXPAND / COLLAPSE BUTTON ── */}
+      <div className="pt-1 flex items-center justify-between border-t border-border/40">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+          className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1.5 px-2 rounded-lg font-medium"
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>
+            {isExpanded
+              ? "Collapse Technologies"
+              : `Show All Technologies (${effectiveAvailableTechs.length})`}
+          </span>
+          {isExpanded ? (
+            <ChevronUp className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5" />
+          )}
+        </Button>
+
+        {isExpanded && (
+          <span className="text-[11px] text-muted-foreground">
+            {filteredTechs.length} shown
+          </span>
+        )}
+      </div>
+
+      {/* ── 6. EXPANDED FULL CATALOG VIEW ── */}
+      {isExpanded && (
+        <div className="space-y-2.5 pt-1 animate-in fade-in-50 duration-200">
+          {/* Category Tabs */}
+          <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none text-xs">
+            {categoryNames.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg shrink-0 border text-xs transition-colors font-medium",
+                  activeCategory === cat
+                    ? "bg-secondary text-foreground font-semibold border-border-strong shadow-2xs"
+                    : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Categorized Tech Chips Cloud (Bounded scroll region) */}
+          <div className="max-h-56 sm:max-h-64 overflow-y-auto p-2.5 border border-border rounded-xl bg-background/50 space-y-2">
+            {filteredTechs.length === 0 ? (
+              <div className="text-center py-6 text-xs text-muted-foreground space-y-1">
+                <p>No technologies found matching "{searchQuery}"</p>
+                <p className="text-[11px]">
+                  Try searching for a different language, framework, database, or tool.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {filteredTechs.map((tech) => {
+                  const active = isSelected(tech);
+                  const count = techCounts[tech] || 0;
+                  return (
+                    <button
+                      key={tech}
+                      type="button"
+                      onClick={() => onToggleTech(tech)}
+                      aria-pressed={active}
+                      className={cn(
+                        "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium flex items-center gap-1.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
+                          : "bg-secondary/60 text-secondary-foreground border-border hover:bg-secondary hover:border-primary/40"
+                      )}
+                    >
+                      {active ? (
+                        <Check className="w-3 h-3 text-primary-foreground shrink-0" />
+                      ) : null}
+                      <span>{tech}</span>
+                      {count > 0 && (
+                        <span
+                          className={cn(
+                            "text-[10px] px-1 py-0.5 rounded-md font-mono",
+                            active
+                              ? "bg-primary-foreground/20 text-primary-foreground"
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

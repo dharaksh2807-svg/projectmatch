@@ -104,6 +104,7 @@ interface AdvancedFiltersDrawerProps {
   setSkillMode: (mode: "any" | "all") => void;
 
   availableTechs: string[];
+  techCounts?: Record<string, number>;
   availableSkills: string[];
 
   // Hackathon Filters
@@ -155,6 +156,7 @@ export function AdvancedFiltersDrawer({
   skillMode,
   setSkillMode,
   availableTechs,
+  techCounts = {},
   availableSkills,
   availableHackathons,
   selectedHackathonId,
@@ -292,10 +294,13 @@ export function AdvancedFiltersDrawer({
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <label className="text-xs font-semibold text-foreground flex items-center gap-1.5 flex-wrap">
                         <span>Technologies</span>
                         <span className="text-muted-foreground font-normal">
                           ({selectedTechs.length} selected)
+                        </span>
+                        <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full font-normal">
+                          Synced with main page
                         </span>
                       </label>
                       {selectedTechs.length > 0 && (
@@ -384,6 +389,7 @@ export function AdvancedFiltersDrawer({
                   <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 border border-border rounded-xl bg-card">
                     {displayTechs.map((tech) => {
                       const isSelected = selectedTechs.some((t) => t.toLowerCase() === tech.toLowerCase());
+                      const count = techCounts[tech] || 0;
                       return (
                         <button
                           key={tech}
@@ -398,6 +404,18 @@ export function AdvancedFiltersDrawer({
                         >
                           {isSelected && <Check className="w-3 h-3" />}
                           <span>{tech}</span>
+                          {count > 0 && (
+                            <span
+                              className={cn(
+                                "text-[10px] px-1 py-0.5 rounded-md font-mono",
+                                isSelected
+                                  ? "bg-primary-foreground/20 text-primary-foreground"
+                                  : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {count}
+                            </span>
+                          )}
                         </button>
                       );
                     })}

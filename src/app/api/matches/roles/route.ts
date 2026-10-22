@@ -4,12 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   tagMatches,
-  normalizeTag,
   matchesTagList,
   matchesRoleCategory,
-  ALL_PREDEFINED_TECHS,
   STANDARD_SKILLS,
 } from "@/lib/filters/normalize";
+import { getDiscoverableTechCatalog } from "@/lib/filters/tech-catalog-server";
 
 /**
  * GET /api/matches/roles
@@ -148,6 +147,9 @@ export async function GET(req: NextRequest) {
           appliedRoleIds,
           bookmarkedRoleIds,
           allUniqueTechs: [],
+          techCounts: {},
+          popularTechs: [],
+          techCategories: {},
           allUniqueSkills: STANDARD_SKILLS,
           availableHackathons: [],
           userHasSkills: userSkills.length > 0,
@@ -253,23 +255,22 @@ export async function GET(req: NextRequest) {
       registrationStatus: h.registrationStatus,
     }));
 
-    // Extract all unique techStack items and skills across published projects
-    const allUniqueTechsSet = new Set<string>();
-    const allUniqueSkillsSet = new Set<string>(STANDARD_SKILLS);
+    // Dynamically retrieve the complete technology catalog across ALL discoverable projects
+    const techCatalog = await getDiscoverableTechCatalog(prisma);
+    const allUniqueTechs = techCatalog.allTechnologies;
+    const techCounts = techCatalog.techCounts;
+    const popularTechs = techCatalog.popularTechs;
+    const techCategories = techCatalog.categories;
 
+    // Extract all unique skills across published projects and standard taxonomy
+    const allUniqueSkillsSet = new Set<string>(STANDARD_SKILLS);
     roles.forEach((r) => {
-      r.project.techStack?.forEach((t) => {
-        allUniqueTechsSet.add(normalizeTag(t));
-      });
       r.requiredSkills?.forEach((s) => {
-        allUniqueSkillsSet.add(s.trim());
+        const trimmed = s.trim();
+        if (trimmed) allUniqueSkillsSet.add(trimmed);
       });
     });
-
-    // Merge predefined tech taxonomy so searchable options are always available
-    ALL_PREDEFINED_TECHS.forEach((t) => allUniqueTechsSet.add(t));
-    const allUniqueTechs = Array.from(allUniqueTechsSet).slice(0, 50);
-    const allUniqueSkills = Array.from(allUniqueSkillsSet).slice(0, 30);
+    const allUniqueSkills = Array.from(allUniqueSkillsSet).slice(0, 50);
 
     // ─── Filter Evaluation & Compatibility Scoring ──────────────────────────
     const candidateSkillsPool = new Set<string>();
@@ -541,6 +542,9 @@ export async function GET(req: NextRequest) {
       appliedRoleIds,
       bookmarkedRoleIds,
       allUniqueTechs,
+      techCounts,
+      popularTechs,
+      techCategories,
       allUniqueSkills,
       availableHackathons,
       userHasSkills: userSkills.length > 0,

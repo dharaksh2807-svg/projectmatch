@@ -49,9 +49,11 @@ import {
 import {
   FilterPresetsBar,
 } from "@/components/discover/filter-presets-bar";
+import { DiscoverTechFilter } from "@/components/discover/discover-tech-filter";
 import {
   ROLE_CATEGORIES,
   STANDARD_SKILLS,
+  normalizeTag,
 } from "@/lib/filters/normalize";
 import {
   SavedSearchFilters,
@@ -224,6 +226,9 @@ function DiscoverContent() {
 
   // Metadata from backend
   const [availableTechs, setAvailableTechs] = useState<string[]>([]);
+  const [techCounts, setTechCounts] = useState<Record<string, number>>({});
+  const [popularTechs, setPopularTechs] = useState<string[]>([]);
+  const [techCategories, setTechCategories] = useState<Record<string, string[]>>({});
   const [availableSkills, setAvailableSkills] = useState<string[]>(STANDARD_SKILLS);
   const [availableHackathons, setAvailableHackathons] = useState<AvailableHackathon[]>([]);
 
@@ -252,6 +257,21 @@ function DiscoverContent() {
   useEffect(() => {
     fetchSavedSearchesCount();
   }, [fetchSavedSearchesCount]);
+
+  // Fetch full dynamic technology catalog on mount
+  useEffect(() => {
+    fetch("/api/technologies")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          if (data.allTechnologies?.length) setAvailableTechs(data.allTechnologies);
+          if (data.techCounts) setTechCounts(data.techCounts);
+          if (data.popularTechs?.length) setPopularTechs(data.popularTechs);
+          if (data.categories) setTechCategories(data.categories);
+        }
+      })
+      .catch((err) => console.error("Failed to load technologies:", err));
+  }, []);
 
   // Contextual Chat Drawer state
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
@@ -460,8 +480,11 @@ function DiscoverContent() {
 
   // ─── Toggles & Helpers ────────────────────────────────────────────────────
   const toggleTech = (tech: string) => {
+    const canonical = normalizeTag(tech);
     setSelectedTechs((prev) =>
-      prev.includes(tech) ? prev.filter((t) => t !== tech) : [...prev, tech]
+      prev.some((t) => t.toLowerCase() === canonical.toLowerCase())
+        ? prev.filter((t) => t.toLowerCase() !== canonical.toLowerCase())
+        : [...prev, canonical]
     );
   };
 
@@ -565,6 +588,15 @@ function DiscoverContent() {
 
           if (data.allUniqueTechs && data.allUniqueTechs.length > 0) {
             setAvailableTechs(data.allUniqueTechs);
+          }
+          if (data.techCounts) {
+            setTechCounts(data.techCounts);
+          }
+          if (data.popularTechs && data.popularTechs.length > 0) {
+            setPopularTechs(data.popularTechs);
+          }
+          if (data.techCategories) {
+            setTechCategories(data.techCategories);
           }
           if (data.allUniqueSkills && data.allUniqueSkills.length > 0) {
             setAvailableSkills(data.allUniqueSkills);
@@ -923,6 +955,21 @@ function DiscoverContent() {
         onOpenSavedSearches={() => setSavedSearchesOpen(true)}
         onCopyShareLink={handleCopyCurrentShareLink}
         isGuest={isGuest}
+      />
+
+      {/* ─────────────────────────────────────────────────────────────
+          2.8. ALWAYS-VISIBLE TECHNOLOGY STACK FILTER (DYNAMIC & SEARCHABLE)
+          ───────────────────────────────────────────────────────────── */}
+      <DiscoverTechFilter
+        selectedTechs={selectedTechs}
+        techMode={techMode}
+        onToggleTech={toggleTech}
+        onClearTechs={() => setSelectedTechs([])}
+        onSetTechMode={setTechMode}
+        availableTechs={availableTechs}
+        techCounts={techCounts}
+        popularTechs={popularTechs}
+        categories={techCategories}
       />
 
       {/* ─────────────────────────────────────────────────────────────
@@ -1294,6 +1341,7 @@ function DiscoverContent() {
         skillMode={skillMode}
         setSkillMode={setSkillMode}
         availableTechs={availableTechs}
+        techCounts={techCounts}
         availableSkills={availableSkills}
         availableHackathons={availableHackathons}
         selectedHackathonId={selectedHackathonId}
