@@ -310,6 +310,7 @@ model Project {
   reviews     Review[]
   reports     Report[]
   invitations TeamInvitation[]
+  capabilityRequirements CapabilityRequirement[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -317,6 +318,27 @@ model Project {
   @@index([ownerId])
   @@index([isPublished])
   @@index([projectType])
+}
+
+/// Explicit project capability requirement defined or customized by project owner
+model CapabilityRequirement {
+  id                 String               @id @default(cuid())
+  projectId          String
+  project            Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name               String               // e.g. "Frontend Development", "AI/ML Integration"
+  category           String?              // "ENGINEERING" | "AI_ML" | "DESIGN" | "DEVOPS" | "PRODUCT" | "GENERAL"
+  importance         CapabilityImportance @default(REQUIRED)
+  requiredSkills     String[]             @default([]) // e.g. ["React", "TypeScript"]
+  minExperienceLevel String?              // "Beginner" | "Intermediate" | "Advanced" | "Expert" | "Any"
+  targetRoleTitle    String?              // e.g. "Frontend Engineer"
+  description        String?              @db.Text
+
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([projectId])
+  @@index([importance])
 }
 
 /// An open team position on a project
@@ -843,6 +865,12 @@ enum ReportStatus {
   RESOLVED
   DISMISSED
 }
+
+enum CapabilityImportance {
+  REQUIRED
+  PREFERRED
+}
+
 
 // ─────────────────────────────────────────────
 // Hackathon Discovery Enums (Phase 3)

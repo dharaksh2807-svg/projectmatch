@@ -36,6 +36,7 @@ import { InviteModal } from "@/components/invitations/invite-modal";
 import { ProjectInvitationsList } from "@/components/invitations/project-invitations-list";
 import { TeamAvailabilityView } from "@/components/availability/team-availability-view";
 import { AvailabilityModal } from "@/components/availability/availability-modal";
+import { TeamSkillGapDashboard } from "@/components/gaps/team-gap-dashboard";
 
 interface Role {
   id: string;
@@ -278,6 +279,21 @@ export default function ProjectDetailPage() {
                   projectId={project.id}
                   projectTitle={project.title}
                   roles={project.roles}
+                />
+              </div>
+            )}
+
+            {/* Team Skill-Gap Analyzer & Explainable Matchmaking (Authorized Team Context) */}
+            {(isOwner || project.isTeamMember) && (
+              <div className="pt-4">
+                <TeamSkillGapDashboard
+                  projectId={project.id}
+                  projectTitle={project.title}
+                  isOwner={isOwner}
+                  onInviteCandidate={(_candidateId, roleId) => {
+                    setSelectedRoleForInvite(roleId);
+                    setIsInviteModalOpen(true);
+                  }}
                 />
               </div>
             )}
