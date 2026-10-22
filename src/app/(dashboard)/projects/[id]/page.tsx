@@ -25,6 +25,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast-provider";
 import { ReputationBadge } from "@/components/ratings/reputation-badge";
+import {
+  RateTeammatesSection,
+  MarkCompleteButton,
+} from "@/components/ratings/rate-teammates-section";
 import { ReportModal } from "@/components/shared/report-modal";
 import { GoogleDriveIcon } from "@/components/shared/social-icons";
 import { ApplyModal } from "@/components/applications/apply-modal";
@@ -74,6 +78,7 @@ interface Project {
   roles: Role[];
   _count: { applications: number };
   isTeamMember?: boolean;
+  status?: string;
 }
 
 export default function ProjectDetailPage() {
@@ -389,7 +394,24 @@ export default function ProjectDetailPage() {
             )}
 
             {(isOwner || project.isTeamMember) && (
-              <div className="pt-2">
+              <div className="pt-2 space-y-2">
+                {isOwner && project.status !== "COMPLETED" && (
+                  <MarkCompleteButton
+                    projectId={project.id}
+                    currentStatus={project.status || "IN_PROGRESS"}
+                    onCompleted={() =>
+                      setProject((prev) => (prev ? { ...prev, status: "COMPLETED" } : null))
+                    }
+                  />
+                )}
+
+                {project.status === "COMPLETED" && (
+                  <RateTeammatesSection
+                    projectId={project.id}
+                    projectTitle={project.title}
+                  />
+                )}
+
                 <Button
                   variant="outline"
                   onClick={() => setIsScheduleModalOpen(true)}

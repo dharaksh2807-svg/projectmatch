@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Star, Link as LinkIcon, CheckCircle2, Calendar, MessageSquare, Globe, ExternalLink, FolderGit2 } from "lucide-react";
+import { Star, Link as LinkIcon, Calendar, MessageSquare, Globe, ExternalLink, FolderGit2 } from "lucide-react";
 import {
   GithubIcon,
   LinkedinIcon,
@@ -17,12 +17,15 @@ import {
   PdfIcon,
   PptIcon,
 } from "@/components/shared/social-icons";
-import { formatDistanceToNow } from "date-fns";
 import sanitizeHtml from "sanitize-html";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ReviewModal } from "@/components/profile/review-modal";
+import { ReviewCard } from "@/components/profile/review-card";
 import { ReportModal } from "@/components/shared/report-modal";
+import { ReputationBadge } from "@/components/ratings/reputation-badge";
+import { calculateReputationSummary } from "@/lib/reputation/service";
+import { FEEDBACK_DIMENSIONS } from "@/lib/reputation/types";
 
 export default async function PublicProfilePage({
   params,
@@ -53,30 +56,58 @@ export default async function PublicProfilePage({
     return notFound();
   }
 
+  // Count verified completed collaborations
+  const completedProjectsCount = await prisma.project.count({
+    where: {
+      OR: [
+        { ownerId: profile.id },
+        { applications: { some: { userId: profile.id, status: "ACCEPTED" } } },
+      ],
+      AND: [
+        {
+          OR: [{ status: "COMPLETED" }, { completedAt: { not: null } }],
+        },
+      ],
+    },
+  });
+
+  // Calculate Bayesian reputation summary
+  const reputationSummary = calculateReputationSummary(
+    profile.reviewsReceived,
+    completedProjectsCount
+  );
+
   // Check if logged in user can leave a review
   let canReview = false;
   let eligibleProjects: { id: string; title: string }[] = [];
 
   if (loggedInUserId && loggedInUserId !== profile.id) {
-    // Find projects where both participated (either owner or ACCEPTED application)
+    // Find completed projects where both participated (either owner or ACCEPTED application)
     const projects = await prisma.project.findMany({
       where: {
-        OR: [
+        AND: [
           {
-            ownerId: loggedInUserId,
-            applications: { some: { userId: profile.id, status: "ACCEPTED" } },
+            OR: [{ status: "COMPLETED" }, { completedAt: { not: null } }],
           },
           {
-            ownerId: profile.id,
-            applications: { some: { userId: loggedInUserId, status: "ACCEPTED" } },
-          },
-          {
-            applications: {
-              some: { userId: loggedInUserId, status: "ACCEPTED" },
-            },
-            AND: {
-              applications: { some: { userId: profile.id, status: "ACCEPTED" } },
-            },
+            OR: [
+              {
+                ownerId: loggedInUserId,
+                applications: { some: { userId: profile.id, status: "ACCEPTED" } },
+              },
+              {
+                ownerId: profile.id,
+                applications: { some: { userId: loggedInUserId, status: "ACCEPTED" } },
+              },
+              {
+                applications: {
+                  some: { userId: loggedInUserId, status: "ACCEPTED" },
+                },
+                AND: {
+                  applications: { some: { userId: profile.id, status: "ACCEPTED" } },
+                },
+              },
+            ],
           },
         ],
       },
@@ -112,10 +143,16 @@ export default async function PublicProfilePage({
                 {profile.name || "Anonymous Builder"}
               </h1>
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-500/20" />
-                  Reputation: <span className="font-semibold text-foreground">{profile.reputationScore}</span>
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">Reputation:</span>
+                  <ReputationBadge
+                    score={reputationSummary.score}
+                    reviewCount={reputationSummary.totalReviews}
+                    showLabel
+                    showCount
+                    size="sm"
+                  />
+                </div>
                 {profile.experienceLevel && (
                   <>
                     <span className="w-1 h-1 rounded-full bg-border" />
@@ -169,9 +206,14 @@ export default async function PublicProfilePage({
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
-              <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
-                Skills
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
+                  Skills
+                </h3>
+                <span className="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/60">
+                  Self-Reported
+                </span>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {profile.skills.length > 0 ? (
                   profile.skills.map((s) => (
@@ -398,67 +440,168 @@ export default async function PublicProfilePage({
         )}
       </div>
 
-      {/* Reviews Section */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-bold tracking-tight">Reviews & Endorsements</h2>
-        
+      {/* Verified Collaboration & Reputation Section */}
+      <div className="space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500/20" />
+              Verified Collaboration & Contributor Reputation
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Evidence-conscious peer ratings from verified, completed collaborations.
+            </p>
+          </div>
+          {canReview && (
+            <ReviewModal
+              revieweeId={profile.id}
+              revieweeName={profile.name || "User"}
+              projects={eligibleProjects}
+              skills={profile.skills}
+            />
+          )}
+        </div>
+
+        {/* Reputation Overview Card */}
+        <Card className="border-border/60 bg-card/60 backdrop-blur-sm overflow-hidden shadow-sm">
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column: Metrics & Context */}
+              <div className="space-y-4">
+                <div>
+                  <span className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">
+                    Collaboration Standing
+                  </span>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    {reputationSummary.hasSufficientFeedback ? (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-3xl font-extrabold text-foreground">
+                          {reputationSummary.score}
+                        </span>
+                        <span className="text-sm text-muted-foreground">/ 100</span>
+                      </div>
+                    ) : (
+                      <Badge variant="secondary" className="px-3 py-1 text-xs font-semibold">
+                        Not enough collaboration feedback yet
+                      </Badge>
+                    )}
+                    <ReputationBadge
+                      score={reputationSummary.score}
+                      reviewCount={reputationSummary.totalReviews}
+                      size="sm"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {reputationSummary.statusMessage}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/40">
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      Completed Projects
+                    </span>
+                    <p className="text-lg font-bold text-foreground mt-0.5">
+                      {completedProjectsCount}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      Verified Peer Reviews
+                    </span>
+                    <p className="text-lg font-bold text-foreground mt-0.5">
+                      {reputationSummary.totalReviews}
+                    </p>
+                  </div>
+                </div>
+
+                {reputationSummary.repeatCollaboratorDiscountApplied && (
+                  <p className="text-[11px] text-amber-500/90 italic">
+                    Anti-farming safeguards active: repeated reviews from the same teammate are weighted progressively lower.
+                  </p>
+                )}
+              </div>
+
+              {/* Right Column: 4 Behavioral Dimensions */}
+              <div className="space-y-3">
+                <span className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">
+                  Behavioral Dimensions Breakdown
+                </span>
+                <div className="space-y-2.5 pt-1">
+                  {FEEDBACK_DIMENSIONS.map((dim) => {
+                    const info = reputationSummary.dimensionAverages[dim.key];
+                    const percent = info.count > 0 ? (info.avg / 5) * 100 : 0;
+
+                    return (
+                      <div key={dim.key} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-foreground">{dim.label}</span>
+                          <span className="text-muted-foreground text-[11px]">
+                            {info.count > 0 ? (
+                              <span className="font-semibold text-foreground">
+                                {info.avg.toFixed(1)} / 5{" "}
+                                <span className="font-normal text-muted-foreground">
+                                  ({info.count} {info.count === 1 ? "rating" : "ratings"})
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="italic">Not observed yet</span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-muted/60 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-300 rounded-full"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Fair reputation disclaimer */}
+            <div className="pt-3 border-t border-border/40 text-[11px] text-muted-foreground leading-relaxed flex items-start gap-2">
+              <span className="font-semibold text-foreground flex-shrink-0">Integrity Notice:</span>
+              <span>
+                Peer reviews reflect subjective team collaboration experience and follow-through. They do not constitute formal technical accreditation. New contributors begin with a neutral baseline and are never penalized in match recommendations.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Reviews List */}
         {profile.reviewsReceived.length === 0 ? (
           <Card className="border-dashed border-border/60 bg-transparent">
-             <CardContent className="p-12 text-center text-muted-foreground flex flex-col items-center gap-2">
+            <CardContent className="p-12 text-center text-muted-foreground flex flex-col items-center gap-2">
               <Star className="w-8 h-8 text-muted-foreground/30" />
-              <p>No reviews yet.</p>
-              {canReview && <p className="text-sm">Be the first to leave a review!</p>}
-             </CardContent>
+              <p className="font-medium">Not enough collaboration feedback yet</p>
+              <p className="text-xs max-w-md">
+                This contributor has not received peer reviews yet. Feedback will appear here after completing verified collaborations.
+              </p>
+              {canReview && (
+                <div className="pt-2">
+                  <ReviewModal
+                    revieweeId={profile.id}
+                    revieweeName={profile.name || "User"}
+                    projects={eligibleProjects}
+                    skills={profile.skills}
+                  />
+                </div>
+              )}
+            </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
+          <div className="space-y-4">
             {profile.reviewsReceived.map((review) => (
-              <Card key={review.id} className="border-border/60 shadow-sm">
-                <CardContent className="p-5 space-y-4">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex items-center gap-3">
-                       <Avatar
-                        src={review.reviewer.image || undefined}
-                        alt={review.reviewer.name || "Reviewer"}
-                        size="sm"
-                       />
-                       <div>
-                         <p className="font-medium text-sm text-foreground">
-                           {review.reviewer.name || "Anonymous"}
-                         </p>
-                         <p className="text-xs text-muted-foreground">
-                           Project: <span className="font-medium text-foreground/80">{review.project.title}</span> • {formatDistanceToNow(new Date(review.createdAt))} ago
-                         </p>
-                       </div>
-                    </div>
-                    <div className="flex text-amber-500 items-center">
-                       {[...Array(5)].map((_, i) => (
-                         <Star key={i} className={`w-3.5 h-3.5 ${i < review.rating ? "fill-amber-500" : "fill-muted text-muted"}`} />
-                       ))}
-                    </div>
-                  </div>
-
-                  {review.content && (
-                    <p className="text-sm text-foreground/90 leading-relaxed italic">
-                      "{review.content}"
-                    </p>
-                  )}
-
-                  {review.skillsEndorsed.length > 0 && (
-                     <div className="pt-2 flex flex-wrap gap-2 items-center">
-                       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                         <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                         Endorsed for:
-                       </span>
-                       {review.skillsEndorsed.map((s) => (
-                         <Badge key={s} variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5">
-                           {s}
-                         </Badge>
-                       ))}
-                     </div>
-                  )}
-                </CardContent>
-              </Card>
+              <ReviewCard
+                key={review.id}
+                review={review as any}
+                loggedInUserId={loggedInUserId}
+                revieweeName={profile.name || "User"}
+              />
             ))}
           </div>
         )}

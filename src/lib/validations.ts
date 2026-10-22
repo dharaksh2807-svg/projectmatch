@@ -77,13 +77,60 @@ export type ProjectInput = z.infer<typeof projectSchema>;
 
 export const ratingSchema = z.object({
   projectId: z.string().min(1, "Project ID is required"),
-  revieweeId: z.string().min(1, "Reviewee ID is required"),
-  rating: z.number().int().min(1, "Rating must be at least 1 star").max(5, "Rating cannot exceed 5 stars"),
+  revieweeId: z.string().min(1, "Reviewee ID is required").optional(),
+  rateeId: z.string().min(1).optional(), // Legacy alias for revieweeId
+  rating: z.number().int().min(1, "Rating must be at least 1 star").max(5, "Rating cannot exceed 5 stars").optional(),
+  score: z.number().int().min(1).max(5).optional(), // Legacy alias for rating
+  ratingCommunication: z.number().int().min(1).max(5).nullable().optional(),
+  ratingCollaboration: z.number().int().min(1).max(5).nullable().optional(),
+  ratingReliability: z.number().int().min(1).max(5).nullable().optional(),
+  ratingTechnical: z.number().int().min(1).max(5).nullable().optional(),
   content: z.string().max(500, "Content cannot exceed 500 characters").optional(),
+  comment: z.string().max(500).optional(), // Legacy alias for content
   skillsEndorsed: z.array(z.string()).max(10, "Maximum 10 skills").optional().default([]),
-});
+}).transform((data) => ({
+  projectId: data.projectId,
+  revieweeId: (data.revieweeId || data.rateeId) as string,
+  rating: data.rating || data.score,
+  ratingCommunication: data.ratingCommunication ?? null,
+  ratingCollaboration: data.ratingCollaboration ?? null,
+  ratingReliability: data.ratingReliability ?? null,
+  ratingTechnical: data.ratingTechnical ?? null,
+  content: data.content || data.comment || "",
+  skillsEndorsed: data.skillsEndorsed || [],
+}));
 
 export type RatingInput = z.infer<typeof ratingSchema>;
+
+export const reviewEditSchema = z.object({
+  rating: z.number().int().min(1).max(5).optional(),
+  ratingCommunication: z.number().int().min(1).max(5).nullable().optional(),
+  ratingCollaboration: z.number().int().min(1).max(5).nullable().optional(),
+  ratingReliability: z.number().int().min(1).max(5).nullable().optional(),
+  ratingTechnical: z.number().int().min(1).max(5).nullable().optional(),
+  content: z.string().max(500, "Content cannot exceed 500 characters").optional(),
+  skillsEndorsed: z.array(z.string()).max(10, "Maximum 10 skills").optional(),
+});
+
+export type ReviewEditInput = z.infer<typeof reviewEditSchema>;
+
+export const reviewResponseSchema = z.object({
+  responseContent: z
+    .string()
+    .min(5, "Response must be at least 5 characters")
+    .max(500, "Response cannot exceed 500 characters"),
+});
+
+export type ReviewResponseInput = z.infer<typeof reviewResponseSchema>;
+
+export const reviewDisputeSchema = z.object({
+  reason: z
+    .string()
+    .min(10, "Please provide a reason for the dispute (at least 10 characters)")
+    .max(500, "Reason cannot exceed 500 characters"),
+});
+
+export type ReviewDisputeInput = z.infer<typeof reviewDisputeSchema>;
 
 export const applicationActionSchema = z.object({
   roleId: z.string().min(1, "Role ID is required"),

@@ -3,7 +3,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ratingSchema } from "@/lib/validations";
+import {
+  checkReviewEligibility,
+  computeOverallRating,
+  calculateReputationSummary,
+} from "@/lib/reputation/service";
 
+/**
+ * POST /api/reviews
+ * Submits structured collaboration feedback with behavioral dimensions.
+ * Strictly verifies eligibility: shared team membership, completed project, non-self, no duplicates.
+ */
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -28,94 +38,160 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { projectId, revieweeId, rating, content, skillsEndorsed } = parsed.data;
+    const {
+      projectId,
+      revieweeId,
+      rating,
+      ratingCommunication,
+      ratingCollaboration,
+      ratingReliability,
+      ratingTechnical,
+      content,
+      skillsEndorsed,
+    } = parsed.data;
 
-    // You cannot review yourself
-    if (reviewerId === revieweeId) {
-      return NextResponse.json({ error: "Cannot review yourself" }, { status: 400 });
+    if (!revieweeId) {
+      return NextResponse.json({ error: "Reviewee ID is required" }, { status: 400 });
     }
 
-    // Verify the project exists
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    // Eligibility check (teammate verification, project completion, non-self, no duplicate)
+    const eligibility = await checkReviewEligibility(reviewerId, revieweeId, projectId);
+    if (!eligibility.eligible) {
+      return NextResponse.json({ error: eligibility.reason }, { status: eligibility.status });
     }
 
-    // Check if the user is a teammate of the reviewee in this project
-    // Either they are the owner and the reviewee was an ACCEPTED applicant,
-    // OR they are an ACCEPTED applicant and the reviewee is the owner,
-    // OR they are both ACCEPTED applicants.
-    const reviewerApp = await prisma.application.findFirst({
-      where: { projectId, userId: reviewerId, status: "ACCEPTED" },
-    });
-    
-    const revieweeApp = await prisma.application.findFirst({
-      where: { projectId, userId: revieweeId, status: "ACCEPTED" },
-    });
+    // Compute overall rating if not explicitly supplied or average from dimensions
+    const computedRating = computeOverallRating(
+      ratingCommunication,
+      ratingCollaboration,
+      ratingReliability,
+      ratingTechnical,
+      rating
+    );
 
-    const isReviewerParticipant = project.ownerId === reviewerId || reviewerApp;
-    const isRevieweeParticipant = project.ownerId === revieweeId || revieweeApp;
-
-    if (!isReviewerParticipant || !isRevieweeParticipant) {
-      return NextResponse.json(
-        { error: "Both users must have participated in the project" },
-        { status: 403 }
-      );
-    }
-
-    // Check if review already exists
-    const existingReview = await prisma.review.findUnique({
-      where: {
-        reviewerId_revieweeId_projectId: {
-          reviewerId,
-          revieweeId,
-          projectId,
-        },
-      },
-    });
-
-    if (existingReview) {
-      return NextResponse.json(
-        { error: "You have already reviewed this user for this project" },
-        { status: 409 }
-      );
-    }
-
-    // Create the review
+    // Create review in database
     const review = await prisma.review.create({
       data: {
         reviewerId,
         revieweeId,
         projectId,
-        rating,
-        content: content || null,
+        rating: computedRating,
+        ratingCommunication,
+        ratingCollaboration,
+        ratingReliability,
+        ratingTechnical,
+        content: content ? content.trim() : null,
         skillsEndorsed,
+      },
+      include: {
+        reviewer: {
+          select: { id: true, name: true, image: true },
+        },
+        project: {
+          select: { id: true, title: true },
+        },
       },
     });
 
-    // Update the reviewee's reputation score (simple average of all ratings * 20 to make it 0-100)
-    // In a real app, this formula might be more complex.
+    // Recompute reviewee's reputation score with Bayesian shrinkage & repeated collaborator decay
     const allReviews = await prisma.review.findMany({
       where: { revieweeId },
-      select: { rating: true },
+      select: {
+        id: true,
+        reviewerId: true,
+        rating: true,
+        ratingCommunication: true,
+        ratingCollaboration: true,
+        ratingReliability: true,
+        ratingTechnical: true,
+        createdAt: true,
+      },
     });
 
-    if (allReviews.length > 0) {
-      const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
-      const newScore = Math.min(Math.round(avgRating * 20), 100);
+    const completedProjectsCount = await prisma.project.count({
+      where: {
+        OR: [
+          { ownerId: revieweeId },
+          { applications: { some: { userId: revieweeId, status: "ACCEPTED" } } },
+        ],
+        AND: [
+          {
+            OR: [{ status: "COMPLETED" }, { completedAt: { not: null } }],
+          },
+        ],
+      },
+    });
 
-      await prisma.user.update({
-        where: { id: revieweeId },
-        data: { reputationScore: newScore },
-      });
-    }
+    const summary = calculateReputationSummary(allReviews, completedProjectsCount);
 
-    return NextResponse.json({ success: true, review }, { status: 201 });
+    await prisma.user.update({
+      where: { id: revieweeId },
+      data: { reputationScore: summary.score },
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        review,
+        reputationSummary: summary,
+        newReputationScore: summary.score,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("POST /api/reviews failed:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+/**
+ * GET /api/reviews
+ * Returns reviews and reputation summary for a user (?userId=...) or eligible reviewees.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json({ error: "userId parameter is required" }, { status: 400 });
+    }
+
+    const reviews = await prisma.review.findMany({
+      where: { revieweeId: userId },
+      include: {
+        reviewer: {
+          select: { id: true, name: true, image: true, experienceLevel: true },
+        },
+        project: {
+          select: { id: true, title: true, status: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const completedProjectsCount = await prisma.project.count({
+      where: {
+        OR: [
+          { ownerId: userId },
+          { applications: { some: { userId, status: "ACCEPTED" } } },
+        ],
+        AND: [
+          {
+            OR: [{ status: "COMPLETED" }, { completedAt: { not: null } }],
+          },
+        ],
+      },
+    });
+
+    const summary = calculateReputationSummary(reviews, completedProjectsCount);
+
+    return NextResponse.json({
+      reviews,
+      summary,
+    });
+  } catch (error) {
+    console.error("GET /api/reviews failed:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

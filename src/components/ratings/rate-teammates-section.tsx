@@ -22,13 +22,13 @@ export function RateTeammatesSection({
 
   const fetchPending = useCallback(async () => {
     try {
-      const res = await fetch("/api/ratings/pending");
+      const res = await fetch("/api/reviews/eligible");
       if (!res.ok) return;
       const data = await res.json();
       const entry = (data.pendingRatings as Array<{
         projectId: string;
         peers: Peer[];
-      }>).find((p) => p.projectId === projectId);
+      }>)?.find((p) => p.projectId === projectId);
       setPeers(entry?.peers ?? []);
       if (!entry || entry.peers.length === 0) setAllRated(true);
     } catch {
@@ -39,7 +39,6 @@ export function RateTeammatesSection({
   }, [projectId]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPending();
   }, [fetchPending]);
 
@@ -48,7 +47,7 @@ export function RateTeammatesSection({
     return (
       <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
         <Star className="w-3.5 h-3.5 fill-emerald-400" />
-        You&apos;ve rated all teammates for this project — thank you!
+        You&apos;ve evaluated all teammates for this project — thank you!
       </div>
     );
   }
@@ -76,7 +75,7 @@ export function RateTeammatesSection({
         onAllRated={() => {
           setAllRated(true);
           setPeers([]);
-          toast("All teammates rated! 🎉 Reputation scores updated.", "success");
+          toast("All teammates reviewed! Reputation scores updated.", "success");
         }}
       />
     </>
@@ -110,7 +109,7 @@ export function MarkCompleteButton({
       const data = await res.json();
       if (res.ok) {
         toast(
-          "Project marked as completed! Team members can now rate each other.",
+          "Project marked as completed! Team members can now review each other.",
           "success"
         );
         onCompleted();

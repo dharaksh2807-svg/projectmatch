@@ -300,6 +300,9 @@ model Project {
   websiteUrl  String?
   driveUrl    String?                         // Optional Drive link for specs, PDF, PPT pitch deck
   isPublished Boolean @default(false)         // draft until published
+  status      ProjectStatus @default(IN_PROGRESS) // "PLANNING" | "IN_PROGRESS" | "COMPLETED" | "ARCHIVED"
+  completedAt DateTime?
+
 
   hackathonId String?
   hackathon   Hackathon? @relation(fields: [hackathonId], references: [id], onDelete: SetNull)
@@ -768,9 +771,32 @@ model Review {
   projectId   String
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  rating      Int      // 1-5
+  // Overall composite rating (1-5)
+  rating      Int
   content     String?  @db.Text
   skillsEndorsed String[] @default([])
+
+  // Behavior-focused dimensions (1-5, nullable = not observed)
+  ratingCommunication Int?
+  ratingCollaboration Int?
+  ratingReliability   Int?
+  ratingTechnical     Int?
+
+  // Editing policy (48h window)
+  isEdited            Boolean   @default(false)
+  editedAt            DateTime?
+
+  // Reviewee response
+  responseContent     String?   @db.Text
+  respondedAt         DateTime?
+
+  // Dispute and moderation integration
+  isDisputed          Boolean   @default(false)
+  disputeReason       String?   @db.Text
+  disputeStatus       ReviewDisputeStatus?
+  disputedAt          DateTime?
+
+  reports             Report[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -778,6 +804,8 @@ model Review {
   @@unique([reviewerId, revieweeId, projectId])
   @@index([revieweeId])
   @@index([projectId])
+  @@index([isDisputed])
+  @@index([createdAt])
 }
 
 // ─────────────────────────────────────────────
@@ -792,6 +820,8 @@ model Report {
   reportedUser   User?  @relation("ReportsReceived", fields: [reportedUserId], references: [id], onDelete: Cascade)
   projectId      String?
   project        Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviewId       String?
+  review         Review?  @relation(fields: [reviewId], references: [id], onDelete: SetNull)
   
   reason         String @db.Text
   status         ReportStatus @default(PENDING)
@@ -802,6 +832,7 @@ model Report {
   @@index([reporterId])
   @@index([reportedUserId])
   @@index([projectId])
+  @@index([reviewId])
   @@index([status])
 }
 
@@ -869,6 +900,19 @@ enum ReportStatus {
 enum CapabilityImportance {
   REQUIRED
   PREFERRED
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum ReviewDisputeStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
 }
 
 
