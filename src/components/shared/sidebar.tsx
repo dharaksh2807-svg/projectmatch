@@ -112,13 +112,13 @@ export function Sidebar() {
                 onClick={() => onNavigate?.()}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  "relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   isActive
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-foreground/80 hover:bg-secondary hover:text-foreground font-medium"
+                    ? "bg-secondary text-foreground font-semibold"
+                    : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground font-medium"
                 )}
               >
-                {/* Non-color active indicator */}
+                {/* Restrained active indicator line */}
                 {isActive && (
                   <span
                     className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary"
@@ -127,14 +127,14 @@ export function Sidebar() {
                 )}
                 <Icon
                   className={cn(
-                    "w-4 h-4 shrink-0 transition-transform group-hover:scale-105",
+                    "w-4 h-4 shrink-0 transition-colors",
                     isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                   )}
                   aria-hidden="true"
                 />
                 <span className="truncate">{label}</span>
                 {typeof badge === "number" && badge > 0 && (
-                  <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-4 text-center">
+                  <span className="ml-auto bg-primary/15 text-primary text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-4 text-center border border-primary/25">
                     {badge > 99 ? "99+" : badge}
                   </span>
                 )}

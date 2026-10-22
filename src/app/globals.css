@@ -53,130 +53,131 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   LIGHT PALETTE (Neutral Slate / Crisp Canvas + Cobalt Accent)
+   LIGHT PALETTE (Neutral Warm Canvas + Restrained Slate-Teal Accent)
    Tested WCAG 2.2 AA Contrast
-   Application Background: #F7F8FA
+   Application Background: #F8F9FA
    Sidebar Background: #FFFFFF
    Card / Panel Surface: #FFFFFF
-   Subtle Surface: #F1F4F8
-   Primary Text: #151A23 (>14:1 AAA)
-   Secondary Text: #526071 (>5.5:1 AA)
-   Borders: #E3E8EE
-   Primary Accent: #3157D5 (6.28:1 with #FFFFFF)
-   Accent Hover: #2748B8 (>7.5:1)
-   Subtle Accent Background: #E9EEFF
-   Accent Foreground: #2243B6 (5.8:1 on #E9EEFF)
+   Secondary Surface: #F1F3F5
+   Primary Text: #1B1F24 (>14:1 AAA)
+   Secondary Text: #58636F (>5.5:1 AA)
+   Borders: #E2E6EA
+   Primary Accent: #2B5F77 (5.1:1 with #FFFFFF AA)
+   Accent Hover: #234E62
+   Subtle Accent Background: #EBF2F6
+   Accent Foreground: #1F4B5F
    ───────────────────────────────────────────────────────────── */
 :root {
   color-scheme: light;
-  --background: #F7F8FA;
-  --foreground: #151A23;
+  --background: #F8F9FA;
+  --foreground: #1B1F24;
   --card: #FFFFFF;
-  --card-foreground: #151A23;
+  --card-foreground: #1B1F24;
   --popover: #FFFFFF;
-  --popover-foreground: #151A23;
-  --primary: #3157D5;
+  --popover-foreground: #1B1F24;
+  --primary: #2B5F77;
   --primary-foreground: #FFFFFF;
-  --primary-hover: #2748B8;
-  --secondary: #F1F4F8;
-  --secondary-foreground: #151A23;
-  --muted: #F1F4F8;
-  --muted-foreground: #526071;
-  --accent: #E9EEFF;
-  --accent-foreground: #2243B6;
-  --destructive: #DC2626;
+  --primary-hover: #234E62;
+  --secondary: #F1F3F5;
+  --secondary-foreground: #1B1F24;
+  --muted: #F1F3F5;
+  --muted-foreground: #58636F;
+  --accent: #EBF2F6;
+  --accent-foreground: #1F4B5F;
+  --destructive: #C53030;
   --destructive-foreground: #FFFFFF;
-  --border: #E3E8EE;
-  --border-strong: #CBD5E1;
-  --input: #E3E8EE;
-  --ring: #3157D5;
+  --border: #E2E6EA;
+  --border-strong: #CBD2D8;
+  --input: #E2E6EA;
+  --ring: #2B5F77;
   --radius: 0.625rem;
 
   /* Sidebar */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #526071;
-  --sidebar-primary: #3157D5;
+  --sidebar-foreground: #58636F;
+  --sidebar-primary: #2B5F77;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F1F4F8;
-  --sidebar-accent-foreground: #151A23;
-  --sidebar-border: #E3E8EE;
-  --sidebar-ring: #3157D5;
+  --sidebar-accent: #F1F3F5;
+  --sidebar-accent-foreground: #1B1F24;
+  --sidebar-border: #E2E6EA;
+  --sidebar-ring: #2B5F77;
 
   /* Brand Tokens */
-  --brand: #3157D5;
+  --brand: #2B5F77;
   --brand-foreground: #FFFFFF;
-  --brand-muted: #E9EEFF;
-  --chart-1: #3157D5;
-  --chart-2: #0284C7;
-  --chart-3: #059669;
-  --chart-4: #D97706;
-  --chart-5: #E11D48;
+  --brand-muted: #EBF2F6;
+  --chart-1: #2B5F77;
+  --chart-2: #3E7B99;
+  --chart-3: #2E856E;
+  --chart-4: #C07128;
+  --chart-5: #C53030;
 
-  --scrollbar-thumb: #CBD5E1;
-  --scrollbar-thumb-hover: #94A3B8;
+  --scrollbar-thumb: #CBD2D8;
+  --scrollbar-thumb-hover: #9FAAB5;
 }
 
 /* ─────────────────────────────────────────────────────────────
-   DARK PALETTE (Controlled Charcoal & Neutral Depth)
+   DARK PALETTE (Neutral Graphite + Warm Charcoal + Restrained Accent)
    Tested WCAG 2.2 AA Contrast
-   Application Background: #111318
-   Sidebar Background: #171A21
-   Card / Panel Surface: #1B2029
-   Elevated Surface: #252C37
-   Primary Text: #F1F4F8 (>14:1 AAA)
-   Secondary Text: #AAB4C3 (>7:1 AAA)
-   Borders: #323946
-   Primary Accent: #3157D5 (Solid button w/ white text: 5.6:1)
-   Accent Foreground: #9AAEFF (7.1:1 on #1B2029, 5.6:1 on #283451)
-   Subtle Accent Background: #283451
+   Application Background: #121416
+   Sidebar Background: #17191C
+   Card / Panel Surface: #1D2024
+   Elevated Surface: #25292E
+   Primary Text: #F1F2F4 (>14:1 AAA)
+   Secondary Text: #ADB4BD (>7:1 AAA)
+   Muted Text: #929CA8 (>5:1 AA)
+   Borders: #33383F
+   Primary Accent: #85B9CD (Desaturated blue-teal, 8.5:1 with #0D161B)
+   Subtle Accent Background: #1C2830
+   Accent Foreground: #A2D2E5
    ───────────────────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
-  --background: #111318;
-  --foreground: #F1F4F8;
-  --card: #1B2029;
-  --card-foreground: #F1F4F8;
-  --popover: #1B2029;
-  --popover-foreground: #F1F4F8;
-  --primary: #3157D5;
-  --primary-foreground: #FFFFFF;
-  --primary-hover: #456BE5;
-  --secondary: #252C37;
-  --secondary-foreground: #F1F4F8;
-  --muted: #252C37;
-  --muted-foreground: #AAB4C3;
-  --accent: #283451;
-  --accent-foreground: #9AAEFF;
-  --destructive: #EF4444;
+  --background: #121416;
+  --foreground: #F1F2F4;
+  --card: #1D2024;
+  --card-foreground: #F1F2F4;
+  --popover: #1D2024;
+  --popover-foreground: #F1F2F4;
+  --primary: #85B9CD;
+  --primary-foreground: #0D161B;
+  --primary-hover: #9AC7D7;
+  --secondary: #25292E;
+  --secondary-foreground: #F1F2F4;
+  --muted: #25292E;
+  --muted-foreground: #ADB4BD;
+  --accent: #1C2830;
+  --accent-foreground: #A2D2E5;
+  --destructive: #E5484D;
   --destructive-foreground: #FFFFFF;
-  --border: #323946;
-  --border-strong: #475569;
-  --input: #323946;
-  --ring: #9AAEFF;
+  --border: #33383F;
+  --border-strong: #454C55;
+  --input: #33383F;
+  --ring: #85B9CD;
   --radius: 0.625rem;
 
   /* Sidebar */
-  --sidebar: #171A21;
-  --sidebar-foreground: #AAB4C3;
-  --sidebar-primary: #3157D5;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #252C37;
-  --sidebar-accent-foreground: #F1F4F8;
-  --sidebar-border: #323946;
-  --sidebar-ring: #9AAEFF;
+  --sidebar: #17191C;
+  --sidebar-foreground: #ADB4BD;
+  --sidebar-primary: #85B9CD;
+  --sidebar-primary-foreground: #0D161B;
+  --sidebar-accent: #25292E;
+  --sidebar-accent-foreground: #F1F2F4;
+  --sidebar-border: #33383F;
+  --sidebar-ring: #85B9CD;
 
   /* Brand Tokens */
-  --brand: #3157D5;
-  --brand-foreground: #FFFFFF;
-  --brand-muted: #283451;
-  --chart-1: #9AAEFF;
-  --chart-2: #38BDF8;
+  --brand: #85B9CD;
+  --brand-foreground: #0D161B;
+  --brand-muted: #1C2830;
+  --chart-1: #85B9CD;
+  --chart-2: #5EA8C6;
   --chart-3: #34D399;
   --chart-4: #FBBF24;
-  --chart-5: #F43F5E;
+  --chart-5: #E5484D;
 
-  --scrollbar-thumb: #323946;
-  --scrollbar-thumb-hover: #475569;
+  --scrollbar-thumb: #33383F;
+  --scrollbar-thumb-hover: #454C55;
 }
 
 @layer base {
@@ -195,7 +196,8 @@
     line-height: 1.55;
   }
   ::selection {
-    background: rgba(49, 87, 213, 0.25);
+    background: var(--accent);
+    color: var(--accent-foreground);
   }
   /* WCAG 2.2 AA Focus Indicators */
   :focus-visible {

@@ -9,7 +9,6 @@ import {
   ChevronUp,
   Check,
   RotateCcw,
-  Sparkles,
   Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -135,34 +134,30 @@ export function DiscoverTechFilter({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border bg-card/80 backdrop-blur-xs shadow-xs p-3.5 sm:p-4.5 space-y-3 transition-all",
+        "rounded-xl border border-border bg-card p-3.5 sm:p-4 space-y-3",
         className
       )}
     >
       {/* ── 1. HEADER ROW: Title, Badges, Match Toggle & Clear ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Code2 className="w-4 h-4" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs sm:text-sm font-bold text-foreground">
-              Technology Stack
-            </span>
-            {selectedTechs.length > 0 && (
-              <Badge variant="accent" className="text-[10px] h-5 px-1.5 font-bold">
-                {selectedTechs.length} selected
-              </Badge>
-            )}
-          </div>
+          <Code2 className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-foreground">
+            Technology Stack
+          </h2>
+          {selectedTechs.length > 0 && (
+            <Badge variant="secondary" className="text-[11px] h-5 px-2 font-medium">
+              {selectedTechs.length} selected
+            </Badge>
+          )}
           {selectedTechs.length > 0 && (
             <button
               type="button"
               onClick={onClearTechs}
-              className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 ml-1 hover:underline transition-colors"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 ml-1 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded"
               title="Clear selected technologies"
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="w-3 h-3" aria-hidden="true" />
               <span>Clear</span>
             </button>
           )}
@@ -170,25 +165,25 @@ export function DiscoverTechFilter({
 
         {/* Match ANY vs Match ALL Segmented Toggle */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="text-[11px] text-muted-foreground font-medium hidden xs:inline">
-            Match:
+          <span className="text-xs text-muted-foreground font-medium hidden xs:inline select-none">
+            Rule:
           </span>
           <div
             role="group"
             aria-label="Technology match mode"
-            className="flex items-center bg-secondary/80 rounded-lg p-0.5 border border-border"
+            className="inline-flex items-center bg-secondary rounded-lg p-0.5 border border-border"
           >
             <button
               type="button"
               onClick={() => onSetTechMode("any")}
               aria-pressed={techMode === "any"}
               className={cn(
-                "px-2.5 py-1 text-xs rounded-md font-medium transition-all",
+                "px-2.5 py-1 text-xs rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 techMode === "any"
-                  ? "bg-primary text-primary-foreground shadow-2xs font-bold"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                   : "text-muted-foreground hover:text-foreground"
               )}
-              title="Return projects containing at least one selected technology"
+              title="Projects matching ANY selected technology will be shown"
             >
               Match ANY
             </button>
@@ -197,12 +192,12 @@ export function DiscoverTechFilter({
               onClick={() => onSetTechMode("all")}
               aria-pressed={techMode === "all"}
               className={cn(
-                "px-2.5 py-1 text-xs rounded-md font-medium transition-all",
+                "px-2.5 py-1 text-xs rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 techMode === "all"
-                  ? "bg-primary text-primary-foreground shadow-2xs font-bold"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                   : "text-muted-foreground hover:text-foreground"
               )}
-              title="Return projects strictly containing ALL selected technologies"
+              title="Projects strictly matching ALL selected technologies will be shown"
             >
               Match ALL
             </button>
@@ -210,9 +205,9 @@ export function DiscoverTechFilter({
         </div>
       </div>
 
-      {/* ── 2. SEARCH INPUT & QUICK CONTROLS ── */}
+      {/* ── 2. SEARCH INPUT ── */}
       <div className="relative">
-        <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
         <Input
           value={searchQuery}
           onChange={(e) => {
@@ -221,31 +216,30 @@ export function DiscoverTechFilter({
               setIsExpanded(true);
             }
           }}
-          placeholder="Search technologies (e.g. React, Next.js, Python, PostgreSQL, Docker)..."
-          className="pl-8.5 pr-8 h-9 text-xs rounded-xl bg-background/80 border-border focus-visible:ring-primary"
+          placeholder="Filter technology list (e.g. React, Python, PostgreSQL, Docker)..."
+          className="pl-8.5 pr-8 h-9 text-xs rounded-lg bg-background border-input focus-visible:ring-primary"
           aria-label="Search technologies"
         />
         {searchQuery && (
           <button
             type="button"
             onClick={() => setSearchQuery("")}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Clear technology search"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         )}
       </div>
 
       {/* ── 3. POPULAR TECHNOLOGIES (ALWAYS VISIBLE COMPACT ROW) ── */}
       <div className="space-y-1.5 pt-0.5">
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+        <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
           <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3 h-3 text-amber-500" />
             <span>Popular Technologies</span>
           </span>
-          <span className="text-[10px] text-muted-foreground/80">
-            {effectiveAvailableTechs.length} total options
+          <span className="text-[11px] text-muted-foreground/80 font-normal">
+            {effectiveAvailableTechs.length} total technologies
           </span>
         </div>
 
@@ -260,23 +254,23 @@ export function DiscoverTechFilter({
                 onClick={() => onToggleTech(tech)}
                 aria-pressed={active}
                 className={cn(
-                  "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium flex items-center gap-1.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  "text-xs px-2.5 py-1 rounded-lg border transition-colors font-medium flex items-center gap-1.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   active
-                    ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
-                    : "bg-secondary/60 text-secondary-foreground border-border hover:bg-secondary hover:border-primary/40"
+                    ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
+                    : "bg-secondary/50 text-foreground border-border hover:bg-secondary hover:border-border-strong"
                 )}
               >
-                {active ? (
-                  <Check className="w-3 h-3 text-primary-foreground shrink-0" />
-                ) : null}
+                {active && (
+                  <Check className="w-3 h-3 text-primary-foreground shrink-0 stroke-[2.5]" aria-hidden="true" />
+                )}
                 <span>{tech}</span>
                 {count > 0 && (
                   <span
                     className={cn(
-                      "text-[10px] px-1 py-0.5 rounded-md font-mono",
+                      "text-[10px] px-1 py-0.2 rounded font-mono",
                       active
                         ? "bg-primary-foreground/20 text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                        : "bg-background text-muted-foreground border border-border/60"
                     )}
                   >
                     {count}
@@ -290,54 +284,55 @@ export function DiscoverTechFilter({
 
       {/* ── 4. ACTIVE SELECTED CHIPS STRIP (WHEN ANY ARE SELECTED) ── */}
       {selectedTechs.length > 0 && (
-        <div className="pt-1.5 border-t border-border/60">
+        <div className="pt-2 border-t border-border">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground font-medium mr-1">
-              Active:
+            <span className="text-xs text-muted-foreground font-medium mr-1 select-none">
+              Selected:
             </span>
             {selectedTechs.map((tech) => (
               <Badge
                 key={tech}
                 variant="accent"
-                className="gap-1 pr-1 pl-2 py-0.5 text-xs font-medium bg-primary/10 text-primary border-primary/30 hover:bg-primary/15 transition-colors"
+                className="gap-1 pr-1 pl-2 py-0.5 text-xs font-medium border-border"
               >
                 <span>{tech}</span>
                 <button
                   type="button"
                   onClick={() => onToggleTech(tech)}
-                  className="hover:bg-destructive/20 hover:text-destructive rounded-full p-0.5 transition-colors"
+                  className="hover:bg-destructive/20 hover:text-destructive rounded-full p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive"
                   aria-label={`Remove ${tech} filter`}
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3 h-3" aria-hidden="true" />
                 </button>
               </Badge>
             ))}
-            <span className="text-[10px] text-muted-foreground ml-1">
-              ({techMode === "all" ? "Must have ALL" : "Matches ANY"})
+            <span className="text-[11px] text-muted-foreground ml-1">
+              ({techMode === "all" ? "Projects must match ALL" : "Projects match ANY"})
             </span>
           </div>
         </div>
       )}
 
       {/* ── 5. EXPAND / COLLAPSE BUTTON ── */}
-      <div className="pt-1 flex items-center justify-between border-t border-border/40">
+      <div className="pt-1 flex items-center justify-between border-t border-border/50">
         <Button
+          type="button"
           variant="ghost"
           size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
           aria-expanded={isExpanded}
-          className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1.5 px-2 rounded-lg font-medium"
+          className="h-7 text-xs text-foreground/80 hover:text-foreground hover:bg-secondary gap-1.5 px-2 rounded-lg font-medium"
         >
-          <Layers className="w-3.5 h-3.5" />
+          <Layers className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
           <span>
             {isExpanded
-              ? "Collapse Technologies"
+              ? "Collapse Catalog"
               : `Show All Technologies (${effectiveAvailableTechs.length})`}
           </span>
           {isExpanded ? (
-            <ChevronUp className="w-3.5 h-3.5" />
+            <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
           ) : (
-            <ChevronDown className="w-3.5 h-3.5" />
+            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
           )}
         </Button>
 
@@ -391,23 +386,23 @@ export function DiscoverTechFilter({
                       onClick={() => onToggleTech(tech)}
                       aria-pressed={active}
                       className={cn(
-                        "text-xs px-2.5 py-1 rounded-lg border transition-all font-medium flex items-center gap-1.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                        "text-xs px-2.5 py-1 rounded-lg border transition-colors font-medium flex items-center gap-1.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         active
-                          ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
-                          : "bg-secondary/60 text-secondary-foreground border-border hover:bg-secondary hover:border-primary/40"
+                          ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
+                          : "bg-secondary/50 text-foreground border-border hover:bg-secondary hover:border-border-strong"
                       )}
                     >
-                      {active ? (
-                        <Check className="w-3 h-3 text-primary-foreground shrink-0" />
-                      ) : null}
+                      {active && (
+                        <Check className="w-3 h-3 text-primary-foreground shrink-0 stroke-[2.5]" aria-hidden="true" />
+                      )}
                       <span>{tech}</span>
                       {count > 0 && (
                         <span
                           className={cn(
-                            "text-[10px] px-1 py-0.5 rounded-md font-mono",
+                            "text-[10px] px-1 py-0.2 rounded font-mono",
                             active
                               ? "bg-primary-foreground/20 text-primary-foreground"
-                              : "bg-muted text-muted-foreground"
+                              : "bg-background text-muted-foreground border border-border/60"
                           )}
                         >
                           {count}

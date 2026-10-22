@@ -753,33 +753,37 @@ function DiscoverContent() {
   }, [selectedHackathonId, availableHackathons]);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in font-sans min-w-0">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 animate-fade-in font-sans min-w-0">
       {/* ─────────────────────────────────────────────────────────────
-          1. HEADER
+          SECTION A: PAGE HEADER & TOP-LEVEL ACTIONS
+          Primary CTA: Post a Project
+          Secondary actions: Saved Searches & Bookmarks
           ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-        <div>
+        <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Discover Opportunities
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Browse hackathon teams, startup projects, and open vacancies with intelligent multi-factor matching.
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            Explore active hackathon teams, startup projects, and open vacancies with multi-factor matching.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           {!isGuest && (
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => setSavedSearchesOpen(true)}
-              className="gap-1.5 h-9"
+              className="gap-1.5 h-9 text-xs font-medium border-border hover:bg-secondary text-foreground transition-colors"
               title="View and run your saved searches"
+              aria-label="Open saved searches drawer"
             >
-              <FolderHeart className="w-3.5 h-3.5 text-primary" />
+              <FolderHeart className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
               <span>Saved Searches</span>
               {savedSearchesCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
+                <span className="px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-bold border border-primary/25">
                   {savedSearchesCount}
                 </span>
               )}
@@ -788,16 +792,23 @@ function DiscoverContent() {
 
           {!isGuest && (
             <Button
-              variant={bookmarkedOnly ? "default" : "outline"}
+              type="button"
+              variant="outline"
               size="sm"
               onClick={() => setBookmarkedOnly(!bookmarkedOnly)}
-              className="gap-1.5 h-9"
+              className={cn(
+                "gap-1.5 h-9 text-xs font-medium transition-colors border-border hover:bg-secondary text-foreground",
+                bookmarkedOnly && "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+              )}
+              title={bookmarkedOnly ? "Showing bookmarked vacancies only" : "Filter by bookmarked vacancies"}
+              aria-pressed={bookmarkedOnly}
             >
               <Heart
                 className={cn(
-                  "w-3.5 h-3.5",
-                  bookmarkedOnly ? "fill-current text-primary-foreground" : "text-muted-foreground"
+                  "w-3.5 h-3.5 transition-colors",
+                  bookmarkedOnly ? "fill-current text-rose-500" : "text-muted-foreground"
                 )}
+                aria-hidden="true"
               />
               <span>{bookmarkedOnly ? "Saved Only" : "Bookmarks"}</span>
             </Button>
@@ -812,37 +823,40 @@ function DiscoverContent() {
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          2. HORIZONTAL SEARCH & QUICK FILTERS CONTROL BAR
+          SECTION B: DISCOVERY CONTROLS (SEARCH & FILTER TOOLBAR)
+          Unified, responsive bar with visual priority for the search input
           ───────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border shadow-xs">
-        {/* Search Input */}
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 bg-card p-2.5 sm:p-3 rounded-xl border border-border">
+        {/* Dominant Search Input */}
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search roles, technologies, projects, or hackathons..."
-            className="pl-9 pr-8 h-10 text-sm rounded-xl border-input bg-card focus-visible:ring-primary"
+            className="pl-9 pr-8 h-9.5 text-xs sm:text-sm rounded-lg border-input bg-background focus-visible:ring-primary"
             aria-label="Search roles and projects"
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-secondary transition-colors"
               title="Clear search"
+              aria-label="Clear search input"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           )}
         </div>
 
-        {/* Quick Filter Selectors */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Quick Filter Dropdowns & Toolbar Actions */}
+        <div className="flex items-center gap-1.5 flex-wrap">
           {/* Project Type */}
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
+            className="h-9.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
             aria-label="Filter by project type"
           >
             {PROJECT_TYPES.map((type) => (
@@ -856,7 +870,7 @@ function DiscoverContent() {
           <select
             value={selectedRoleCategory}
             onChange={(e) => setSelectedRoleCategory(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
+            className="h-9.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
             aria-label="Filter by role category"
           >
             {ROLE_CATEGORIES.map((role) => (
@@ -870,7 +884,7 @@ function DiscoverContent() {
           <select
             value={selectedExp}
             onChange={(e) => setSelectedExp(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
+            className="h-9.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
             aria-label="Filter by experience level"
           >
             {EXPERIENCE_LEVELS.map((exp) => (
@@ -884,7 +898,7 @@ function DiscoverContent() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-input bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
+            className="h-9.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
             aria-label="Sort roles"
           >
             {SORT_OPTIONS.map((opt) => (
@@ -896,16 +910,17 @@ function DiscoverContent() {
 
           {/* Advanced Filters Button */}
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={() => setFilterDrawerOpen(true)}
             className={cn(
-              "gap-1.5 h-10 px-3 rounded-xl text-xs font-medium transition-colors",
-              activeFiltersCount > 0 && "border-primary/50 bg-primary/5 text-primary"
+              "gap-1.5 h-9.5 px-3 rounded-lg text-xs font-medium transition-colors border-input hover:bg-secondary",
+              activeFiltersCount > 0 && "border-primary/50 bg-primary/10 text-primary font-semibold"
             )}
             aria-label="Open advanced discovery filters"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
             <span>Filters</span>
             {activeFiltersCount > 0 && (
               <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
@@ -914,30 +929,32 @@ function DiscoverContent() {
             )}
           </Button>
 
-          {/* Save Search Button */}
+          {/* Save Search Button (Consolidated single prominent instance in discovery toolbar) */}
           {!isGuest && (
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => setSaveModalOpen(true)}
-              className="gap-1.5 h-10 px-3 rounded-xl text-xs font-medium border-border hover:border-primary/50 text-foreground"
-              title="Save current filter combination"
+              className="gap-1.5 h-9.5 px-3 rounded-lg text-xs font-medium border-input hover:border-border-strong text-foreground hover:bg-secondary transition-colors"
+              title="Save current search criteria as a preset"
               aria-label="Save current search filter combination"
             >
-              <Bookmark className="w-3.5 h-3.5 text-primary" />
+              <Bookmark className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
               <span>Save Search</span>
             </Button>
           )}
 
           {activeFiltersCount > 0 && (
             <Button
+              type="button"
               variant="ghost"
               size="sm"
               onClick={resetFilters}
-              className="h-10 text-xs text-muted-foreground hover:text-foreground gap-1 px-2.5 rounded-xl"
-              title="Reset all filters"
+              className="h-9.5 text-xs text-muted-foreground hover:text-foreground gap-1 px-2 rounded-lg"
+              title="Reset all filters to defaults"
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="w-3 h-3" aria-hidden="true" />
               <span>Reset</span>
             </Button>
           )}
@@ -945,20 +962,18 @@ function DiscoverContent() {
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          2.5. FILTER PRESETS & SAVED SEARCH SHORTCUTS BAR
+          SECTION C: PRESETS AND SHARING
+          Compact row of quick filters with sharing control
           ───────────────────────────────────────────────────────────── */}
       <FilterPresetsBar
         currentFilters={currentFiltersSnapshot}
-        savedSearchesCount={savedSearchesCount}
         onApplyPreset={handleApplyPreset}
-        onOpenSaveModal={() => setSaveModalOpen(true)}
-        onOpenSavedSearches={() => setSavedSearchesOpen(true)}
         onCopyShareLink={handleCopyCurrentShareLink}
-        isGuest={isGuest}
       />
 
       {/* ─────────────────────────────────────────────────────────────
-          2.8. ALWAYS-VISIBLE TECHNOLOGY STACK FILTER (DYNAMIC & SEARCHABLE)
+          SECTION D: TECHNOLOGY STACK (ALWAYS DIRECTLY VISIBLE)
+          Integrated, compact, searchable technology catalog
           ───────────────────────────────────────────────────────────── */}
       <DiscoverTechFilter
         selectedTechs={selectedTechs}
@@ -1472,28 +1487,28 @@ function RoleCard({
   };
 
   return (
-    <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-border-strong hover:shadow-xs transition-colors rounded-xl bg-card border border-border group gap-3">
+    <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-border-strong transition-colors rounded-xl bg-card border border-border group gap-3.5">
       <div>
         {/* Card Header Metadata Bar */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Badge variant="secondary" className="text-[11px] font-medium">
+            <Badge variant="secondary" className="text-xs font-medium">
               {role.project.projectType}
             </Badge>
 
             {role.project.hackathon && (
               <Badge
                 variant="outline"
-                className="text-[11px] font-medium border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 gap-1"
+                className="text-xs font-medium border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 gap-1"
                 title={role.project.hackathon.name}
               >
-                <Trophy className="w-3 h-3 text-amber-500" />
+                <Trophy className="w-3 h-3 text-amber-500 shrink-0" aria-hidden="true" />
                 <span className="truncate max-w-[130px]">{role.project.hackathon.name}</span>
               </Badge>
             )}
 
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {role.project.duration}
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="w-3 h-3" aria-hidden="true" /> {role.project.duration}
             </span>
           </div>
 
@@ -1505,11 +1520,12 @@ function RoleCard({
               onBookmarkToggle(role.id, Boolean(role.isBookmarked));
             }}
             aria-label={role.isBookmarked ? "Remove from bookmarks" : "Save role to bookmarks"}
+            aria-pressed={Boolean(role.isBookmarked)}
             title={role.isBookmarked ? "Bookmarked" : "Bookmark this role"}
             className={cn(
               "p-1.5 rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               role.isBookmarked
-                ? "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900"
+                ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25"
                 : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
             )}
           >
@@ -1529,7 +1545,7 @@ function RoleCard({
             In project:{" "}
             <Link
               href={`/projects/${role.project.id}`}
-              className="text-foreground font-medium hover:underline hover:text-primary transition-colors"
+              className="text-foreground/90 font-medium hover:underline hover:text-primary transition-colors"
             >
               {role.project.title}
             </Link>
@@ -1555,7 +1571,7 @@ function RoleCard({
               </span>
             ))}
             {role.requiredSkills.length > 4 && (
-              <span className="text-[11px] text-muted-foreground self-center px-1">
+              <span className="text-xs text-muted-foreground self-center px-1">
                 +{role.requiredSkills.length - 4} more
               </span>
             )}
@@ -1564,12 +1580,12 @@ function RoleCard({
 
         {/* Vacancy & Commitment Details */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2.5 pt-2 border-t border-border">
-          <span className="flex items-center gap-1 font-medium">
-            <Users className="w-3.5 h-3.5 text-primary" />
+          <span className="flex items-center gap-1.5 font-medium">
+            <Users className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
             {role.openSpots > 0 ? (
-              <span>{role.openSpots} spot{role.openSpots !== 1 ? "s" : ""} open</span>
+              <span className="text-foreground font-medium">{role.openSpots} spot{role.openSpots !== 1 ? "s" : ""} open</span>
             ) : (
-              <span className="text-amber-700 dark:text-amber-400">Position filled</span>
+              <span className="text-amber-700 dark:text-amber-400 font-medium">Position filled</span>
             )}
           </span>
           <span>·</span>
@@ -1578,10 +1594,10 @@ function RoleCard({
 
         {/* Match Compatibility Information */}
         {!isGuest && role.compatibility && (
-          <div className="mt-2.5 p-2 rounded-lg bg-secondary/60 border border-border space-y-1">
+          <div className="mt-2.5 p-2 rounded-lg bg-secondary/40 border border-border/60 space-y-1">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-foreground flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                <Sparkles className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
                 Compatibility Score
               </span>
               <span className="font-bold text-primary">{matchPercentage}%</span>
@@ -1614,41 +1630,43 @@ function RoleCard({
         <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
           {!isOwner && (
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={handleMessageClick}
               className="h-8 px-2.5 text-xs font-medium gap-1.5 border-border hover:border-primary/40 hover:text-primary transition-colors"
               aria-label={`Message ${role.project.owner.name || "project lead"} about ${role.title}`}
             >
-              <MessageSquare className="w-3.5 h-3.5 text-primary" />
+              <MessageSquare className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
               <span>Message</span>
             </Button>
           )}
 
           <Link href={`/projects/${role.project.id}`}>
-            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground">
+            <Button type="button" variant="ghost" size="sm" className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground">
               View Role
             </Button>
           </Link>
 
           {!isOwner && (
             <Button
+              type="button"
               size="sm"
               disabled={applied}
               onClick={handleApplyClick}
               className={cn(
-                "h-8 px-3 text-xs font-semibold gap-1",
-                applied && "bg-emerald-600 text-white hover:bg-emerald-600"
+                "h-8 px-3 text-xs font-semibold gap-1 transition-colors",
+                applied && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/10 cursor-default shadow-none font-medium"
               )}
             >
               {applied ? (
                 <>
-                  <CheckCircle2 className="w-3 h-3" />
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                   <span>Applied</span>
                 </>
               ) : (
                 <>
-                  <Send className="w-3 h-3" />
+                  <Send className="w-3 h-3" aria-hidden="true" />
                   <span>Apply</span>
                 </>
               )}
