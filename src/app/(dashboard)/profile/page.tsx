@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { AvailabilityEditor } from "@/components/availability/availability-editor";
 import type { Metadata } from "next";
 import { ReputationBadge } from "@/components/ratings/reputation-badge";
 
@@ -100,6 +101,11 @@ export default async function ProfilePage() {
           previousProjects: safeUser.previousProjects || [],
         }}
       />
+
+      {/* ── Working Schedule & Timezone Overlap Editor ── */}
+      <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-xs">
+        <AvailabilityEditor />
+      </div>
     </div>
   );
 }

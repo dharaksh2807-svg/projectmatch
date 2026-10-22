@@ -103,6 +103,7 @@ model User {
   previousProjects PreviousProject[]
   sentInvitations  TeamInvitation[] @relation("SentInvitations")
   invitationRedemptions InvitationRedemption[]
+  schedule         UserSchedule?
 
   // Relations — Direct Messaging
   conversationsAsUserOne DirectConversation[] @relation("ConversationUserOne")
@@ -473,6 +474,44 @@ model InvitationRedemption {
   @@unique([invitationId, userId])
   @@index([invitationId])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// User Availability & Working Schedule Compatibility
+// ─────────────────────────────────────────────
+
+enum AvailabilityVisibility {
+  PUBLIC     // Anyone can view schedule intervals
+  TEAM_ONLY  // Only teammates in shared projects and owners can view detailed slots
+  PRIVATE    // Only the user themselves can view
+}
+
+/// Rich weekly recurring availability schedule and event-specific overrides
+model UserSchedule {
+  id          String                 @id @default(cuid())
+  userId      String                 @unique
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Recognized IANA time zone identifier (e.g. "America/New_York", "Asia/Kolkata")
+  timezone    String
+
+  // Total weekly working hours declared or computed
+  weeklyHours Float?
+
+  // Sharing privacy preference
+  visibility  AvailabilityVisibility @default(TEAM_ONLY)
+
+  // Weekly recurring intervals: Array of { dayOfWeek: 1..7 (1=Mon, 7=Sun), intervals: [{ start: "HH:mm", end: "HH:mm" }] }
+  weeklySlots Json                   @default("[]")
+
+  // Date-specific overrides: Array of { date: "YYYY-MM-DD", isUnavailable?: boolean, intervals?: [{ start: "HH:mm", end: "HH:mm" }], note?: string }
+  overrides   Json                   @default("[]")
+
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@index([userId])
+  @@index([visibility])
 }
 
 // ─────────────────────────────────────────────

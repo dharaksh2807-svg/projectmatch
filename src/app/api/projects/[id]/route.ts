@@ -48,15 +48,33 @@ export async function GET(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    const session = await getServerSession(authOptions);
+
     if (!project.isPublished) {
       // Only the owner can see unpublished projects
-      const session = await getServerSession(authOptions);
       if (session?.user?.id !== project.ownerId) {
         return NextResponse.json({ error: "Project not found" }, { status: 404 });
       }
     }
 
-    return NextResponse.json(project);
+    let isTeamMember = false;
+    if (session?.user?.id) {
+      if (session.user.id === project.ownerId) {
+        isTeamMember = true;
+      } else {
+        const acceptedApp = await prisma.application.findFirst({
+          where: {
+            projectId: id,
+            userId: session.user.id,
+            status: "ACCEPTED",
+          },
+          select: { id: true },
+        });
+        isTeamMember = !!acceptedApp;
+      }
+    }
+
+    return NextResponse.json({ ...project, isTeamMember });
   } catch (err) {
     console.error("GET /api/projects/[id] failed:", err);
     return NextResponse.json({ error: "Failed to fetch project" }, { status: 500 });

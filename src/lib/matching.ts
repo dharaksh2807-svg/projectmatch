@@ -105,7 +105,8 @@ export function scoreAvailabilityFit(
   candidateHours: number | null,
   candidateDuration: string | null,
   roleTimeCommitment: string,
-  projectDuration: string
+  projectDuration: string,
+  scheduleOverlapRatio?: number | null
 ): number {
   if (!candidateHours) return 0.3; // incomplete profile → below neutral
 
@@ -131,8 +132,16 @@ export function scoreAvailabilityFit(
       ? Math.min(1, 1 - durationDiff / (requiredWeeks * 2 + 1) * 0.15) // small penalty for much longer
       : Math.max(0, 1 + durationDiff / requiredWeeks);
 
-  // Weight: hours 60%, duration 40%
-  return 0.6 * hourScore + 0.4 * durationScore;
+  // Baseline commitment score: hours 60%, duration 40%
+  const baselineFit = 0.6 * hourScore + 0.4 * durationScore;
+
+  // When concrete schedule overlap is known, blend baseline with actual working hours overlap.
+  // Missing schedules (null/undefined) produce the neutral baseline without penalty or arbitrary assumption.
+  if (scheduleOverlapRatio !== undefined && scheduleOverlapRatio !== null) {
+    return Math.round((0.6 * baselineFit + 0.4 * scheduleOverlapRatio) * 1000) / 1000;
+  }
+
+  return baselineFit;
 }
 
 /**
@@ -207,6 +216,7 @@ export interface UserProfile {
   experienceLevel: string | null;
   reputationScore?: number | null;
   portfolioLinks?: string[];
+  scheduleOverlapRatio?: number | null;
 }
 
 export interface RoleWithProject {
@@ -307,7 +317,8 @@ export function computeCompatibility(
     user.availabilityHours,
     user.availabilityDuration || null,
     role.timeCommitment,
-    role.project.duration
+    role.project.duration,
+    user.scheduleOverlapRatio
   );
   const interestAlignment = scoreInterestAlignment(user.interests, interestTags);
   const experienceFit = scoreExperienceFit(user.experienceLevel, role.requiredExperienceLevel);

@@ -34,6 +34,8 @@ import {
 } from "@/components/chat/contextual-chat-drawer";
 import { InviteModal } from "@/components/invitations/invite-modal";
 import { ProjectInvitationsList } from "@/components/invitations/project-invitations-list";
+import { TeamAvailabilityView } from "@/components/availability/team-availability-view";
+import { AvailabilityModal } from "@/components/availability/availability-modal";
 
 interface Role {
   id: string;
@@ -70,6 +72,7 @@ interface Project {
   };
   roles: Role[];
   _count: { applications: number };
+  isTeamMember?: boolean;
 }
 
 export default function ProjectDetailPage() {
@@ -88,6 +91,7 @@ export default function ProjectDetailPage() {
   const [activeChatContext, setActiveChatContext] = useState<ContextualChatContext | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [selectedRoleForInvite, setSelectedRoleForInvite] = useState<string | null>(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadProject() {
@@ -277,6 +281,18 @@ export default function ProjectDetailPage() {
                 />
               </div>
             )}
+
+            {/* Team Availability & Working Schedule Compatibility (Authorized Team Context) */}
+            {(isOwner || project.isTeamMember) && (
+              <div className="pt-4">
+                <TeamAvailabilityView
+                  projectId={project.id}
+                  projectTitle={project.title}
+                  isOwner={isOwner}
+                  onOpenMyScheduleEditor={() => setIsScheduleModalOpen(true)}
+                />
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -356,6 +372,18 @@ export default function ProjectDetailPage() {
               </div>
             )}
 
+            {(isOwner || project.isTeamMember) && (
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsScheduleModalOpen(true)}
+                  className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                >
+                  <Clock className="w-4 h-4" /> My Availability
+                </Button>
+              </div>
+            )}
+
             {session?.user?.id && !isOwner && (
               <div className="pt-4 flex justify-end">
                 <ReportModal projectId={project.id} targetName={project.title} />
@@ -401,6 +429,18 @@ export default function ProjectDetailPage() {
         defaultRoleId={selectedRoleForInvite}
         onSuccess={() => {
           // Refresh project details
+          fetch(`/api/projects/${id}`)
+            .then((res) => res.json())
+            .then((data) => setProject(data))
+            .catch(() => {});
+        }}
+      />
+
+      <AvailabilityModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        onSaved={() => {
+          // Refresh project to update schedules
           fetch(`/api/projects/${id}`)
             .then((res) => res.json())
             .then((data) => setProject(data))
