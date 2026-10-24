@@ -5,6 +5,8 @@ import {
   scoreExperienceFit,
   scoreAvailabilityFit,
   scoreReputation,
+  isUserProfileComplete,
+  computeCompatibility,
 } from "./matching";
 
 // --- scoreSkillOverlap ---
@@ -118,5 +120,101 @@ describe("scoreReputation", () => {
 
   it("returns 0.5 for a neutral score of 50", () => {
     expect(scoreReputation(50)).toBe(0.5);
+  });
+});
+
+// --- isUserProfileComplete & NaN Prevention ---
+describe("Profile Completeness & Division-by-Zero Safety", () => {
+  it("detects incomplete profiles when skills, experience, or availability are missing", () => {
+    expect(isUserProfileComplete(null)).toBe(false);
+    expect(isUserProfileComplete(undefined)).toBe(false);
+    expect(
+      isUserProfileComplete({
+        skills: [],
+        experienceLevel: null,
+        availabilityHours: null,
+      })
+    ).toBe(false);
+    expect(
+      isUserProfileComplete({
+        skills: ["React"],
+        experienceLevel: null,
+        availabilityHours: 10,
+      })
+    ).toBe(false);
+    expect(
+      isUserProfileComplete({
+        skills: ["React"],
+        experienceLevel: "Intermediate",
+        availabilityHours: null,
+        availabilityDuration: null,
+      })
+    ).toBe(false);
+  });
+
+  it("detects complete profile when skills, experience, and availability are populated", () => {
+    expect(
+      isUserProfileComplete({
+        skills: ["React", "TypeScript"],
+        experienceLevel: "Intermediate",
+        availabilityHours: 10,
+      })
+    ).toBe(true);
+
+    expect(
+      isUserProfileComplete({
+        skills: ["Design"],
+        experienceLevel: "Beginner",
+        availabilityDuration: "1-2 weeks",
+      })
+    ).toBe(true);
+  });
+
+  it("never produces NaN or division-by-zero on malformed or 0 commitment inputs", () => {
+    const fit = scoreAvailabilityFit(0, "", "0 hrs/week", "0 weeks");
+    expect(fit).toBe(0.3);
+    expect(isNaN(fit)).toBe(false);
+
+    const fitWithZeroHours = scoreAvailabilityFit(10, null, "0 hrs/week", "unknown");
+    expect(isNaN(fitWithZeroHours)).toBe(false);
+    expect(fitWithZeroHours).toBeGreaterThanOrEqual(0);
+  });
+
+  it("computes clean compatibility without NaN for empty user profiles", () => {
+    const dummyRole = {
+      id: "role-1",
+      title: "Frontend Engineer",
+      requiredSkills: ["React", "TypeScript"],
+      requiredExperienceLevel: "Intermediate",
+      timeCommitment: "10-20 hrs/week",
+      headcount: 2,
+      filledCount: 0,
+      project: {
+        id: "proj-1",
+        title: "Test App",
+        description: "A test project",
+        projectType: "Hackathon",
+        duration: "1-4 weeks",
+        ownerId: "owner-1",
+        owner: { name: "Owner", image: null },
+      },
+    };
+
+    const emptyUser = {
+      id: "user-empty",
+      name: "Empty User",
+      skills: [],
+      interests: [],
+      availabilityHours: null,
+      experienceLevel: null,
+    };
+
+    const result = computeCompatibility(emptyUser, dummyRole);
+    expect(result.isProfileComplete).toBe(false);
+    expect(isNaN(result.score)).toBe(false);
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(isNaN(result.breakdown.skillOverlap)).toBe(false);
+    expect(isNaN(result.breakdown.availabilityFit)).toBe(false);
+    expect(isNaN(result.breakdown.experienceFit)).toBe(false);
   });
 });

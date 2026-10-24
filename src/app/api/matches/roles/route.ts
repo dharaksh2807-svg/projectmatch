@@ -27,6 +27,8 @@ export async function GET(req: NextRequest) {
 
     // Fetch user profile and applications/bookmarks if authenticated
     let userSkills: string[] = [];
+    let userExperienceLevel: string | null = null;
+    let userAvailability: string | null = null;
     let appliedRoleIds: string[] = [];
     let bookmarkedRoleIds: string[] = [];
 
@@ -36,6 +38,8 @@ export async function GET(req: NextRequest) {
           where: { id: userId },
           select: {
             skills: true,
+            experienceLevel: true,
+            availability: true,
           },
         }),
         prisma.application.findMany({
@@ -50,10 +54,21 @@ export async function GET(req: NextRequest) {
 
       if (user) {
         userSkills = user.skills || [];
+        userExperienceLevel = user.experienceLevel || null;
+        userAvailability = user.availability || null;
       }
       appliedRoleIds = applications.map((a) => a.roleId);
       bookmarkedRoleIds = bookmarks.map((b) => b.roleId);
     }
+
+    const isProfileComplete = Boolean(
+      userId &&
+      userSkills.length > 0 &&
+      userExperienceLevel &&
+      userExperienceLevel.trim().length > 0 &&
+      userAvailability &&
+      userAvailability.trim().length > 0
+    );
 
     const searchParams = req.nextUrl.searchParams;
 
@@ -395,6 +410,7 @@ export async function GET(req: NextRequest) {
             factorsMatched: number;
             totalFactors: number;
             hasActiveFilters: boolean;
+            isProfileComplete: boolean;
             breakdown: {
               skillOverlap: number;
               techOverlap: number;
@@ -405,7 +421,7 @@ export async function GET(req: NextRequest) {
           }
         | undefined = undefined;
 
-      if (hasActiveFilters || userSkills.length > 0) {
+      if (hasActiveFilters || userSkills.length > 0 || userId) {
         // Comparison pool: active candidate skills or user's profile skills
         const activePool = hasSkillFilters ? candidateSkills : userSkills;
         const targetSkills =
@@ -462,16 +478,17 @@ export async function GET(req: NextRequest) {
         const totalFactors = targetSkills.length + nonSkillRequirements;
         const totalMatches = matchedSkillsCount + nonSkillMatches;
 
-        const score =
-          totalFactors > 0 ? Math.round((totalMatches / totalFactors) * 100) / 100 : 0.5;
+        const rawScore = totalFactors > 0 ? totalMatches / totalFactors : 0.5;
+        const score = isNaN(rawScore) ? 0 : Math.round(rawScore * 100) / 100;
 
         compatibility = {
           score,
           factorsMatched: totalMatches,
           totalFactors: totalFactors || 1,
-          hasActiveFilters: true,
+          hasActiveFilters: Boolean(hasActiveFilters),
+          isProfileComplete,
           breakdown: {
-            skillOverlap: Math.round(skillOverlapRatio * 100) / 100,
+            skillOverlap: isNaN(skillOverlapRatio) ? 0 : Math.round(skillOverlapRatio * 100) / 100,
             techOverlap: 0,
             typeFit,
             durationFit,
@@ -548,6 +565,7 @@ export async function GET(req: NextRequest) {
       allUniqueSkills,
       availableHackathons,
       userHasSkills: userSkills.length > 0,
+      userProfileComplete: isProfileComplete,
       activeFilterCount,
     });
   } catch (err) {

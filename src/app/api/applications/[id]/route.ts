@@ -28,7 +28,15 @@ export async function PATCH(
   const application = await prisma.application.findUnique({
     where: { id },
     include: {
-      role: { select: { title: true } },
+      role: {
+        select: {
+          id: true,
+          title: true,
+          headcount: true,
+          filledCount: true,
+          isOpen: true,
+        },
+      },
       project: { select: { id: true, title: true, ownerId: true, owner: { select: { name: true } } } },
       user: { select: { id: true, name: true, email: true } },
     },
@@ -65,6 +73,17 @@ export async function PATCH(
     return NextResponse.json({ error: "Owners can accept or reject applications" }, { status: 400 });
   }
 
+  // If owner is accepting, block when openSpots === 0 and clamp spots to Math.max(0, spots - 1)
+  if (isOwner && status === "ACCEPTED") {
+    const currentOpenSpots = Math.max(0, application.role.headcount - application.role.filledCount);
+    if (currentOpenSpots === 0 || !application.role.isOpen) {
+      return NextResponse.json(
+        { error: "Cannot accept applicant: this role has 0 open spots remaining." },
+        { status: 400 }
+      );
+    }
+  }
+
   const notificationType = status === "ACCEPTED" ? "APPLICATION_ACCEPTED" : "APPLICATION_REJECTED";
 
   const ops = [
@@ -92,12 +111,19 @@ export async function PATCH(
       }) as never
     );
 
-    // Increment filledCount if accepted
+    // Increment filledCount and clamp open spots if accepted
     if (accepted) {
+      const currentOpenSpots = Math.max(0, application.role.headcount - application.role.filledCount);
+      const nextOpenSpots = Math.max(0, currentOpenSpots - 1);
+      const nextFilledCount = Math.min(application.role.headcount, application.role.filledCount + 1);
+
       ops.push(
         prisma.role.update({
           where: { id: application.roleId },
-          data: { filledCount: { increment: 1 } },
+          data: {
+            filledCount: nextFilledCount,
+            isOpen: nextOpenSpots > 0,
+          },
         }) as never
       );
 

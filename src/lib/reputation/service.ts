@@ -192,12 +192,13 @@ export async function checkReviewEligibility(
   reason?: string;
   project?: { id: string; title: string; status: string };
 }> {
-  // 1. Self-review check
+  // 1. Self-review and self-endorsement check
   if (reviewerId === revieweeId) {
     return {
       eligible: false,
       status: 400,
-      reason: "Self-reviews are not permitted. You cannot review your own profile.",
+      reason:
+        "Self-reviews are not permitted. Self-endorsements are strictly prohibited. You cannot endorse or review your own profile.",
     };
   }
 
@@ -234,7 +235,7 @@ export async function checkReviewEligibility(
   }
 
   // 4. Team membership verification
-  // Both parties must have confirmed membership:
+  // Both parties must have confirmed shared project membership:
   // Either they are the owner, or an ACCEPTED applicant.
   const reviewerApp = await prisma.application.findFirst({
     where: { projectId, userId: reviewerId, status: "ACCEPTED" },
@@ -254,7 +255,7 @@ export async function checkReviewEligibility(
       eligible: false,
       status: 403,
       reason:
-        "Both users must have verifiably collaborated on this project as confirmed team members.",
+        "Both users must have verifiably collaborated on this project as confirmed team members before peer endorsements or reviews are permitted.",
     };
   }
 

@@ -54,6 +54,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Reviewee ID is required" }, { status: 400 });
     }
 
+    // Explicitly block self-endorsements and self-reviews
+    if (reviewerId === revieweeId) {
+      return NextResponse.json(
+        { error: "Self-endorsements and self-reviews are not permitted. You cannot endorse or review your own profile." },
+        { status: 400 }
+      );
+    }
+
     // Eligibility check (teammate verification, project completion, non-self, no duplicate)
     const eligibility = await checkReviewEligibility(reviewerId, revieweeId, projectId);
     if (!eligibility.eligible) {

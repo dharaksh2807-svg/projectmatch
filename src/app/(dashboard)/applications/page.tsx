@@ -198,6 +198,15 @@ export default function ApplicationsPage() {
 
   // Handle Accept / Reject (Project Owner)
   async function handleDecision(applicationId: string, decision: "ACCEPTED" | "REJECTED") {
+    const targetApp = receivedApps.find((a) => a.id === applicationId);
+    if (decision === "ACCEPTED" && targetApp) {
+      const openSpots = Math.max(0, targetApp.role.headcount - targetApp.role.filledCount);
+      if (openSpots === 0 || !targetApp.role.isOpen) {
+        toast("Cannot accept applicant: this role has 0 open spots remaining.", "error");
+        return;
+      }
+    }
+
     setActingOn((prev) => new Set(prev).add(applicationId));
     try {
       const res = await fetch(`/api/applications/${applicationId}`, {
@@ -214,11 +223,26 @@ export default function ApplicationsPage() {
             : "Application marked as rejected.",
           decision === "ACCEPTED" ? "success" : "info"
         );
-        // Refresh local state
+        // Refresh local state and clamp open spots
         setReceivedApps((prev) =>
-          prev.map((app) =>
-            app.id === applicationId ? { ...app, status: decision } : app
-          )
+          prev.map((app) => {
+            if (app.id !== applicationId) return app;
+            if (decision === "ACCEPTED") {
+              const currentOpenSpots = Math.max(0, app.role.headcount - app.role.filledCount);
+              const nextOpenSpots = Math.max(0, currentOpenSpots - 1);
+              const nextFilledCount = Math.min(app.role.headcount, app.role.filledCount + 1);
+              return {
+                ...app,
+                status: decision,
+                role: {
+                  ...app.role,
+                  filledCount: nextFilledCount,
+                  isOpen: nextOpenSpots > 0,
+                },
+              };
+            }
+            return { ...app, status: decision };
+          })
         );
       } else {
         toast(data.error || "Action failed. Please try again.", "error");
@@ -929,19 +953,31 @@ export default function ApplicationsPage() {
                                 Reject
                               </Button>
 
-                              <Button
-                                size="sm"
-                                disabled={isActing}
-                                onClick={() => handleDecision(app.id, "ACCEPTED")}
-                                className="text-xs h-8 bg-emerald-600 hover:bg-emerald-500 text-white gap-1"
-                              >
-                                {isActing ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Check className="w-3.5 h-3.5" />
-                                )}
-                                Accept Teammate
-                              </Button>
+                              {(() => {
+                                const openSpots = Math.max(0, app.role.headcount - app.role.filledCount);
+                                const isFull = openSpots === 0 || !app.role.isOpen;
+                                return (
+                                  <Button
+                                    size="sm"
+                                    disabled={isActing || isFull}
+                                    title={isFull ? "This role has 0 open spots remaining" : "Accept Teammate"}
+                                    onClick={() => handleDecision(app.id, "ACCEPTED")}
+                                    className={cn(
+                                      "text-xs h-8 text-white gap-1",
+                                      isFull
+                                        ? "bg-muted text-muted-foreground border border-border cursor-not-allowed hover:bg-muted"
+                                        : "bg-emerald-600 hover:bg-emerald-500"
+                                    )}
+                                  >
+                                    {isActing ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Check className="w-3.5 h-3.5" />
+                                    )}
+                                    {isFull ? "Role Full" : "Accept Teammate"}
+                                  </Button>
+                                );
+                              })()}
                             </>
                           )}
 

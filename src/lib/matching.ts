@@ -36,12 +36,16 @@ const TIME_COMMITMENT_HOURS: Record<string, number> = {
   "Full-time": 40,
 };
 
-function parseTimeCommitmentHours(commitment: string): number {
+function parseTimeCommitmentHours(commitment?: string | null): number {
+  if (!commitment) return 7.5;
   if (TIME_COMMITMENT_HOURS[commitment]) return TIME_COMMITMENT_HOURS[commitment];
   const num = parseFloat(commitment);
-  if (!isNaN(num)) return num;
-  const match = commitment.match(/(\d+)/);
-  if (match) return parseFloat(match[1]);
+  if (!isNaN(num) && num > 0) return num;
+  const match = commitment.match(/(\d+(\.\d+)?)/);
+  if (match) {
+    const parsed = parseFloat(match[1]);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
   return 7.5;
 }
 
@@ -71,14 +75,27 @@ const AVAILABILITY_DURATION_WEEKS: Record<string, number> = {
  * Required skills that the candidate has boost the score more than extra skills.
  */
 export function scoreSkillOverlap(
-  candidateSkills: string[],
-  requiredSkills: string[]
+  candidateSkills: string[] | null | undefined,
+  requiredSkills: string[] | null | undefined
 ): number {
-  if (requiredSkills.length === 0) return 0.5; // no requirement = neutral
-  if (candidateSkills.length === 0) return 0;
+  if (!requiredSkills || requiredSkills.length === 0) return 0.5; // no requirement = neutral
+  if (!candidateSkills || candidateSkills.length === 0) return 0;
 
-  const candidateSet = new Set(candidateSkills.map((s) => s.toLowerCase().trim()));
-  const requiredSet = new Set(requiredSkills.map((s) => s.toLowerCase().trim()));
+  const cleanCandidate = candidateSkills.filter(
+    (s): s is string => typeof s === "string" && s.trim().length > 0
+  );
+  const cleanRequired = requiredSkills.filter(
+    (s): s is string => typeof s === "string" && s.trim().length > 0
+  );
+
+  if (cleanRequired.length === 0) return 0.5;
+  if (cleanCandidate.length === 0) return 0;
+
+  const candidateSet = new Set(cleanCandidate.map((s) => s.toLowerCase().trim()));
+  const requiredSet = new Set(cleanRequired.map((s) => s.toLowerCase().trim()));
+
+  if (requiredSet.size === 0) return 0.5;
+  if (candidateSet.size === 0) return 0;
 
   let matches = 0;
   for (const skill of requiredSet) {
@@ -89,12 +106,14 @@ export function scoreSkillOverlap(
   const coverage = matches / requiredSet.size;
 
   // Small bonus for extra relevant skills (up to 0.1)
-  const extraBonus = Math.min(
-    (candidateSet.size - matches) / (candidateSet.size + requiredSet.size + 1),
-    0.1
-  );
+  const denominator = candidateSet.size + requiredSet.size + 1;
+  const extraBonus =
+    denominator > 0
+      ? Math.min(Math.max(0, candidateSet.size - matches) / denominator, 0.1)
+      : 0;
 
-  return Math.min(coverage + extraBonus, 1);
+  const total = Math.min(coverage + extraBonus, 1);
+  return isNaN(total) ? 0 : Math.max(0, total);
 }
 
 /**
@@ -102,17 +121,28 @@ export function scoreSkillOverlap(
  * Penalises over-commitment mismatches and duration mismatches.
  */
 export function scoreAvailabilityFit(
-  candidateHours: number | null,
-  candidateDuration: string | null,
+  candidateHours: number | null | undefined,
+  candidateDuration: string | null | undefined,
   roleTimeCommitment: string,
   projectDuration: string,
   scheduleOverlapRatio?: number | null
 ): number {
-  if (!candidateHours) return 0.3; // incomplete profile → below neutral
+  if (
+    candidateHours === null ||
+    candidateHours === undefined ||
+    isNaN(candidateHours) ||
+    candidateHours <= 0
+  ) {
+    return 0.3; // incomplete profile → below neutral
+  }
 
-  const requiredHours = parseTimeCommitmentHours(roleTimeCommitment);
-  const requiredWeeks = DURATION_WEEKS[projectDuration] ?? 8;
-  const candidateWeeks = candidateDuration ? (AVAILABILITY_DURATION_WEEKS[candidateDuration] ?? 4) : 4;
+  const rawHours = parseTimeCommitmentHours(roleTimeCommitment);
+  const requiredHours = rawHours > 0 ? rawHours : 7.5;
+  const rawWeeks = DURATION_WEEKS[projectDuration] ?? 8;
+  const requiredWeeks = rawWeeks > 0 ? rawWeeks : 8;
+  const candidateWeeks = candidateDuration
+    ? AVAILABILITY_DURATION_WEEKS[candidateDuration] ?? 4
+    : 4;
 
   // Hours fit: score 1 if candidate has ≥ required, decays if they have less
   const hoursDiff = candidateHours - requiredHours;
@@ -124,24 +154,32 @@ export function scoreAvailabilityFit(
     // They have less time — score linearly from 0 to 1
     hourScore = Math.max(0, 1 + hoursDiff / requiredHours);
   }
+  if (isNaN(hourScore)) hourScore = 0.5;
 
   // Duration fit: score 1 if candidate duration ≥ required, decays otherwise
   const durationDiff = candidateWeeks - requiredWeeks;
   const durationScore =
     durationDiff >= 0
-      ? Math.min(1, 1 - durationDiff / (requiredWeeks * 2 + 1) * 0.15) // small penalty for much longer
+      ? Math.min(1, 1 - (durationDiff / (requiredWeeks * 2 + 1)) * 0.15) // small penalty for much longer
       : Math.max(0, 1 + durationDiff / requiredWeeks);
+  const safeDurationScore = isNaN(durationScore) ? 0.5 : durationScore;
 
   // Baseline commitment score: hours 60%, duration 40%
-  const baselineFit = 0.6 * hourScore + 0.4 * durationScore;
+  const baselineFit = 0.6 * hourScore + 0.4 * safeDurationScore;
+  const safeBaselineFit = isNaN(baselineFit) ? 0.3 : Math.max(0, Math.min(1, baselineFit));
 
   // When concrete schedule overlap is known, blend baseline with actual working hours overlap.
   // Missing schedules (null/undefined) produce the neutral baseline without penalty or arbitrary assumption.
-  if (scheduleOverlapRatio !== undefined && scheduleOverlapRatio !== null) {
-    return Math.round((0.6 * baselineFit + 0.4 * scheduleOverlapRatio) * 1000) / 1000;
+  if (
+    scheduleOverlapRatio !== undefined &&
+    scheduleOverlapRatio !== null &&
+    !isNaN(scheduleOverlapRatio)
+  ) {
+    const clampedOverlap = Math.max(0, Math.min(1, scheduleOverlapRatio));
+    return Math.round((0.6 * safeBaselineFit + 0.4 * clampedOverlap) * 1000) / 1000;
   }
 
-  return baselineFit;
+  return safeBaselineFit;
 }
 
 /**
@@ -149,13 +187,28 @@ export function scoreAvailabilityFit(
  * The project doesn't have explicit interest tags — we infer from project type + role skills.
  */
 export function scoreInterestAlignment(
-  candidateInterests: string[],
-  projectInterestTags: string[]
+  candidateInterests: string[] | null | undefined,
+  projectInterestTags: string[] | null | undefined
 ): number {
-  if (projectInterestTags.length === 0 || candidateInterests.length === 0) return 0.3;
+  if (
+    !projectInterestTags ||
+    projectInterestTags.length === 0 ||
+    !candidateInterests ||
+    candidateInterests.length === 0
+  ) {
+    return 0.3;
+  }
 
-  const aSet = new Set(candidateInterests.map((s) => s.toLowerCase().trim()));
-  const bSet = new Set(projectInterestTags.map((s) => s.toLowerCase().trim()));
+  const cleanCandidate = candidateInterests.filter(
+    (s): s is string => typeof s === "string" && s.trim().length > 0
+  );
+  const cleanTags = projectInterestTags.filter(
+    (s): s is string => typeof s === "string" && s.trim().length > 0
+  );
+  if (cleanCandidate.length === 0 || cleanTags.length === 0) return 0.3;
+
+  const aSet = new Set(cleanCandidate.map((s) => s.toLowerCase().trim()));
+  const bSet = new Set(cleanTags.map((s) => s.toLowerCase().trim()));
 
   let intersection = 0;
   for (const tag of bSet) {
@@ -163,7 +216,9 @@ export function scoreInterestAlignment(
   }
 
   const union = new Set([...aSet, ...bSet]).size;
-  return union === 0 ? 0 : intersection / union;
+  if (union === 0) return 0.3;
+  const result = intersection / union;
+  return isNaN(result) ? 0.3 : Math.max(0, Math.min(1, result));
 }
 
 /**
@@ -171,19 +226,23 @@ export function scoreInterestAlignment(
  * Uses a Gaussian-like score centred on the required level.
  */
 export function scoreExperienceFit(
-  candidateLevel: string | null,
-  requiredLevel: string
+  candidateLevel: string | null | undefined,
+  requiredLevel: string | null | undefined
 ): number {
-  if (!candidateLevel) return 0.3;
-  if (requiredLevel === "Any") return 0.75; // any level accepted — slightly above neutral
+  if (!candidateLevel || typeof candidateLevel !== "string" || !candidateLevel.trim()) {
+    return 0.3;
+  }
+  const cleanReq = (requiredLevel || "Any").trim();
+  if (cleanReq === "Any" || cleanReq.toLowerCase() === "any") return 0.75; // any level accepted — slightly above neutral
 
-  const candidateRank = EXPERIENCE_RANK[candidateLevel] ?? 2;
-  const requiredRank = EXPERIENCE_RANK[requiredLevel] ?? 2;
+  const candidateRank = EXPERIENCE_RANK[candidateLevel.trim()] ?? 2;
+  const requiredRank = EXPERIENCE_RANK[cleanReq] ?? 2;
 
   const diff = Math.abs(candidateRank - requiredRank);
 
   // diff=0 → 1.0, diff=1 → 0.7, diff=2 → 0.4, diff=3 → 0.1
-  return Math.max(0, 1 - diff * 0.3);
+  const result = Math.max(0, 1 - diff * 0.3);
+  return isNaN(result) ? 0.3 : result;
 }
 
 /**
@@ -192,15 +251,50 @@ export function scoreExperienceFit(
  * Users with no ratings (null/undefined/0) also default to neutral 0.5.
  */
 export function scoreReputation(reputationScore: number | null | undefined): number {
-  if (reputationScore === null || reputationScore === undefined) {
+  if (
+    reputationScore === null ||
+    reputationScore === undefined ||
+    isNaN(reputationScore)
+  ) {
     return 0.5; // neutral for new users
   }
   // Legacy: scores ≤ 5 were on the old 0–5 scale → convert up
   if (reputationScore <= 5) {
-    return reputationScore === 0 ? 0.5 : Math.min(reputationScore / 5, 1);
+    return reputationScore <= 0 ? 0.5 : Math.min(reputationScore / 5, 1);
   }
   // New 0–100 scale
-  return Math.min(reputationScore / 100, 1);
+  const norm = Math.min(Math.max(0, reputationScore / 100), 1);
+  return isNaN(norm) ? 0.5 : norm;
+}
+
+/**
+ * Checks whether a user profile has all core fields populated for matching:
+ * - non-empty skills array
+ * - non-empty experience level
+ * - non-empty availability (hours or duration)
+ */
+export function isUserProfileComplete(
+  user: Partial<UserProfile> | null | undefined
+): boolean {
+  if (!user) return false;
+
+  const hasSkills =
+    Array.isArray(user.skills) &&
+    user.skills.filter((s) => s && typeof s === "string" && s.trim().length > 0).length > 0;
+
+  const hasExperience =
+    typeof user.experienceLevel === "string" && user.experienceLevel.trim().length > 0;
+
+  const hasAvailabilityHours =
+    typeof user.availabilityHours === "number" &&
+    !isNaN(user.availabilityHours) &&
+    user.availabilityHours > 0;
+
+  const hasAvailabilityDuration =
+    typeof user.availabilityDuration === "string" &&
+    user.availabilityDuration.trim().length > 0;
+
+  return Boolean(hasSkills && hasExperience && (hasAvailabilityHours || hasAvailabilityDuration));
 }
 
 // --- Types ---
@@ -244,6 +338,7 @@ export interface RoleWithProject {
 
 export interface CompatibilityResult {
   score: number; // 0–1 total score
+  isProfileComplete?: boolean;
   breakdown: {
     skillOverlap: number;
     availabilityFit: number;
@@ -306,6 +401,8 @@ export function computeCompatibility(
   user: UserProfile,
   role: RoleWithProject
 ): CompatibilityResult {
+  const isProfileComplete = isUserProfileComplete(user);
+
   const interestTags = deriveProjectInterestTags(
     role.project.projectType,
     role.requiredSkills,
@@ -324,21 +421,24 @@ export function computeCompatibility(
   const experienceFit = scoreExperienceFit(user.experienceLevel, role.requiredExperienceLevel);
   const reputationNorm = scoreReputation(user.reputationScore);
 
-  const score =
+  const rawScore =
     0.40 * skillOverlap +
     0.20 * availabilityFit +
     0.15 * interestAlignment +
     0.15 * experienceFit +
     0.10 * reputationNorm;
 
+  const score = isNaN(rawScore) ? 0 : Math.round(rawScore * 1000) / 1000;
+
   return {
-    score: Math.round(score * 1000) / 1000, // 3 decimal places
+    score,
+    isProfileComplete,
     breakdown: {
-      skillOverlap: Math.round(skillOverlap * 100) / 100,
-      availabilityFit: Math.round(availabilityFit * 100) / 100,
-      interestAlignment: Math.round(interestAlignment * 100) / 100,
-      experienceFit: Math.round(experienceFit * 100) / 100,
-      reputationScore: Math.round(reputationNorm * 100) / 100,
+      skillOverlap: isNaN(skillOverlap) ? 0 : Math.round(skillOverlap * 100) / 100,
+      availabilityFit: isNaN(availabilityFit) ? 0 : Math.round(availabilityFit * 100) / 100,
+      interestAlignment: isNaN(interestAlignment) ? 0 : Math.round(interestAlignment * 100) / 100,
+      experienceFit: isNaN(experienceFit) ? 0 : Math.round(experienceFit * 100) / 100,
+      reputationScore: isNaN(reputationNorm) ? 0 : Math.round(reputationNorm * 100) / 100,
     },
   };
 }

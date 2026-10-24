@@ -400,4 +400,34 @@ describe("Trustworthy Contributor Reputation System", () => {
     const computedFallback = computeOverallRating(null, null, null, null);
     expect(computedFallback).toBe(5);
   });
+
+  // ─── Scenario 16: Self-Endorsement & Self-Review Blocking ───────────────────
+  it("Scenario 16: Blocks self-endorsements and self-reviews with a 400 error", async () => {
+    const result = await checkReviewEligibility("member-123", "member-123", "proj-999");
+    expect(result.eligible).toBe(false);
+    expect(result.status).toBe(400);
+    expect(result.reason).toContain("Self-endorsements");
+    expect(result.reason).toContain("Self-reviews");
+  });
+
+  // ─── Scenario 17: Shared Project Membership Requirement ─────────────────────
+  it("Scenario 17: Requires confirmed shared project membership before allowing peer endorsements", async () => {
+    (prisma.project.findUnique as any).mockResolvedValue({
+      id: "proj-shared",
+      title: "Shared Project",
+      ownerId: "owner-real",
+      status: "COMPLETED",
+      completedAt: new Date(),
+    });
+
+    // Reviewer is not owner and not accepted applicant
+    (prisma.application.findFirst as any)
+      .mockResolvedValueOnce(null) // reviewer has no accepted application
+      .mockResolvedValueOnce({ id: "app-target" }); // reviewee is an accepted member
+
+    const result = await checkReviewEligibility("random-user", "target-user", "proj-shared");
+    expect(result.eligible).toBe(false);
+    expect(result.status).toBe(403);
+    expect(result.reason).toContain("verifiably collaborated");
+  });
 });

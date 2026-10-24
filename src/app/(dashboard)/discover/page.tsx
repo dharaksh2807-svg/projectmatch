@@ -105,6 +105,7 @@ interface MatchedRole {
     factorsMatched: number;
     totalFactors: number;
     hasActiveFilters?: boolean;
+    isProfileComplete?: boolean;
     breakdown: {
       skillOverlap: number;
       techOverlap?: number;
@@ -1457,7 +1458,7 @@ function RoleCard({
   const isOwner = currentUserId && role.project.ownerId === currentUserId;
 
   const score = role.compatibility?.score ?? 0;
-  const matchPercentage = Math.round(score * 100);
+  const matchPercentage = isNaN(score) ? 0 : Math.round(score * 100);
 
   const handleApplyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1592,22 +1593,42 @@ function RoleCard({
         </div>
 
         {/* Match Compatibility Information - Compact Row */}
-        {!isGuest && role.compatibility && (
+        {!isGuest && (
           <div className="mt-2.5 flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-secondary/35 border border-border/50 text-xs">
             <div className="flex items-center gap-1.5 min-w-0">
               <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" aria-hidden="true" />
               <span className="font-medium text-foreground text-xs truncate">
                 Compatibility
               </span>
-              <span className="text-muted-foreground text-[11px] truncate hidden xs:inline">
-                · {role.compatibility.factorsMatched > 0
-                  ? `${role.compatibility.factorsMatched}/${role.compatibility.totalFactors} criteria matched`
-                  : "Criteria comparison"}
-              </span>
             </div>
-            <span className="font-semibold text-primary font-mono text-xs shrink-0">
-              {matchPercentage}%
-            </span>
+            {role.compatibility?.isProfileComplete === false ? (
+              <Link
+                href="/profile"
+                className="text-xs text-primary hover:underline font-medium shrink-0 flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Complete profile to see match %
+              </Link>
+            ) : role.compatibility ? (
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-muted-foreground text-[11px] truncate hidden xs:inline">
+                  · {role.compatibility.factorsMatched > 0
+                    ? `${role.compatibility.factorsMatched}/${role.compatibility.totalFactors} criteria matched`
+                    : "Criteria comparison"}
+                </span>
+                <span className="font-semibold text-primary font-mono text-xs">
+                  {isNaN(matchPercentage) ? "0%" : `${matchPercentage}%`}
+                </span>
+              </div>
+            ) : (
+              <Link
+                href="/profile"
+                className="text-xs text-primary hover:underline font-medium shrink-0 flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Complete profile to see match %
+              </Link>
+            )}
           </div>
         )}
       </div>

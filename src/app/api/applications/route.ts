@@ -77,7 +77,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Role not found or project is not active" }, { status: 404 });
     }
 
-    if (!role.isOpen || role.filledCount >= role.headcount) {
+    const openSpots = Math.max(0, role.headcount - role.filledCount);
+    if (!role.isOpen || openSpots === 0) {
       return NextResponse.json({ error: "This role is no longer accepting applications" }, { status: 409 });
     }
 

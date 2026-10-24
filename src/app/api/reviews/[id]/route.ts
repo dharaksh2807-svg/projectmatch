@@ -75,6 +75,14 @@ export async function PUT(
       return NextResponse.json({ error: editCheck.reason }, { status: 403 });
     }
 
+    // Block self-reviews and self-endorsements
+    if (userId === existingReview.revieweeId || existingReview.reviewerId === existingReview.revieweeId) {
+      return NextResponse.json(
+        { error: "Self-endorsements and self-reviews are not permitted." },
+        { status: 403 }
+      );
+    }
+
     let body;
     try {
       body = await req.json();
