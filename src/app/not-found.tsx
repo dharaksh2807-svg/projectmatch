@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Compass, Home, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function NotFound() {
   return (
@@ -20,17 +21,22 @@ export default function NotFound() {
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Link href="/hackathons">
-          <Button className="brand-gradient text-white gap-2 font-medium shadow-sm hover:opacity-90 transition-all">
-            <Search className="w-4 h-4" />
-            Discover Projects
-          </Button>
+        <Link
+          href="/hackathons"
+          className={cn(
+            buttonVariants({ variant: "default" }),
+            "brand-gradient text-white gap-2 font-medium shadow-sm hover:opacity-90 transition-all"
+          )}
+        >
+          <Search className="w-4 h-4" />
+          Discover Projects
         </Link>
-        <Link href="/dashboard">
-          <Button variant="outline" className="gap-2">
-            <Home className="w-4 h-4" />
-            Go to Dashboard
-          </Button>
+        <Link
+          href="/dashboard"
+          className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
+        >
+          <Home className="w-4 h-4" />
+          Go to Dashboard
         </Link>
       </div>
     </div>

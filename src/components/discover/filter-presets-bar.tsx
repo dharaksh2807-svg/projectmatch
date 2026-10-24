@@ -58,10 +58,10 @@ export function FilterPresetsBar({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 py-0.5 text-xs">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 py-0.5 text-xs">
       {/* Presets Row */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-xs font-semibold text-muted-foreground mr-1 select-none">
+        <span className="text-xs font-medium text-muted-foreground mr-1 select-none">
           Presets:
         </span>
 
@@ -78,8 +78,8 @@ export function FilterPresetsBar({
               className={cn(
                 "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 active
-                  ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
-                  : "bg-card hover:bg-secondary text-muted-foreground hover:text-foreground border-border"
+                  ? "bg-primary/15 text-primary border-primary/40 font-medium"
+                  : "bg-card hover:bg-secondary text-secondary-foreground hover:text-foreground border-border/80"
               )}
               title={preset.description}
             >
@@ -99,7 +99,7 @@ export function FilterPresetsBar({
             variant="ghost"
             size="sm"
             onClick={onCopyShareLink}
-            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5 rounded-lg border border-transparent hover:border-border hover:bg-secondary transition-colors"
+            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5 rounded-lg border border-border/60 hover:bg-secondary transition-colors"
             title="Copy clean shareable link with current active filters"
             aria-label="Share current search filters"
           >

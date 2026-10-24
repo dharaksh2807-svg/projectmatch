@@ -96,10 +96,10 @@ export function Sidebar() {
   ];
 
   const renderNavList = (onNavigate?: () => void) => (
-    <nav className="flex-1 px-3 py-3 space-y-5 overflow-y-auto" aria-label="Site navigation">
+    <nav className="flex-1 px-2.5 py-2.5 space-y-4 overflow-y-auto" aria-label="Site navigation">
       {navigationGroups.map((group) => (
-        <div key={group.title} className="space-y-1">
-          <div className="px-3 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider select-none">
+        <div key={group.title} className="space-y-0.5">
+          <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider select-none">
             {group.title}
           </div>
           {group.items.map(({ href, icon: Icon, label, badge }) => {
@@ -112,7 +112,7 @@ export function Sidebar() {
                 onClick={() => onNavigate?.()}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  "relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-[13px] transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   isActive
                     ? "bg-secondary text-foreground font-semibold"
                     : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground font-medium"
@@ -121,7 +121,7 @@ export function Sidebar() {
                 {/* Restrained active indicator line */}
                 {isActive && (
                   <span
-                    className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary"
+                    className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-primary"
                     aria-hidden="true"
                   />
                 )}
@@ -146,14 +146,14 @@ export function Sidebar() {
 
       {session?.user?.role === "ADMIN" && (
         <div className="pt-2 border-t border-border/60">
-          <div className="px-3 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider select-none">
+          <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider select-none">
             Administration
           </div>
           <Link
             href="/admin"
             onClick={() => onNavigate?.()}
             className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-[13px] font-medium transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               pathname.startsWith("/admin")
                 ? "bg-destructive/10 text-destructive font-semibold"
                 : "text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
@@ -168,32 +168,32 @@ export function Sidebar() {
   );
 
   const renderUserFooter = (onNavigate?: () => void) => (
-    <div className="p-3 border-t border-border bg-sidebar shrink-0 space-y-2.5">
+    <div className="p-2.5 border-t border-border bg-sidebar shrink-0 space-y-1.5">
       {status === "loading" ? (
-        <div className="flex items-center gap-3 px-2 py-1.5 animate-pulse">
-          <div className="w-8 h-8 rounded-xl bg-muted shrink-0" />
+        <div className="flex items-center gap-2.5 px-2 py-1 animate-pulse">
+          <div className="w-7 h-7 rounded-lg bg-muted shrink-0" />
           <div className="flex-1 space-y-1.5 min-w-0">
             <div className="h-3 bg-muted rounded w-20" />
             <div className="h-2.5 bg-muted rounded w-28" />
           </div>
         </div>
       ) : session?.user ? (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {/* User Account Tile */}
           <Link
             href="/profile"
             onClick={() => onNavigate?.()}
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-secondary transition-colors group"
+            className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-secondary transition-colors group"
           >
             {session.user.image ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={session.user.image}
                 alt=""
-                className="w-8 h-8 rounded-xl object-cover ring-1 ring-border shrink-0"
+                className="w-7 h-7 rounded-lg object-cover ring-1 border-border shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
                 {(session.user.name || session.user.email || "U")[0].toUpperCase()}
               </div>
             )}
@@ -205,13 +205,8 @@ export function Sidebar() {
             </div>
           </Link>
 
-          {/* Prominent, Clearly Discoverable Theme Switcher */}
-          <div className="px-1">
-            <ModeToggle showLabel={true} />
-          </div>
-
           {/* Account Sub-actions */}
-          <div className="flex items-center justify-between pt-0.5 px-2 text-xs">
+          <div className="flex items-center justify-between pt-0.5 px-1.5 text-xs">
             <Link
               href="/profile"
               onClick={() => onNavigate?.()}
@@ -222,7 +217,7 @@ export function Sidebar() {
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               aria-label="Sign out of ProjectMatch"
-              className="flex items-center gap-1.5 py-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+              className="flex items-center gap-1.5 py-0.5 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
             >
               <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Sign Out</span>
@@ -230,12 +225,11 @@ export function Sidebar() {
           </div>
         </div>
       ) : (
-        <div className="space-y-2 px-1">
-          <ModeToggle showLabel={true} />
+        <div className="px-0.5">
           <Link
             href="/login"
             onClick={() => onNavigate?.()}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary-hover transition-colors shadow-xs"
           >
             <User className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Sign In</span>
@@ -264,17 +258,21 @@ export function Sidebar() {
               </Button>
             } />
             <SheetContent side="left" className="w-[260px] p-0 bg-sidebar border-border text-foreground flex flex-col h-full">
-              <div className="h-14 flex items-center justify-between px-4 border-b border-border">
+              <div className="h-14 flex items-center justify-between px-3.5 border-b border-border">
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2.5 min-w-0"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0">
                     <Sparkles className="w-4 h-4" />
                   </div>
-                  <span className="font-bold text-sm tracking-tight">ProjectMatch</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-sm tracking-tight truncate">ProjectMatch</span>
+                    <span className="text-[10px] text-muted-foreground -mt-0.5 truncate">Team Collaboration</span>
+                  </div>
                 </Link>
+                <ModeToggle align="end" />
               </div>
               {renderNavList(() => setMobileOpen(false))}
               {renderUserFooter(() => setMobileOpen(false))}
@@ -303,7 +301,7 @@ export function Sidebar() {
               </span>
             )}
           </Link>
-          <ModeToggle />
+          <ModeToggle align="end" />
         </div>
       </header>
 
@@ -311,7 +309,7 @@ export function Sidebar() {
           MOBILE BOTTOM TOOLBAR (< md)
           ───────────────────────────────────────────────────────────── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 h-16 bg-sidebar/95 backdrop-blur-md border-t border-border flex md:hidden items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)]"
+        className="fixed bottom-0 left-0 right-0 z-40 h-14 bg-sidebar border-t border-border flex md:hidden items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)]"
         aria-label="Mobile primary navigation"
       >
         {mobileBottomNavItems.map(({ href, icon: Icon, label, badge }) => {
@@ -323,7 +321,7 @@ export function Sidebar() {
               href={href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-xs font-medium transition-colors relative min-w-[52px] min-h-[44px]",
+                "flex flex-col items-center justify-center py-1.5 px-2 rounded-lg text-xs font-medium transition-colors relative min-w-[52px] min-h-[44px]",
                 isActive
                   ? "text-primary font-semibold"
                   : "text-muted-foreground hover:text-foreground"
@@ -362,17 +360,18 @@ export function Sidebar() {
         className="hidden md:flex w-[240px] shrink-0 flex-col border-r border-border bg-sidebar h-full select-none"
         aria-label="Main navigation"
       >
-        {/* Header with Brand Logo */}
-        <div className="h-16 flex items-center px-4 border-b border-border shrink-0">
-          <Link href="/dashboard" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center transition-transform group-hover:scale-105 shadow-xs">
-              <Sparkles className="w-4 h-4" aria-hidden="true" />
+        {/* Header with Brand Logo and Compact Theme Switcher */}
+        <div className="h-14 flex items-center justify-between px-3 border-b border-border shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-2.5 group min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center transition-transform group-hover:scale-105 shrink-0 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-sm tracking-tight text-foreground">ProjectMatch</span>
-              <span className="text-[10px] text-muted-foreground -mt-0.5">Team Collaboration</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-sm tracking-tight text-foreground truncate">ProjectMatch</span>
+              <span className="text-[10px] text-muted-foreground -mt-0.5 truncate">Team Collaboration</span>
             </div>
           </Link>
+          <ModeToggle align="end" />
         </div>
 
         {/* Grouped Navigation List */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Search,
@@ -143,6 +143,7 @@ const SORT_OPTIONS = [
 ];
 
 function DiscoverContent() {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -241,22 +242,23 @@ function DiscoverContent() {
   const [savedSearchesCount, setSavedSearchesCount] = useState<number>(0);
 
   // Fetch count of saved searches on mount
-  const fetchSavedSearchesCount = useCallback(async () => {
-    if (isGuest) return;
-    try {
-      const res = await fetch("/api/saved-searches?context=ROLES");
-      if (res.ok) {
-        const data = await res.json();
-        setSavedSearchesCount(data.savedSearches?.length || 0);
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, [isGuest]);
-
   useEffect(() => {
-    fetchSavedSearchesCount();
-  }, [fetchSavedSearchesCount]);
+    let ignore = false;
+    if (isGuest) return;
+
+    fetch("/api/saved-searches?context=ROLES")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!ignore && data?.savedSearches) {
+          setSavedSearchesCount(data.savedSearches.length || 0);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      ignore = true;
+    };
+  }, [isGuest]);
 
   // Fetch full dynamic technology catalog on mount
   useEffect(() => {
@@ -282,19 +284,15 @@ function DiscoverContent() {
 
   const handleOpenChat = (chatContext: ContextualChatContext) => {
     if (isGuest) {
-      window.location.href = "/login?callbackUrl=/discover";
+      router.push("/login?callbackUrl=/discover");
       return;
     }
     setActiveChatContext(chatContext);
     setChatDrawerOpen(true);
   };
 
-  // Adjust default sort for guests
-  useEffect(() => {
-    if (isGuest && sortBy === "match") {
-      setSortBy("newest");
-    }
-  }, [isGuest, sortBy]);
+  // Derive effective sort: guests default to newest if match was requested
+  const effectiveSort = isGuest && sortBy === "match" ? "newest" : sortBy;
 
   // Serialized current filters snapshot
   const currentFiltersSnapshot: SavedSearchFilters = useMemo(
@@ -309,7 +307,7 @@ function DiscoverContent() {
       tech: selectedTechs,
       techMode,
       hackathonId: selectedHackathonId,
-      mode: selectedMode as any,
+      mode: selectedMode as SavedSearchFilters["mode"],
       track: selectedTrack,
       openRegOnly,
       college: selectedCollege,
@@ -320,7 +318,7 @@ function DiscoverContent() {
       hideApplied,
       bookmarkedOnly,
       minScore,
-      sort: sortBy,
+      sort: effectiveSort,
     }),
     [
       searchQuery,
@@ -344,7 +342,7 @@ function DiscoverContent() {
       hideApplied,
       bookmarkedOnly,
       minScore,
-      sortBy,
+      effectiveSort,
     ]
   );
 
@@ -442,7 +440,7 @@ function DiscoverContent() {
     if (hideApplied) params.set("hideApplied", "true");
     if (bookmarkedOnly) params.set("bookmarkedOnly", "true");
     if (minScore > 0) params.set("minScore", minScore.toString());
-    if (sortBy && sortBy !== "match") params.set("sort", sortBy);
+    if (effectiveSort && effectiveSort !== "match") params.set("sort", effectiveSort);
 
     const queryStr = params.toString();
     const targetUrl = queryStr ? `${pathname}?${queryStr}` : pathname;
@@ -469,7 +467,7 @@ function DiscoverContent() {
     hideApplied,
     bookmarkedOnly,
     minScore,
-    sortBy,
+    effectiveSort,
     pathname,
   ]);
 
@@ -561,7 +559,7 @@ function DiscoverContent() {
         if (hideApplied) queryParams.append("hideApplied", "true");
         if (bookmarkedOnly) queryParams.append("bookmarkedOnly", "true");
         if (minScore > 0) queryParams.append("minScore", minScore.toString());
-        if (sortBy) queryParams.append("sort", sortBy);
+        if (effectiveSort) queryParams.append("sort", effectiveSort);
 
         queryParams.append("limit", "12");
         if (isLoadMore && cursorToUse) {
@@ -637,7 +635,7 @@ function DiscoverContent() {
       hideApplied,
       bookmarkedOnly,
       minScore,
-      sortBy,
+      effectiveSort,
       toast,
     ]
   );
@@ -761,10 +759,10 @@ function DiscoverContent() {
           ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-2xl sm:text-[28px] font-semibold tracking-tight text-foreground">
             Discover Opportunities
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+          <p className="text-xs sm:text-sm text-secondary-foreground leading-relaxed max-w-2xl">
             Explore active hackathon teams, startup projects, and open vacancies with multi-factor matching.
           </p>
         </div>
@@ -776,7 +774,7 @@ function DiscoverContent() {
               variant="outline"
               size="sm"
               onClick={() => setSavedSearchesOpen(true)}
-              className="gap-1.5 h-9 text-xs font-medium border-border hover:bg-secondary text-foreground transition-colors"
+              className="gap-1.5 h-9 px-3 text-xs font-medium border-border/80 hover:bg-secondary text-foreground transition-colors"
               title="View and run your saved searches"
               aria-label="Open saved searches drawer"
             >
@@ -797,7 +795,7 @@ function DiscoverContent() {
               size="sm"
               onClick={() => setBookmarkedOnly(!bookmarkedOnly)}
               className={cn(
-                "gap-1.5 h-9 text-xs font-medium transition-colors border-border hover:bg-secondary text-foreground",
+                "gap-1.5 h-9 px-3 text-xs font-medium transition-colors border-border/80 hover:bg-secondary text-foreground",
                 bookmarkedOnly && "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
               )}
               title={bookmarkedOnly ? "Showing bookmarked vacancies only" : "Filter by bookmarked vacancies"}
@@ -815,7 +813,7 @@ function DiscoverContent() {
           )}
 
           <Link href="/projects/new">
-            <Button size="sm" className="gap-1.5 h-9 font-semibold shadow-xs">
+            <Button size="sm" className="gap-1.5 h-9 px-3.5 font-semibold shadow-xs">
               Post a Project
             </Button>
           </Link>
@@ -826,22 +824,22 @@ function DiscoverContent() {
           SECTION B: DISCOVERY CONTROLS (SEARCH & FILTER TOOLBAR)
           Unified, responsive bar with visual priority for the search input
           ───────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 bg-card p-2.5 sm:p-3 rounded-xl border border-border">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2 bg-card p-2 sm:p-2.5 rounded-xl border border-border shadow-none">
         {/* Dominant Search Input */}
-        <div className="relative flex-1 min-w-[220px]">
+        <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search roles, technologies, projects, or hackathons..."
-            className="pl-9 pr-8 h-9.5 text-xs sm:text-sm rounded-lg border-input bg-background focus-visible:ring-primary"
+            className="pl-9 pr-8 h-9 text-xs sm:text-sm rounded-lg border-input bg-input-bg focus-visible:ring-primary shadow-none"
             aria-label="Search roles and projects"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-secondary transition-colors"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-md hover:bg-secondary transition-colors"
               title="Clear search"
               aria-label="Clear search input"
             >
@@ -856,7 +854,7 @@ function DiscoverContent() {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="h-9.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
+            className="h-9 px-2.5 rounded-lg border border-input bg-input-bg text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer hover:bg-secondary/40 transition-colors"
             aria-label="Filter by project type"
           >
             {PROJECT_TYPES.map((type) => (
@@ -870,7 +868,7 @@ function DiscoverContent() {
           <select
             value={selectedRoleCategory}
             onChange={(e) => setSelectedRoleCategory(e.target.value)}
-            className="h-9.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
+            className="h-9 px-2.5 rounded-lg border border-input bg-input-bg text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer hover:bg-secondary/40 transition-colors"
             aria-label="Filter by role category"
           >
             {ROLE_CATEGORIES.map((role) => (
@@ -884,7 +882,7 @@ function DiscoverContent() {
           <select
             value={selectedExp}
             onChange={(e) => setSelectedExp(e.target.value)}
-            className="h-9.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
+            className="h-9 px-2.5 rounded-lg border border-input bg-input-bg text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer hover:bg-secondary/40 transition-colors"
             aria-label="Filter by experience level"
           >
             {EXPERIENCE_LEVELS.map((exp) => (
@@ -896,9 +894,9 @@ function DiscoverContent() {
 
           {/* Sort Selector */}
           <select
-            value={sortBy}
+            value={effectiveSort}
             onChange={(e) => setSortBy(e.target.value)}
-            className="h-9.5 px-2.5 rounded-lg border border-input bg-background text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-secondary/50 transition-colors"
+            className="h-9 px-2.5 rounded-lg border border-input bg-input-bg text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer hover:bg-secondary/40 transition-colors"
             aria-label="Sort roles"
           >
             {SORT_OPTIONS.map((opt) => (
@@ -915,7 +913,7 @@ function DiscoverContent() {
             size="sm"
             onClick={() => setFilterDrawerOpen(true)}
             className={cn(
-              "gap-1.5 h-9.5 px-3 rounded-lg text-xs font-medium transition-colors border-input hover:bg-secondary",
+              "gap-1.5 h-9 px-3 rounded-lg text-xs font-medium transition-colors border-input hover:bg-secondary",
               activeFiltersCount > 0 && "border-primary/50 bg-primary/10 text-primary font-semibold"
             )}
             aria-label="Open advanced discovery filters"
@@ -936,7 +934,7 @@ function DiscoverContent() {
               variant="outline"
               size="sm"
               onClick={() => setSaveModalOpen(true)}
-              className="gap-1.5 h-9.5 px-3 rounded-lg text-xs font-medium border-input hover:border-border-strong text-foreground hover:bg-secondary transition-colors"
+              className="gap-1.5 h-9 px-3 rounded-lg text-xs font-medium border-input hover:border-border-strong text-foreground hover:bg-secondary transition-colors"
               title="Save current search criteria as a preset"
               aria-label="Save current search filter combination"
             >
@@ -951,7 +949,7 @@ function DiscoverContent() {
               variant="ghost"
               size="sm"
               onClick={resetFilters}
-              className="h-9.5 text-xs text-muted-foreground hover:text-foreground gap-1 px-2 rounded-lg"
+              className="h-9 text-xs text-muted-foreground hover:text-foreground gap-1 px-2 rounded-lg"
               title="Reset all filters to defaults"
             >
               <RotateCcw className="w-3 h-3" aria-hidden="true" />
@@ -996,7 +994,7 @@ function DiscoverContent() {
 
           {searchQuery && (
             <Badge variant="secondary" className="gap-1 pr-1.5">
-              <span>Query: "{searchQuery}"</span>
+              <span>Query: &quot;{searchQuery}&quot;</span>
               <button
                 onClick={() => setSearchQuery("")}
                 className="hover:text-destructive p-0.5 rounded-full"
@@ -1261,11 +1259,11 @@ function DiscoverContent() {
           5. ROLE RESULTS GRID
           ───────────────────────────────────────────────────────────── */}
       {loading && roles.length === 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="rounded-2xl border border-border bg-card p-5 space-y-4 animate-pulse"
+              className="rounded-xl border border-border bg-card p-4 space-y-3.5 animate-pulse"
             >
               <div className="flex justify-between items-center">
                 <Skeleton className="h-4 w-20 rounded" />
@@ -1279,9 +1277,9 @@ function DiscoverContent() {
                 <Skeleton className="h-6 w-16 rounded" />
                 <Skeleton className="h-6 w-16 rounded" />
               </div>
-              <div className="pt-3 border-t border-border flex justify-between items-center">
+              <div className="pt-2.5 border-t border-border flex justify-between items-center">
                 <Skeleton className="h-4 w-24 rounded" />
-                <Skeleton className="h-8 w-20 rounded-xl" />
+                <Skeleton className="h-8 w-20 rounded-lg" />
               </div>
             </div>
           ))}
@@ -1300,7 +1298,7 @@ function DiscoverContent() {
           onAction={activeFiltersCount > 0 ? resetFilters : undefined}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {roles.map((role) => (
             <RoleCard
               key={role.id}
@@ -1453,6 +1451,7 @@ function RoleCard({
   onApplied,
   onMessageClick,
 }: RoleCardProps) {
+  const router = useRouter();
   const [applied, setApplied] = useState(role.isApplied || false);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const isOwner = currentUserId && role.project.ownerId === currentUserId;
@@ -1463,7 +1462,7 @@ function RoleCard({
   const handleApplyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isGuest) {
-      window.location.href = "/login?callbackUrl=/discover";
+      router.push("/login?callbackUrl=/discover");
       return;
     }
     setIsApplyModalOpen(true);
@@ -1472,7 +1471,7 @@ function RoleCard({
   const handleMessageClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isGuest) {
-      window.location.href = "/login?callbackUrl=/discover";
+      router.push("/login?callbackUrl=/discover");
       return;
     }
     onMessageClick({
@@ -1487,12 +1486,12 @@ function RoleCard({
   };
 
   return (
-    <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-border-strong transition-colors rounded-xl bg-card border border-border group gap-3.5">
+    <Card className="p-4 sm:p-4.5 flex flex-col justify-between hover:border-border-strong transition-colors rounded-xl bg-card border border-border group gap-3 h-full">
       <div>
         {/* Card Header Metadata Bar */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Badge variant="secondary" className="text-xs font-medium">
+            <Badge variant="secondary" className="text-xs font-medium bg-secondary/80 text-secondary-foreground border border-border/60">
               {role.project.projectType}
             </Badge>
 
@@ -1526,7 +1525,7 @@ function RoleCard({
               "p-1.5 rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               role.isBookmarked
                 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25"
-                : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+                : "border-border/80 text-muted-foreground hover:text-foreground hover:bg-secondary"
             )}
           >
             <Heart
@@ -1538,7 +1537,7 @@ function RoleCard({
 
         {/* Role Title and Project Name */}
         <div className="space-y-1">
-          <h2 className="font-semibold text-base text-foreground leading-snug group-hover:text-primary transition-colors">
+          <h2 className="font-semibold text-[15px] sm:text-base text-foreground leading-snug group-hover:text-primary transition-colors">
             <Link href={`/projects/${role.project.id}`}>{role.title}</Link>
           </h2>
           <p className="text-xs text-muted-foreground">
@@ -1554,18 +1553,18 @@ function RoleCard({
 
         {/* Short Description */}
         {role.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5 leading-relaxed">
+          <p className="text-xs text-secondary-foreground line-clamp-2 mt-1 leading-relaxed">
             {role.description.replace(/<[^>]*>/g, "")}
           </p>
         )}
 
         {/* Required Skills */}
         {role.requiredSkills && role.requiredSkills.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2.5">
+          <div className="flex flex-wrap gap-1.5 mt-2">
             {role.requiredSkills.slice(0, 4).map((skill) => (
               <span
                 key={skill}
-                className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground text-xs font-medium border border-border/70"
+                className="px-2 py-0.5 rounded-md bg-secondary/50 text-secondary-foreground text-xs font-medium border border-border/50"
               >
                 {skill}
               </span>
@@ -1579,7 +1578,7 @@ function RoleCard({
         )}
 
         {/* Vacancy & Commitment Details */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2.5 pt-2 border-t border-border">
+        <div className="flex items-center gap-2.5 text-xs text-muted-foreground mt-2 pt-2 border-t border-border/60">
           <span className="flex items-center gap-1.5 font-medium">
             <Users className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
             {role.openSpots > 0 ? (
@@ -1592,27 +1591,29 @@ function RoleCard({
           <span>{role.timeCommitment}</span>
         </div>
 
-        {/* Match Compatibility Information */}
+        {/* Match Compatibility Information - Compact Row */}
         {!isGuest && role.compatibility && (
-          <div className="mt-2.5 p-2 rounded-lg bg-secondary/40 border border-border/60 space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-foreground flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
-                Compatibility Score
+          <div className="mt-2.5 flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-secondary/35 border border-border/50 text-xs">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" aria-hidden="true" />
+              <span className="font-medium text-foreground text-xs truncate">
+                Compatibility
               </span>
-              <span className="font-bold text-primary">{matchPercentage}%</span>
+              <span className="text-muted-foreground text-[11px] truncate hidden xs:inline">
+                · {role.compatibility.factorsMatched > 0
+                  ? `${role.compatibility.factorsMatched}/${role.compatibility.totalFactors} criteria matched`
+                  : "Criteria comparison"}
+              </span>
             </div>
-            {role.compatibility.breakdown && (
-              <p className="text-[11px] text-muted-foreground">
-                Matched on skills ({Math.round(role.compatibility.breakdown.skillOverlap * 100)}%) and experience requirements.
-              </p>
-            )}
+            <span className="font-semibold text-primary font-mono text-xs shrink-0">
+              {matchPercentage}%
+            </span>
           </div>
         )}
       </div>
 
       {/* Card Footer: Project Lead + Actions */}
-      <div className="pt-2.5 border-t border-border mt-3 flex items-center justify-between gap-2">
+      <div className="pt-2 border-t border-border/60 mt-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Avatar
             src={role.project.owner.image}
@@ -1621,7 +1622,10 @@ function RoleCard({
             className="w-6 h-6 text-[10px] shrink-0"
           />
           <div className="min-w-0">
-            <span className="text-xs text-muted-foreground truncate block font-medium max-w-[110px] sm:max-w-[130px]">
+            <span
+              className="text-xs text-secondary-foreground truncate block font-medium max-w-[120px] sm:max-w-[140px]"
+              title={role.project.owner.name || "Project Lead"}
+            >
               {role.project.owner.name || "Project Lead"}
             </span>
           </div>
@@ -1634,7 +1638,7 @@ function RoleCard({
               variant="outline"
               size="sm"
               onClick={handleMessageClick}
-              className="h-8 px-2.5 text-xs font-medium gap-1.5 border-border hover:border-primary/40 hover:text-primary transition-colors"
+              className="h-8 px-2.5 text-xs font-medium gap-1.5 border-border/80 hover:border-primary/40 hover:text-primary transition-colors"
               aria-label={`Message ${role.project.owner.name || "project lead"} about ${role.title}`}
             >
               <MessageSquare className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
@@ -1643,7 +1647,7 @@ function RoleCard({
           )}
 
           <Link href={`/projects/${role.project.id}`}>
-            <Button type="button" variant="ghost" size="sm" className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground">
+            <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground font-medium">
               View Role
             </Button>
           </Link>

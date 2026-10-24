@@ -1361,16 +1361,16 @@ export default function SubmitHackathonPage() {
               <Button
                 type="submit"
                 disabled={submitting}
-                className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm px-8 py-2.5 shadow-lg shadow-emerald-950/40 gap-2 shrink-0 transition-all hover:scale-[1.01]"
+                className="w-full sm:w-auto font-semibold text-sm px-6 py-2 gap-2 shrink-0 shadow-none"
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Publishing to Campus Hub...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 text-emerald-200" />
+                    <Sparkles className="w-4 h-4" />
                     <span>Publish Hackathon</span>
                   </>
                 )}
@@ -1388,17 +1388,17 @@ export default function SubmitHackathonPage() {
             )}
           >
             {/* Live Preview Header */}
-            <div className="p-4 rounded-xl border border-border/60 bg-card/60 backdrop-blur-md shadow-sm space-y-1">
+            <div className="p-4 rounded-xl border border-border bg-card shadow-none space-y-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-emerald-400" />
+                  <Eye className="w-4 h-4 text-primary" />
                   <h3 className="text-sm font-bold text-foreground">Live Attendee Preview</h3>
                 </div>
                 <Badge
                   variant="outline"
-                  className="bg-emerald-500/10 text-emerald-300 border-emerald-500/30 text-[10px] px-2 py-0.5 gap-1 font-semibold"
+                  className="bg-primary/10 text-primary border-primary/25 text-[10px] px-2 py-0.5 gap-1 font-semibold"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                   Real-time sync
                 </Badge>
               </div>
@@ -1409,10 +1409,7 @@ export default function SubmitHackathonPage() {
 
             {/* The Actual Real-time HackathonCard */}
             <div className="relative group">
-              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-indigo-500/10 to-teal-500/20 blur-md opacity-60 group-hover:opacity-90 transition-opacity pointer-events-none" />
-              <div className="relative">
-                <HackathonCard hackathon={previewHackathon} />
-              </div>
+              <HackathonCard hackathon={previewHackathon} />
             </div>
 
             {/* Event Distribution Metadata Card */}

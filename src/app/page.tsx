@@ -11,8 +11,10 @@ import {
   Layers,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { NavbarAuth } from "@/components/shared/navbar-auth";
 
 export default function HomePage() {
   return (
@@ -42,17 +44,7 @@ export default function HomePage() {
             >
               Hackathons
             </Link>
-            <Link
-              href="/login"
-              className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-lg hover:bg-secondary"
-            >
-              Sign In
-            </Link>
-            <Link href="/login">
-              <Button size="sm" className="font-semibold shadow-xs">
-                Get Started
-              </Button>
-            </Link>
+            <NavbarAuth />
             <ModeToggle />
           </div>
         </div>
@@ -81,17 +73,25 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <Link href="/discover" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto gap-2 font-semibold shadow-xs">
-                  <Compass className="w-4 h-4" />
-                  Find a Project
-                </Button>
+              <Link
+                href="/discover"
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "w-full sm:w-auto gap-2 font-semibold shadow-xs"
+                )}
+              >
+                <Compass className="w-4 h-4" />
+                Find a Project
               </Link>
-              <Link href="/login" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2 font-semibold">
-                  <Users className="w-4 h-4 text-primary" />
-                  Build a Team
-                </Button>
+              <Link
+                href="/login?mode=signup"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "w-full sm:w-auto gap-2 font-semibold"
+                )}
+              >
+                <Users className="w-4 h-4 text-primary" />
+                Build a Team
               </Link>
             </div>
           </div>
@@ -146,9 +146,12 @@ export default function HomePage() {
 
             <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
               <span>Part-time (10–15 hrs/wk) · 1 open spot</span>
-              <span className="font-semibold text-primary inline-flex items-center gap-1">
+              <Link
+                href="/discover"
+                className="font-semibold text-primary inline-flex items-center gap-1 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+              >
                 View Role Details <ArrowRight className="w-3.5 h-3.5" />
-              </span>
+              </Link>
             </div>
           </div>
         </section>
@@ -269,15 +272,20 @@ export default function HomePage() {
               Join students, developers, and researchers building impactful software projects and winning hackathons.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-              <Link href="/login">
-                <Button size="lg" className="font-semibold shadow-xs">
-                  Get Started Free
-                </Button>
+              <Link
+                href="/login?mode=signup"
+                className={cn(buttonVariants({ size: "lg" }), "font-semibold shadow-xs")}
+              >
+                Get Started Free
               </Link>
-              <Link href="/hackathons">
-                <Button variant="outline" size="lg" className="font-semibold">
-                  Browse Hackathons
-                </Button>
+              <Link
+                href="/hackathons"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "font-semibold"
+                )}
+              >
+                Browse Hackathons
               </Link>
             </div>
           </div>

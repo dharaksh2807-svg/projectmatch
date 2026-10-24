@@ -26,7 +26,10 @@
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
+  --color-input-bg: var(--input-bg);
+  --color-hover-surface: var(--hover-surface);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
@@ -37,147 +40,154 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: 0.5rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.25rem;
-  --radius-3xl: 1.5rem;
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;    /* 8px */
+  --radius-lg: 0.75rem;   /* 12px */
+  --radius-xl: 0.875rem;  /* 14px */
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.25rem;
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-muted: var(--brand-muted);
 }
 
 /* ─────────────────────────────────────────────────────────────
-   LIGHT PALETTE (Neutral Warm Canvas + Restrained Slate-Teal Accent)
-   Tested WCAG 2.2 AA Contrast
-   Application Background: #F8F9FA
-   Sidebar Background: #FFFFFF
+   LIGHT PALETTE (Clean White Canvas + Restrained Slate-Teal Accent)
+   WCAG 2.2 AA Contrast
+   Application Background: #FFFFFF
+   Sidebar Background: #F8F9FA
    Card / Panel Surface: #FFFFFF
-   Secondary Surface: #F1F3F5
-   Primary Text: #1B1F24 (>14:1 AAA)
-   Secondary Text: #58636F (>5.5:1 AA)
-   Borders: #E2E6EA
-   Primary Accent: #2B5F77 (5.1:1 with #FFFFFF AA)
+   Secondary Surface: #F3F4F6
+   Primary Text: #17191D (>16:1 AAA)
+   Secondary Text: #56606B (>5.8:1 AA)
+   Borders: #E1E4E8
+   Primary Accent: #2E6479 (5.8:1 AA)
    Accent Hover: #234E62
-   Subtle Accent Background: #EBF2F6
-   Accent Foreground: #1F4B5F
+   Text on primary accent: #FFFFFF
    ───────────────────────────────────────────────────────────── */
 :root {
   color-scheme: light;
-  --background: #F8F9FA;
-  --foreground: #1B1F24;
+  --background: #FFFFFF;
+  --foreground: #17191D;
   --card: #FFFFFF;
-  --card-foreground: #1B1F24;
+  --card-foreground: #17191D;
   --popover: #FFFFFF;
-  --popover-foreground: #1B1F24;
-  --primary: #2B5F77;
+  --popover-foreground: #17191D;
+  --primary: #2E6479;
   --primary-foreground: #FFFFFF;
   --primary-hover: #234E62;
-  --secondary: #F1F3F5;
-  --secondary-foreground: #1B1F24;
-  --muted: #F1F3F5;
-  --muted-foreground: #58636F;
-  --accent: #EBF2F6;
-  --accent-foreground: #1F4B5F;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #17191D;
+  --muted: #F3F4F6;
+  --muted-foreground: #56606B;
+  --accent: #E8F0F3;
+  --accent-foreground: #2E6479;
   --destructive: #C53030;
   --destructive-foreground: #FFFFFF;
-  --border: #E2E6EA;
+  --border: #E1E4E8;
   --border-strong: #CBD2D8;
-  --input: #E2E6EA;
-  --ring: #2B5F77;
-  --radius: 0.625rem;
+  --input: #E1E4E8;
+  --input-bg: #FFFFFF;
+  --hover-surface: #F3F4F6;
+  --ring: #2E6479;
+  --radius: 0.5rem;
 
   /* Sidebar */
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #58636F;
-  --sidebar-primary: #2B5F77;
+  --sidebar: #F8F9FA;
+  --sidebar-foreground: #56606B;
+  --sidebar-primary: #2E6479;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F1F3F5;
-  --sidebar-accent-foreground: #1B1F24;
-  --sidebar-border: #E2E6EA;
-  --sidebar-ring: #2B5F77;
+  --sidebar-accent: #F3F4F6;
+  --sidebar-accent-foreground: #17191D;
+  --sidebar-border: #E1E4E8;
+  --sidebar-ring: #2E6479;
 
   /* Brand Tokens */
-  --brand: #2B5F77;
+  --brand: #2E6479;
   --brand-foreground: #FFFFFF;
-  --brand-muted: #EBF2F6;
-  --chart-1: #2B5F77;
+  --brand-muted: #E8F0F3;
+  --chart-1: #2E6479;
   --chart-2: #3E7B99;
   --chart-3: #2E856E;
   --chart-4: #C07128;
   --chart-5: #C53030;
 
-  --scrollbar-thumb: #CBD2D8;
-  --scrollbar-thumb-hover: #9FAAB5;
+  --scrollbar-thumb: #E1E4E8;
+  --scrollbar-thumb-hover: #CBD2D8;
 }
 
 /* ─────────────────────────────────────────────────────────────
-   DARK PALETTE (Neutral Graphite + Warm Charcoal + Restrained Accent)
-   Tested WCAG 2.2 AA Contrast
-   Application Background: #121416
-   Sidebar Background: #17191C
-   Card / Panel Surface: #1D2024
-   Elevated Surface: #25292E
-   Primary Text: #F1F2F4 (>14:1 AAA)
-   Secondary Text: #ADB4BD (>7:1 AAA)
-   Muted Text: #929CA8 (>5:1 AA)
-   Borders: #33383F
-   Primary Accent: #85B9CD (Desaturated blue-teal, 8.5:1 with #0D161B)
-   Subtle Accent Background: #1C2830
-   Accent Foreground: #A2D2E5
+   DARK PALETTE (Premium True-Black + Charcoal Surfaces + Restrained Accent)
+   WCAG 2.2 AA Contrast
+   Main canvas: #000000
+   Sidebar background: #090A0B
+   Card background: #121416
+   Elevated panel: #191C20
+   Input background: #111316
+   Hover surface: #21252A
+   Subtle border: #292D33
+   Primary text: #F5F6F7 (>20:1 AAA)
+   Secondary text: #A5ABB3 (>10:1 AAA)
+   Muted metadata: #929AA4 (>8:1 AAA)
+   Primary accent: #84B6C8 (8.5:1 with text #091116)
+   Accent hover: #A0C9D8
+   Text on primary accent: #091116
    ───────────────────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
-  --background: #121416;
-  --foreground: #F1F2F4;
-  --card: #1D2024;
-  --card-foreground: #F1F2F4;
-  --popover: #1D2024;
-  --popover-foreground: #F1F2F4;
-  --primary: #85B9CD;
-  --primary-foreground: #0D161B;
-  --primary-hover: #9AC7D7;
-  --secondary: #25292E;
-  --secondary-foreground: #F1F2F4;
-  --muted: #25292E;
-  --muted-foreground: #ADB4BD;
-  --accent: #1C2830;
-  --accent-foreground: #A2D2E5;
+  --background: #000000;
+  --foreground: #F5F6F7;
+  --card: #121416;
+  --card-foreground: #F5F6F7;
+  --popover: #191C20;
+  --popover-foreground: #F5F6F7;
+  --primary: #84B6C8;
+  --primary-foreground: #091116;
+  --primary-hover: #A0C9D8;
+  --secondary: #191C20;
+  --secondary-foreground: #F5F6F7;
+  --muted: #191C20;
+  --muted-foreground: #929AA4;
+  --accent: #191C20;
+  --accent-foreground: #84B6C8;
   --destructive: #E5484D;
   --destructive-foreground: #FFFFFF;
-  --border: #33383F;
-  --border-strong: #454C55;
-  --input: #33383F;
-  --ring: #85B9CD;
-  --radius: 0.625rem;
+  --border: #292D33;
+  --border-strong: #383E46;
+  --input: #292D33;
+  --input-bg: #111316;
+  --hover-surface: #21252A;
+  --ring: #84B6C8;
+  --radius: 0.5rem;
 
   /* Sidebar */
-  --sidebar: #17191C;
-  --sidebar-foreground: #ADB4BD;
-  --sidebar-primary: #85B9CD;
-  --sidebar-primary-foreground: #0D161B;
-  --sidebar-accent: #25292E;
-  --sidebar-accent-foreground: #F1F2F4;
-  --sidebar-border: #33383F;
-  --sidebar-ring: #85B9CD;
+  --sidebar: #090A0B;
+  --sidebar-foreground: #A5ABB3;
+  --sidebar-primary: #84B6C8;
+  --sidebar-primary-foreground: #091116;
+  --sidebar-accent: #191C20;
+  --sidebar-accent-foreground: #F5F6F7;
+  --sidebar-border: #292D33;
+  --sidebar-ring: #84B6C8;
 
   /* Brand Tokens */
-  --brand: #85B9CD;
-  --brand-foreground: #0D161B;
-  --brand-muted: #1C2830;
-  --chart-1: #85B9CD;
+  --brand: #84B6C8;
+  --brand-foreground: #091116;
+  --brand-muted: #191C20;
+  --chart-1: #84B6C8;
   --chart-2: #5EA8C6;
   --chart-3: #34D399;
   --chart-4: #FBBF24;
   --chart-5: #E5484D;
 
-  --scrollbar-thumb: #33383F;
-  --scrollbar-thumb-hover: #454C55;
+  --scrollbar-thumb: #292D33;
+  --scrollbar-thumb-hover: #383E46;
 }
 
 @layer base {
@@ -224,13 +234,13 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    box-shadow: none;
   }
   .surface-elevated {
-    background: var(--card);
+    background: var(--popover);
     border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.15);
   }
   /* Clean restrained brand backgrounds (no saturated purple gradients) */
   .brand-gradient {

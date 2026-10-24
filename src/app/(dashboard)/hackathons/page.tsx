@@ -435,7 +435,7 @@ function HackathonsPageContent() {
                   <Link href="/hackathons/submit">
                     <Button
                       size="sm"
-                      className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-xs h-8 px-3 rounded-xl gap-1 shadow-md shadow-indigo-950/40 border border-indigo-400/30"
+                      className="font-semibold text-xs h-8 px-3 rounded-lg gap-1 shadow-none"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       + Post a Hackathon

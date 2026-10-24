@@ -124,7 +124,7 @@ export function DiscoverTechFilter({
       // Alias or fuzzy normalized match
       return tagMatches(t, q) || tagMatches(q, t);
     });
-  }, [availableTechs, activeCategory, categories, searchQuery]);
+  }, [effectiveAvailableTechs, activeCategory, categories, searchQuery]);
 
   // Helper to check if a tech is currently selected
   const isSelected = (tech: string) => {
@@ -134,19 +134,19 @@ export function DiscoverTechFilter({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card p-3.5 sm:p-4 space-y-3",
+        "rounded-xl border border-border bg-card p-3 sm:p-3.5 space-y-2.5",
         className
       )}
     >
       {/* ── 1. HEADER ROW: Title, Badges, Match Toggle & Clear ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <Code2 className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-foreground">
             Technology Stack
           </h2>
           {selectedTechs.length > 0 && (
-            <Badge variant="secondary" className="text-[11px] h-5 px-2 font-medium">
+            <Badge variant="secondary" className="text-[11px] h-5 px-1.5 font-medium">
               {selectedTechs.length} selected
             </Badge>
           )}
@@ -154,7 +154,7 @@ export function DiscoverTechFilter({
             <button
               type="button"
               onClick={onClearTechs}
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 ml-1 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 ml-0.5 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded"
               title="Clear selected technologies"
             >
               <RotateCcw className="w-3 h-3" aria-hidden="true" />
@@ -171,7 +171,7 @@ export function DiscoverTechFilter({
           <div
             role="group"
             aria-label="Technology match mode"
-            className="inline-flex items-center bg-secondary rounded-lg p-0.5 border border-border"
+            className="inline-flex items-center bg-input-bg rounded-lg p-0.5 border border-border"
           >
             <button
               type="button"
@@ -180,8 +180,8 @@ export function DiscoverTechFilter({
               className={cn(
                 "px-2.5 py-1 text-xs rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 techMode === "any"
-                  ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/20 text-primary font-semibold border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground border border-transparent"
               )}
               title="Projects matching ANY selected technology will be shown"
             >
@@ -194,8 +194,8 @@ export function DiscoverTechFilter({
               className={cn(
                 "px-2.5 py-1 text-xs rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 techMode === "all"
-                  ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/20 text-primary font-semibold border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground border border-transparent"
               )}
               title="Projects strictly matching ALL selected technologies will be shown"
             >
@@ -217,7 +217,7 @@ export function DiscoverTechFilter({
             }
           }}
           placeholder="Filter technology list (e.g. React, Python, PostgreSQL, Docker)..."
-          className="pl-8.5 pr-8 h-9 text-xs rounded-lg bg-background border-input focus-visible:ring-primary"
+          className="pl-8.5 pr-8 h-8.5 text-xs rounded-lg bg-input-bg border-input focus-visible:ring-primary shadow-none"
           aria-label="Search technologies"
         />
         {searchQuery && (
@@ -233,7 +233,7 @@ export function DiscoverTechFilter({
       </div>
 
       {/* ── 3. POPULAR TECHNOLOGIES (ALWAYS VISIBLE COMPACT ROW) ── */}
-      <div className="space-y-1.5 pt-0.5">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
           <span className="flex items-center gap-1.5">
             <span>Popular Technologies</span>
@@ -256,12 +256,12 @@ export function DiscoverTechFilter({
                 className={cn(
                   "text-xs px-2.5 py-1 rounded-lg border transition-colors font-medium flex items-center gap-1.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   active
-                    ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
-                    : "bg-secondary/50 text-foreground border-border hover:bg-secondary hover:border-border-strong"
+                    ? "bg-primary/15 text-primary border-primary/35 font-medium"
+                    : "bg-secondary/40 text-foreground border-border/80 hover:bg-secondary hover:border-border-strong"
                 )}
               >
                 {active && (
-                  <Check className="w-3 h-3 text-primary-foreground shrink-0 stroke-[2.5]" aria-hidden="true" />
+                  <Check className="w-3 h-3 text-primary shrink-0 stroke-[2.5]" aria-hidden="true" />
                 )}
                 <span>{tech}</span>
                 {count > 0 && (
@@ -269,7 +269,7 @@ export function DiscoverTechFilter({
                     className={cn(
                       "text-[10px] px-1 py-0.2 rounded font-mono",
                       active
-                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        ? "bg-primary/20 text-primary"
                         : "bg-background text-muted-foreground border border-border/60"
                     )}
                   >
@@ -284,7 +284,7 @@ export function DiscoverTechFilter({
 
       {/* ── 4. ACTIVE SELECTED CHIPS STRIP (WHEN ANY ARE SELECTED) ── */}
       {selectedTechs.length > 0 && (
-        <div className="pt-2 border-t border-border">
+        <div className="pt-2 border-t border-border/60">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs text-muted-foreground font-medium mr-1 select-none">
               Selected:
@@ -345,7 +345,7 @@ export function DiscoverTechFilter({
 
       {/* ── 6. EXPANDED FULL CATALOG VIEW ── */}
       {isExpanded && (
-        <div className="space-y-2.5 pt-1 animate-in fade-in-50 duration-200">
+        <div className="space-y-2 pt-1 animate-in fade-in-50 duration-200">
           {/* Category Tabs */}
           <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none text-xs">
             {categoryNames.map((cat) => (
@@ -366,10 +366,10 @@ export function DiscoverTechFilter({
           </div>
 
           {/* Categorized Tech Chips Cloud (Bounded scroll region) */}
-          <div className="max-h-56 sm:max-h-64 overflow-y-auto p-2.5 border border-border rounded-xl bg-background/50 space-y-2">
+          <div className="max-h-52 sm:max-h-60 overflow-y-auto p-2.5 border border-border/80 rounded-xl bg-background/50 space-y-2">
             {filteredTechs.length === 0 ? (
               <div className="text-center py-6 text-xs text-muted-foreground space-y-1">
-                <p>No technologies found matching "{searchQuery}"</p>
+                <p>No technologies found matching &quot;{searchQuery}&quot;</p>
                 <p className="text-[11px]">
                   Try searching for a different language, framework, database, or tool.
                 </p>
@@ -388,12 +388,12 @@ export function DiscoverTechFilter({
                       className={cn(
                         "text-xs px-2.5 py-1 rounded-lg border transition-colors font-medium flex items-center gap-1.5 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         active
-                          ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
-                          : "bg-secondary/50 text-foreground border-border hover:bg-secondary hover:border-border-strong"
+                          ? "bg-primary/15 text-primary border-primary/35 font-medium"
+                          : "bg-secondary/40 text-foreground border-border/80 hover:bg-secondary hover:border-border-strong"
                       )}
                     >
                       {active && (
-                        <Check className="w-3 h-3 text-primary-foreground shrink-0 stroke-[2.5]" aria-hidden="true" />
+                        <Check className="w-3 h-3 text-primary shrink-0 stroke-[2.5]" aria-hidden="true" />
                       )}
                       <span>{tech}</span>
                       {count > 0 && (
@@ -401,7 +401,7 @@ export function DiscoverTechFilter({
                           className={cn(
                             "text-[10px] px-1 py-0.2 rounded font-mono",
                             active
-                              ? "bg-primary-foreground/20 text-primary-foreground"
+                              ? "bg-primary/20 text-primary"
                               : "bg-background text-muted-foreground border border-border/60"
                           )}
                         >

@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Sparkles, GitBranch, Globe, Loader2, ArrowLeft } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 
+import { cn } from "@/lib/utils";
+
 const DEMO_USERS = [
   {
     name: "Eve Johnson (Project Owner)",
@@ -33,7 +35,18 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/discover";
+  const initialMode = searchParams.get("mode") === "signup" ? "signup" : "signin";
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+
+  useEffect(() => {
+    const urlMode = searchParams.get("mode");
+    if (urlMode === "signup") {
+      setMode("signup");
+    } else if (urlMode === "signin") {
+      setMode("signin");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (session?.user) {
@@ -91,16 +104,50 @@ function LoginForm() {
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-3 shadow-xs">
             <Sparkles className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome to ProjectMatch</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {mode === "signup" ? "Join ProjectMatch" : "Welcome to ProjectMatch"}
+          </h1>
           <p className="text-muted-foreground text-sm mt-1.5 max-w-xs">
-            Sign in to discover projects and teammates matched to your skills.
+            {mode === "signup"
+              ? "Create your account to discover projects and teammates matched to your skills."
+              : "Sign in to discover projects and teammates matched to your skills."}
           </p>
+        </div>
+
+        {/* Auth mode toggle tabs */}
+        <div className="grid grid-cols-2 p-1 bg-secondary/60 rounded-xl mb-6 border border-border/50 text-xs font-semibold">
+          <button
+            type="button"
+            id="tab-signin"
+            onClick={() => setMode("signin")}
+            className={cn(
+              "py-1.5 rounded-lg transition-all text-center",
+              mode === "signin"
+                ? "bg-background text-foreground shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            id="tab-signup"
+            onClick={() => setMode("signup")}
+            className={cn(
+              "py-1.5 rounded-lg transition-all text-center",
+              mode === "signup"
+                ? "bg-background text-foreground shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Create Account
+          </button>
         </div>
 
         {/* 1-Click Demo Personas for Instant Testing */}
         <div className="space-y-3 mb-6">
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            <span>Instant Test Login</span>
+            <span>{mode === "signup" ? "Instant Test Sign Up" : "Instant Test Login"}</span>
             <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
               Demo Mode
             </span>
@@ -159,7 +206,7 @@ function LoginForm() {
             ) : (
               <GitBranch className="w-5 h-5 group-hover:scale-110 transition-transform" />
             )}
-            Continue with GitHub
+            {mode === "signup" ? "Sign up with GitHub" : "Continue with GitHub"}
           </button>
 
           <button
@@ -173,12 +220,39 @@ function LoginForm() {
             ) : (
               <Globe className="w-5 h-5 group-hover:scale-110 transition-transform" />
             )}
-            Continue with Google
+            {mode === "signup" ? "Sign up with Google" : "Continue with Google"}
           </button>
         </div>
 
+        {/* Switcher link */}
+        <div className="text-center mt-5 text-xs text-muted-foreground">
+          {mode === "signup" ? (
+            <p>
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signin")}
+                className="font-semibold text-primary hover:underline ml-1"
+              >
+                Sign In
+              </button>
+            </p>
+          ) : (
+            <p>
+              Don&apos;t have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signup")}
+                className="font-semibold text-primary hover:underline ml-1"
+              >
+                Create one
+              </button>
+            </p>
+          )}
+        </div>
+
         <p className="text-xs text-muted-foreground text-center mt-6 leading-relaxed">
-          By signing in, you agree to our{" "}
+          By continuing, you agree to our{" "}
           <span className="underline cursor-pointer hover:text-foreground transition-colors">
             Terms of Service
           </span>{" "}

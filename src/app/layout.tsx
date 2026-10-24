@@ -23,26 +23,62 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.NEXTAUTH_URL ||
+  "https://projectmatch-phi.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "ProjectMatch — Find Your Dream Team",
     template: "%s | ProjectMatch",
   },
   description:
     "Connect with talented individuals and project owners. Find your perfect team based on skills, interests, and availability.",
-  keywords: ["team formation", "hackathon", "project team", "skill matching", "collaboration"],
+  keywords: [
+    "team formation",
+    "hackathon",
+    "project team",
+    "skill matching",
+    "collaboration",
+    "developer matchmaking",
+    "hackathon teams",
+  ],
+  authors: [{ name: "ProjectMatch Team" }],
+  creator: "ProjectMatch",
+  publisher: "ProjectMatch",
+  robots: {
+    index: true,
+    follow: true,
+  },
   openGraph: {
     type: "website",
+    locale: "en_US",
+    url: siteUrl,
     siteName: "ProjectMatch",
     title: "ProjectMatch — Find Your Dream Team",
     description:
       "Connect with talented individuals and project owners. Find your perfect team based on skills, interests, and availability.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "ProjectMatch — Find Your Dream Team",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "ProjectMatch — Find Your Dream Team",
     description:
       "Connect with talented individuals and project owners. Find your perfect team based on skills, interests, and availability.",
+    creator: "@projectmatch",
+    images: ["/og-image.png"],
+  },
+  alternates: {
+    canonical: siteUrl,
   },
 };
 
