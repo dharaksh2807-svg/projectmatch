@@ -104,6 +104,13 @@ export async function POST(req: NextRequest) {
       content: m.content,
     }));
 
+    // Extract BYOK keys safely from encrypted request headers (never logged or exposed)
+    const customKeys = {
+      google: req.headers.get("x-gemini-api-key")?.trim() || undefined,
+      anthropic: req.headers.get("x-claude-api-key")?.trim() || undefined,
+      oss: req.headers.get("x-openai-api-key")?.trim() || undefined,
+    };
+
     // 8. Generate stream
     const stream = await generateStream({
       modelId: agent.modelId,
@@ -111,6 +118,7 @@ export async function POST(req: NextRequest) {
       messages,
       temperature: agent.temperature,
       userId,
+      customKeys,
     });
 
     // 9. Intercept stream to save assistant response
@@ -136,8 +144,9 @@ export async function POST(req: NextRequest) {
             content: fullResponse,
           },
         });
-      } catch (err) {
-        console.error("Failed to save assistant message", err);
+      } catch {
+        // Redacted background logging
+        console.error("Failed to save assistant message");
       }
     })();
 
@@ -147,11 +156,16 @@ export async function POST(req: NextRequest) {
         "X-Chat-Id": chat.id,
       },
     });
-  } catch {
-    return NextResponse.json({ error: "Failed to process chat" }, { status: 500 });
+  } catch (err: unknown) {
+    const errorObj = err as { status?: number; code?: string; message?: string } | undefined;
+    const status = errorObj?.status && errorObj.status >= 400 && errorObj.status < 600 ? errorObj.status : 500;
+    const message = errorObj?.message || "Failed to process chat generation";
+    const code = errorObj?.code || (status === 401 ? "INVALID_API_KEY" : status === 429 ? "RATE_LIMITED" : "GENERATION_ERROR");
+
+    return NextResponse.json({ error: message, code }, { status });
   }
-  } catch (outerErr) {
-    console.error("POST /api/chat unhandled error:", outerErr);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (outerErr: unknown) {
+    const errorObj = outerErr as { message?: string } | undefined;
+    return NextResponse.json({ error: errorObj?.message || "Internal Server Error" }, { status: 500 });
   }
 }

@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Swords, CheckCircle2, Bot, Trophy } from "lucide-react";
+import { Loader2, Swords, CheckCircle2, Bot, Trophy, Key, AlertTriangle } from "lucide-react";
 import { useToast } from "@/components/ui/toast-provider";
+import { useChatStore } from "@/store/chatStore";
+import { ByokModal } from "@/components/chat/ByokModal";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -23,6 +25,7 @@ interface Battle {
 
 export default function PromptBattlesPage() {
   const { toast } = useToast();
+  const { userKeys, setByokModalOpen } = useChatStore();
   
   const [models, setModels] = useState<Model[]>([]);
   const [modelA, setModelA] = useState("");
@@ -30,6 +33,7 @@ export default function PromptBattlesPage() {
   const [prompt, setPrompt] = useState("");
   const [isBattling, setIsBattling] = useState(false);
   const [currentBattle, setCurrentBattle] = useState<Battle | null>(null);
+  const [battleError, setBattleError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/models")
@@ -50,17 +54,63 @@ export default function PromptBattlesPage() {
     
     setIsBattling(true);
     setCurrentBattle(null);
+    setBattleError(null);
+
     try {
+      // Securely pass BYOK keys in request headers
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (userKeys.geminiApiKey) headers["x-gemini-api-key"] = userKeys.geminiApiKey;
+      if (userKeys.claudeApiKey) headers["x-claude-api-key"] = userKeys.claudeApiKey;
+      if (userKeys.openaiApiKey) headers["x-openai-api-key"] = userKeys.openaiApiKey;
+
       const res = await fetch("/api/prompt-battles", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ prompt, modelAId: modelA, modelBId: modelB }),
       });
-      if (!res.ok) throw new Error();
+
+      if (!res.ok) {
+        let errJson: { error?: string; code?: string } | null = null;
+        try {
+          errJson = await res.json();
+        } catch {}
+
+        if (res.status === 401) {
+          const msg = errJson?.error || "Invalid or unauthorized API key for one or both models. Please check your BYOK credentials.";
+          setBattleError(msg);
+          toast(msg, "error");
+          return;
+        }
+
+        if (res.status === 429) {
+          const msg = errJson?.error || "Rate limit or quota exceeded for one of the competing models.";
+          setBattleError(msg);
+          toast(msg, "error");
+          return;
+        }
+
+        const msg = errJson?.error || `Battle failed to start (${res.status})`;
+        setBattleError(msg);
+        toast(msg, "error");
+        return;
+      }
+
       const battle = await res.json();
       setCurrentBattle(battle);
-    } catch {
-      toast("Battle failed to start", "error");
+      setBattleError(null);
+    } catch (err: unknown) {
+      const isNetworkOrCors = err instanceof TypeError && (
+        err.message.includes("fetch") ||
+        err.message.includes("NetworkError") ||
+        err.message.includes("Failed to fetch")
+      );
+      const msg = isNetworkOrCors
+        ? "Network or CORS connection error. Unable to reach the battle endpoint. Please check your connection."
+        : "Failed to connect to battle service.";
+      setBattleError(msg);
+      toast(msg, "error");
     } finally {
       setIsBattling(false);
     }
@@ -87,14 +137,30 @@ export default function PromptBattlesPage() {
       <div className="max-w-5xl w-full mx-auto flex flex-col gap-6">
         
         {/* Header */}
-        <div className="flex items-center gap-3.5 sm:gap-4 border-b border-border pb-5 shrink-0">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
-            <Swords className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="flex items-center justify-between border-b border-border pb-5 shrink-0">
+          <div className="flex items-center gap-3.5 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+              <Swords className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Prompt Battles</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm">Compare AI model responses side-by-side with identical inputs</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Prompt Battles</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm">Compare AI model responses side-by-side with identical inputs</p>
-          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setByokModalOpen(true)}
+            className="h-9 border-border bg-background text-foreground hover:bg-accent flex items-center gap-1.5 rounded-xl shadow-sm"
+            title="Configure BYOK API Keys (Session Only)"
+          >
+            <Key className="w-4 h-4 text-primary" />
+            <span className="hidden sm:inline">BYOK Keys</span>
+            {(userKeys.geminiApiKey || userKeys.claudeApiKey || userKeys.openaiApiKey) && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
+            )}
+          </Button>
         </div>
 
         {/* Input Card */}
@@ -250,6 +316,25 @@ export default function PromptBattlesPage() {
                 )}
               </div>
             </>
+          ) : battleError ? (
+            <div className="flex-1 min-h-[260px] flex flex-col items-center justify-center text-muted-foreground border-2 border-destructive/20 rounded-2xl p-8 text-center space-y-4 bg-destructive/5">
+              <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="max-w-md space-y-1.5">
+                <p className="text-sm font-semibold text-foreground">Generation Notice</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{battleError}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setByokModalOpen(true)}
+                className="rounded-xl border-primary/30 text-primary hover:bg-primary/10 gap-1.5"
+              >
+                <Key className="w-4 h-4" />
+                Configure BYOK Keys
+              </Button>
+            </div>
           ) : (
             <div className="flex-1 min-h-[260px] flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border rounded-2xl p-8 text-center space-y-3 bg-card/40">
               <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
@@ -277,6 +362,9 @@ export default function PromptBattlesPage() {
         )}
 
       </div>
+
+      {/* Bring Your Own Key (BYOK) Modal */}
+      <ByokModal />
     </div>
   );
 }

@@ -55,6 +55,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Extract BYOK keys safely from encrypted request headers (never logged or exposed)
+    const customKeys = {
+      google: req.headers.get("x-gemini-api-key")?.trim() || undefined,
+      anthropic: req.headers.get("x-claude-api-key")?.trim() || undefined,
+      oss: req.headers.get("x-openai-api-key")?.trim() || undefined,
+    };
+
     // We run both generation streams in parallel to save time
     const [streamA, streamB] = await Promise.all([
       generateStream({
@@ -62,12 +69,14 @@ export async function POST(req: NextRequest) {
         systemPrompt: "You are a helpful, extremely intelligent AI assistant. Provide the best possible response.",
         messages: [{ role: "USER", content: prompt }],
         temperature: 0.7,
+        customKeys,
       }),
       generateStream({
         modelId: modelBId,
         systemPrompt: "You are a helpful, extremely intelligent AI assistant. Provide the best possible response.",
         messages: [{ role: "USER", content: prompt }],
         temperature: 0.7,
+        customKeys,
       }),
     ]);
 
@@ -90,15 +99,16 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(battle);
-  } catch (error: any) {
-    console.error("Prompt battle generation error:", error);
-    return NextResponse.json(
-      { error: "Failed to generate responses" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const errorObj = error as { status?: number; code?: string; message?: string } | undefined;
+    const status = errorObj?.status && errorObj.status >= 400 && errorObj.status < 600 ? errorObj.status : 500;
+    const message = errorObj?.message || "Failed to generate battle responses";
+    const code = errorObj?.code || (status === 401 ? "INVALID_API_KEY" : status === 429 ? "RATE_LIMITED" : "GENERATION_ERROR");
+
+    return NextResponse.json({ error: message, code }, { status });
   }
-  } catch (outerErr) {
-    console.error("POST /api/prompt-battles unhandled error:", outerErr);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (outerErr: unknown) {
+    const errorObj = outerErr as { message?: string } | undefined;
+    return NextResponse.json({ error: errorObj?.message || "Internal Server Error" }, { status: 500 });
   }
 }

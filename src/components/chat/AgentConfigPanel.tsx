@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useChatStore } from "@/store/chatStore";
+import { useChatStore, Agent } from "@/store/chatStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { X, Settings, Trash2 } from "lucide-react";
+import { X, Settings, Trash2, Key } from "lucide-react";
 import { ModelSelector } from "./ModelSelector";
-import { useEffect } from "react";
 import { useToast } from "@/components/ui/toast-provider";
 
 interface AgentConfigPanelProps {
@@ -16,31 +15,26 @@ interface AgentConfigPanelProps {
   onClose: () => void;
 }
 
-export function AgentConfigPanel({ isOpen, onClose }: AgentConfigPanelProps) {
-  const { selectedModelId, setAgent, activeAgent } = useChatStore();
-  const [name, setName] = useState("New Agent");
+function AgentConfigForm({
+  activeAgent,
+  onClose,
+}: {
+  activeAgent: Agent | null;
+  onClose: () => void;
+}) {
+  const { selectedModelId, setAgent, setByokModalOpen } = useChatStore();
+  const isCustomAgent = activeAgent && !activeAgent.isPublic;
+
+  const [name, setName] = useState(isCustomAgent ? activeAgent.name : "New Agent");
   const [systemPrompt, setSystemPrompt] = useState(
-    "You are a helpful AI assistant."
+    isCustomAgent ? activeAgent.systemPrompt : "You are a helpful AI assistant."
   );
-  const [temperature, setTemperature] = useState(0.7);
+  const [temperature, setTemperature] = useState(
+    isCustomAgent ? activeAgent.temperature : 0.7
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
-
-  const isCustomAgent = activeAgent && !activeAgent.isPublic;
-
-  useEffect(() => {
-    if (isOpen && activeAgent && isCustomAgent) {
-      setName(activeAgent.name);
-      setSystemPrompt(activeAgent.systemPrompt);
-      setTemperature(activeAgent.temperature);
-      // The ModelSelector automatically reads selectedModelId from store.
-    } else if (isOpen && !isCustomAgent) {
-      setName("New Agent");
-      setSystemPrompt("You are a helpful AI assistant.");
-      setTemperature(0.7);
-    }
-  }, [isOpen, activeAgent, isCustomAgent]);
 
   const handleSave = async () => {
     if (!selectedModelId) {
@@ -93,7 +87,7 @@ export function AgentConfigPanel({ isOpen, onClose }: AgentConfigPanelProps) {
       });
       if (!res.ok) throw new Error("Failed to delete");
       
-      setAgent(null as any);
+      setAgent(null);
       toast("Agent deleted successfully", "success");
       onClose();
     } catch (error) {
@@ -108,17 +102,13 @@ export function AgentConfigPanel({ isOpen, onClose }: AgentConfigPanelProps) {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ${
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 opacity-100"
         onClick={onClose}
       />
 
       {/* Slide-in Panel */}
       <div
-        className={`fixed right-0 top-0 h-full w-full max-w-md bg-card/95 backdrop-blur-2xl border-l border-border z-50 shadow-2xl transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] p-6 flex flex-col text-card-foreground ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className="fixed right-0 top-0 h-full w-full max-w-md bg-card/95 backdrop-blur-2xl border-l border-border z-50 shadow-2xl transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] p-6 flex flex-col text-card-foreground translate-x-0"
       >
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-2">
@@ -147,7 +137,16 @@ export function AgentConfigPanel({ isOpen, onClose }: AgentConfigPanelProps) {
           </div>
 
           <div className="space-y-2 flex flex-col">
-            <Label className="text-foreground font-medium mb-1">Model Selection</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-foreground font-medium mb-1">Model Selection</Label>
+              <button
+                type="button"
+                onClick={() => setByokModalOpen(true)}
+                className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
+              >
+                <Key className="w-3 h-3" /> BYOK Keys
+              </button>
+            </div>
             <div className="w-full">
               <ModelSelector />
             </div>
@@ -208,5 +207,19 @@ export function AgentConfigPanel({ isOpen, onClose }: AgentConfigPanelProps) {
         </div>
       </div>
     </>
+  );
+}
+
+export function AgentConfigPanel({ isOpen, onClose }: AgentConfigPanelProps) {
+  const { activeAgent } = useChatStore();
+
+  if (!isOpen) return null;
+
+  return (
+    <AgentConfigForm
+      key={activeAgent ? activeAgent.id : "new-agent"}
+      activeAgent={activeAgent}
+      onClose={onClose}
+    />
   );
 }

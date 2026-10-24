@@ -32,6 +32,48 @@ export interface ChatSummary {
   updatedAt?: string;
 }
 
+export interface UserApiKeys {
+  geminiApiKey?: string;
+  claudeApiKey?: string;
+  openaiApiKey?: string;
+}
+
+function getSessionKeys(): UserApiKeys {
+  if (typeof window === "undefined") return {};
+  try {
+    return {
+      geminiApiKey: sessionStorage.getItem("pm_byok_gemini") || undefined,
+      claudeApiKey: sessionStorage.getItem("pm_byok_claude") || undefined,
+      openaiApiKey: sessionStorage.getItem("pm_byok_openai") || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function saveSessionKey(provider: "gemini" | "claude" | "openai", key?: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const storageKey = `pm_byok_${provider}`;
+    if (!key || key.trim() === "") {
+      sessionStorage.removeItem(storageKey);
+    } else {
+      sessionStorage.setItem(storageKey, key.trim());
+    }
+  } catch {
+    // sessionStorage errors handled silently
+  }
+}
+
+function clearSessionKeys() {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem("pm_byok_gemini");
+    sessionStorage.removeItem("pm_byok_claude");
+    sessionStorage.removeItem("pm_byok_openai");
+  } catch {}
+}
+
 interface ChatState {
   availableModels: AIModel[];
   selectedModelId: string | null;
@@ -40,10 +82,12 @@ interface ChatState {
   isStreaming: boolean;
   activeChatId: string | null;
   chatList: ChatSummary[];
+  userKeys: UserApiKeys;
+  isByokModalOpen: boolean;
 
   setModels: (models: AIModel[]) => void;
   setModel: (modelId: string) => void;
-  setAgent: (agent: Agent) => void;
+  setAgent: (agent: Agent | null) => void;
   setActiveChat: (chatId: string) => void;
   addMessage: (message: Message) => void;
   appendToLastMessage: (chunk: string) => void;
@@ -51,6 +95,11 @@ interface ChatState {
   setStreaming: (streaming: boolean) => void;
   fetchChats: () => Promise<void>;
   loadChatHistory: (chatId: string) => Promise<void>;
+  setByokModalOpen: (open: boolean) => void;
+  setUserKey: (provider: "gemini" | "claude" | "openai", key: string) => void;
+  setUserKeys: (keys: UserApiKeys) => void;
+  clearUserKeys: () => void;
+  loadUserKeysFromSession: () => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -61,10 +110,42 @@ export const useChatStore = create<ChatState>((set) => ({
   isStreaming: false,
   activeChatId: null,
   chatList: [],
+  userKeys: getSessionKeys(),
+  isByokModalOpen: false,
+
+  setByokModalOpen: (open) => set({ isByokModalOpen: open }),
+  setUserKey: (provider, key) => {
+    saveSessionKey(provider, key);
+    set((state) => ({
+      userKeys: {
+        ...state.userKeys,
+        [`${provider}ApiKey`]: key.trim() ? key.trim() : undefined,
+      },
+    }));
+  },
+  setUserKeys: (keys) => {
+    if (keys.geminiApiKey !== undefined) saveSessionKey("gemini", keys.geminiApiKey);
+    if (keys.claudeApiKey !== undefined) saveSessionKey("claude", keys.claudeApiKey);
+    if (keys.openaiApiKey !== undefined) saveSessionKey("openai", keys.openaiApiKey);
+    set({
+      userKeys: {
+        geminiApiKey: keys.geminiApiKey?.trim() || undefined,
+        claudeApiKey: keys.claudeApiKey?.trim() || undefined,
+        openaiApiKey: keys.openaiApiKey?.trim() || undefined,
+      },
+    });
+  },
+  clearUserKeys: () => {
+    clearSessionKeys();
+    set({ userKeys: {} });
+  },
+  loadUserKeysFromSession: () => {
+    set({ userKeys: getSessionKeys() });
+  },
 
   setModels: (models) => set({ availableModels: models }),
   setModel: (modelId) => set({ selectedModelId: modelId }),
-  setAgent: (agent) => set({ activeAgent: agent, selectedModelId: agent.modelId }),
+  setAgent: (agent) => set({ activeAgent: agent, selectedModelId: agent ? agent.modelId : null }),
   setActiveChat: (chatId) => set({ activeChatId: chatId }),
   
   addMessage: (message) =>

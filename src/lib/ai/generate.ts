@@ -75,16 +75,77 @@ function buildContextWindow(
   return [first, summaryMessage, ...tail];
 }
 
+export interface CustomAiKeys {
+  google?: string;
+  anthropic?: string;
+  oss?: string;
+}
+
+export class AiProviderError extends Error {
+  status: number;
+  code: string;
+  constructor(message: string, status: number = 500, code: string = "GENERATION_ERROR") {
+    super(message);
+    this.name = "AiProviderError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export function sanitizeAiError(error: unknown, provider: string): AiProviderError {
+  const errObj = error as { status?: number; statusCode?: number; message?: string } | undefined;
+  const rawMsg = String(errObj?.message || error || "");
+  const status = errObj?.status || errObj?.statusCode;
+
+  const isAuth =
+    status === 401 ||
+    status === 403 ||
+    /invalid api key|api key not valid|unauthorized|authentication|forbidden|invalid_api_key|permission_denied/i.test(rawMsg);
+
+  if (isAuth) {
+    return new AiProviderError(
+      `Invalid or unauthorized API key for ${provider}. Please verify your BYOK credentials in settings.`,
+      401,
+      "INVALID_API_KEY"
+    );
+  }
+
+  const isRateLimit =
+    status === 429 ||
+    /rate limit|quota|resource_exhausted|too many requests/i.test(rawMsg);
+
+  if (isRateLimit) {
+    return new AiProviderError(
+      `Rate limit or quota exceeded for ${provider}. Please wait a moment or check your account quota.`,
+      429,
+      "RATE_LIMITED"
+    );
+  }
+
+  // Scrub any sensitive key patterns
+  const scrubbed = rawMsg
+    .replace(/(?:key|token|api_key|apikey)=([a-zA-Z0-9_\-]+)/gi, "$1=[REDACTED]")
+    .replace(/sk-[a-zA-Z0-9_\-]{15,}/gi, "sk-[REDACTED]")
+    .replace(/AIza[a-zA-Z0-9_\-]{20,}/gi, "AIza[REDACTED]");
+
+  return new AiProviderError(
+    `${provider} request failed: ${scrubbed || "Generation failed"}`,
+    status && status >= 400 && status < 600 ? status : 500,
+    "PROVIDER_ERROR"
+  );
+}
+
 export async function generateStream(params: {
   modelId: string;
   systemPrompt: string;
   messages: { role: string; content: string }[];
   temperature: number;
   userId?: string;
+  customKeys?: CustomAiKeys;
 }): Promise<ReadableStream> {
   const modelConfig = AI_MODELS[params.modelId];
   if (!modelConfig) {
-    throw new Error("Model provider not supported");
+    throw new AiProviderError("Model provider not supported", 400, "INVALID_MODEL");
   }
 
   const { provider, modelString } = modelConfig;
@@ -112,143 +173,168 @@ export async function generateStream(params: {
   }
 
   if (provider === "google") {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is missing");
+    const apiKey = params.customKeys?.google?.trim() || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new AiProviderError(
+        "Google Gemini API key is missing. Please configure your key in BYOK settings.",
+        401,
+        "MISSING_KEY"
+      );
     }
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: modelString,
-      systemInstruction: finalSystemPrompt,
-      generationConfig: {
-        temperature: params.temperature,
-      },
-    });
 
-    const MAX_HISTORY = 10;
-    const recentMessages = buildContextWindow(params.messages, MAX_HISTORY);
-    
-    const contents = recentMessages.map((m) => {
-      // Gemini only supports "user" | "model". SYSTEM summaries → "user".
-      const role = m.role.toUpperCase();
-      return {
-        role: role === "USER" || role === "SYSTEM" ? "user" : "model",
-        parts: [{ text: m.content }],
-      };
-    });
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: modelString,
+        systemInstruction: finalSystemPrompt,
+        generationConfig: {
+          temperature: params.temperature,
+        },
+      });
 
-    const result = await model.generateContentStream({ contents });
+      const MAX_HISTORY = 10;
+      const recentMessages = buildContextWindow(params.messages, MAX_HISTORY);
+      
+      const contents = recentMessages.map((m) => {
+        const role = m.role.toUpperCase();
+        return {
+          role: role === "USER" || role === "SYSTEM" ? "user" : "model",
+          parts: [{ text: m.content }],
+        };
+      });
 
-    return new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
-            controller.enqueue(new TextEncoder().encode(chunkText));
+      const result = await model.generateContentStream({ contents });
+
+      return new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of result.stream) {
+              const chunkText = chunk.text();
+              controller.enqueue(new TextEncoder().encode(chunkText));
+            }
+            controller.close();
+          } catch (error) {
+            controller.error(sanitizeAiError(error, "Google Gemini"));
           }
-          controller.close();
-        } catch (error) {
-          controller.error(error);
-        }
-      },
-    });
+        },
+      });
+    } catch (err) {
+      throw sanitizeAiError(err, "Google Gemini");
+    }
   }
 
   if (provider === "anthropic") {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY is missing");
+    const apiKey = params.customKeys?.anthropic?.trim() || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new AiProviderError(
+        "Anthropic Claude API key is missing. Please configure your key in BYOK settings.",
+        401,
+        "MISSING_KEY"
+      );
     }
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const MAX_HISTORY = 15;
-    const recentMessages = buildContextWindow(params.messages, MAX_HISTORY);
-    
-    const anthropicMessages = recentMessages.map((m) => {
-      // Anthropic only supports "user" | "assistant". SYSTEM summaries → "user".
-      const role = m.role.toUpperCase();
-      return {
-        role: (role === "USER" || role === "SYSTEM"
-          ? "user"
-          : "assistant") as "user" | "assistant",
-        content: m.content,
-      };
-    });
+    try {
+      const anthropic = new Anthropic({ apiKey });
 
-    const stream = await anthropic.messages.create({
-      model: modelString,
-      system: finalSystemPrompt,
-      messages: anthropicMessages,
-      temperature: params.temperature,
-      max_tokens: 4096,
-      stream: true,
-    });
+      const MAX_HISTORY = 15;
+      const recentMessages = buildContextWindow(params.messages, MAX_HISTORY);
+      
+      const anthropicMessages = recentMessages.map((m) => {
+        const role = m.role.toUpperCase();
+        return {
+          role: (role === "USER" || role === "SYSTEM"
+            ? "user"
+            : "assistant") as "user" | "assistant",
+          content: m.content,
+        };
+      });
 
-    return new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            if (
-              chunk.type === "content_block_delta" &&
-              chunk.delta.type === "text_delta"
-            ) {
-              controller.enqueue(new TextEncoder().encode(chunk.delta.text));
+      const stream = await anthropic.messages.create({
+        model: modelString,
+        system: finalSystemPrompt,
+        messages: anthropicMessages,
+        temperature: params.temperature,
+        max_tokens: 4096,
+        stream: true,
+      });
+
+      return new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of stream) {
+              if (
+                chunk.type === "content_block_delta" &&
+                chunk.delta.type === "text_delta"
+              ) {
+                controller.enqueue(new TextEncoder().encode(chunk.delta.text));
+              }
             }
+            controller.close();
+          } catch (error) {
+            controller.error(sanitizeAiError(error, "Anthropic Claude"));
           }
-          controller.close();
-        } catch (error) {
-          controller.error(error);
-        }
-      },
-    });
+        },
+      });
+    } catch (err) {
+      throw sanitizeAiError(err, "Anthropic Claude");
+    }
   }
 
   if (provider === "oss") {
-    const openai = new OpenAI({
-      baseURL: process.env.OSS_API_BASE_URL || "https://api.together.xyz/v1",
-      apiKey: process.env.OSS_API_KEY || "dummy",
-    });
+    const customKey = params.customKeys?.oss?.trim();
+    const apiKey = customKey || process.env.OSS_API_KEY || "dummy";
+    const baseURL = process.env.OSS_API_BASE_URL || (customKey && customKey.startsWith("sk-") && !customKey.startsWith("sk-ant-") ? undefined : "https://api.together.xyz/v1");
 
-    const MAX_HISTORY = 15;
-    const recentMessages = buildContextWindow(params.messages, MAX_HISTORY);
+    try {
+      const openai = new OpenAI({
+        baseURL,
+        apiKey,
+      });
 
-    const openaiMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-      { role: "system", content: finalSystemPrompt },
-      ...recentMessages.map((m) => {
-        // OpenAI supports "system" natively — use it for context summaries
-        const role = m.role.toUpperCase();
-        return {
-          role: (role === "SYSTEM"
-            ? "system"
-            : role === "USER"
-              ? "user"
-              : "assistant") as "system" | "user" | "assistant",
-          content: m.content,
-        };
-      }),
-    ];
+      const MAX_HISTORY = 15;
+      const recentMessages = buildContextWindow(params.messages, MAX_HISTORY);
 
-    const stream = await openai.chat.completions.create({
-      model: modelString,
-      messages: openaiMessages,
-      temperature: params.temperature,
-      stream: true,
-    });
+      const openaiMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        { role: "system", content: finalSystemPrompt },
+        ...recentMessages.map((m) => {
+          const role = m.role.toUpperCase();
+          return {
+            role: (role === "SYSTEM"
+              ? "system"
+              : role === "USER"
+                ? "user"
+                : "assistant") as "system" | "user" | "assistant",
+            content: m.content,
+          };
+        }),
+      ];
 
-    return new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || "";
-            if (content) {
-              controller.enqueue(new TextEncoder().encode(content));
+      const stream = await openai.chat.completions.create({
+        model: modelString,
+        messages: openaiMessages,
+        temperature: params.temperature,
+        stream: true,
+      });
+
+      return new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of stream) {
+              const content = chunk.choices[0]?.delta?.content || "";
+              if (content) {
+                controller.enqueue(new TextEncoder().encode(content));
+              }
             }
+            controller.close();
+          } catch (error) {
+            controller.error(sanitizeAiError(error, "OpenAI / OSS"));
           }
-          controller.close();
-        } catch (error) {
-          controller.error(error);
-        }
-      },
-    });
+        },
+      });
+    } catch (err) {
+      throw sanitizeAiError(err, "OpenAI / OSS");
+    }
   }
 
-  throw new Error("Model provider not supported");
+  throw new AiProviderError("Model provider not supported", 400, "INVALID_MODEL");
 }

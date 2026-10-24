@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useChatStore } from "@/store/chatStore";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Bot, User, Square } from "lucide-react";
+import { Send, Bot, User, Square, Key } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useToast } from "@/components/ui/toast-provider";
@@ -19,6 +19,8 @@ export function ChatInterface() {
     isStreaming,
     setStreaming,
     availableModels,
+    userKeys,
+    setByokModalOpen,
   } = useChatStore();
 
   const [input, setInput] = useState("");
@@ -58,9 +60,17 @@ export function ChatInterface() {
     setStreaming(true);
 
     try {
+      // Securely pass BYOK keys in request headers (never in URL or body query params)
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (userKeys.geminiApiKey) headers["x-gemini-api-key"] = userKeys.geminiApiKey;
+      if (userKeys.claudeApiKey) headers["x-claude-api-key"] = userKeys.claudeApiKey;
+      if (userKeys.openaiApiKey) headers["x-openai-api-key"] = userKeys.openaiApiKey;
+
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           agentId: activeAgent.id,
           chatId: activeChatId,
@@ -70,7 +80,41 @@ export function ChatInterface() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to send message");
+        let errorData: { error?: string; code?: string } | null = null;
+        try {
+          errorData = await res.json();
+        } catch {}
+
+        if (res.status === 401) {
+          const errMsg = errorData?.error || "Invalid or unauthorized API key. Please check your BYOK configuration.";
+          toast(errMsg, "error");
+          addMessage({
+            id: `temp-error-${Date.now()}`,
+            role: "ASSISTANT",
+            content: `🔑 **Authentication Error (401)**\n\n${errMsg}\n\nPlease click the **BYOK Keys** button in the header or settings to supply or update your personal API key.`,
+          });
+          return;
+        }
+
+        if (res.status === 429) {
+          const errMsg = errorData?.error || "Rate limit or quota exceeded. Please wait a moment.";
+          toast(errMsg, "error");
+          addMessage({
+            id: `temp-error-${Date.now()}`,
+            role: "ASSISTANT",
+            content: `⏳ **Rate Limit / Quota Exceeded (429)**\n\n${errMsg}\n\nYour provider rate limit or account quota has been reached. Please check your account quota or wait a moment before trying again.`,
+          });
+          return;
+        }
+
+        const fallbackMsg = errorData?.error || `Generation error (${res.status}). Failed to receive AI response.`;
+        toast(fallbackMsg, "error");
+        addMessage({
+          id: `temp-error-${Date.now()}`,
+          role: "ASSISTANT",
+          content: `⚠️ **Request Failed (${res.status})**\n\n${fallbackMsg}`,
+        });
+        return;
       }
 
       const newChatId = res.headers.get("X-Chat-Id");
@@ -96,12 +140,20 @@ export function ChatInterface() {
       if (error instanceof Error && error.name === "AbortError") {
         console.log("Stream aborted by user");
       } else {
-        console.error(error);
-        toast("An error occurred while generating the response.", "error");
+        const isNetworkOrCors = error instanceof TypeError && (
+          error.message.includes("fetch") ||
+          error.message.includes("NetworkError") ||
+          error.message.includes("Failed to fetch")
+        );
+        const errorContent = isNetworkOrCors
+          ? "🌐 **Network / CORS Connection Error**\n\nUnable to reach the AI workspace service. Please verify your internet connection or network CORS settings."
+          : "⚠️ **Generation Error**\n\nAn unexpected error occurred while communicating with the model provider.";
+
+        toast(isNetworkOrCors ? "Network or CORS connection error" : "Generation error", "error");
         addMessage({
           id: `temp-error-${Date.now()}`,
           role: "ASSISTANT",
-          content: "An error occurred while generating the response.",
+          content: errorContent,
         });
       }
     } finally {
@@ -136,6 +188,15 @@ export function ChatInterface() {
             <p className="text-xs mt-2 opacity-70">
               Powered by {getModelName(activeAgent.modelId)}
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setByokModalOpen(true)}
+              className="mt-4 rounded-full text-xs h-8 border-dashed border-border text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+            >
+              <Key className="w-3.5 h-3.5 text-primary" />
+              Configure BYOK Keys
+            </Button>
           </div>
         ) : (
           messages.map((msg, idx) => (

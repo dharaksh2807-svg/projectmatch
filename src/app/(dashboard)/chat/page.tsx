@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useChatStore } from "@/store/chatStore";
+import { useChatStore, Agent } from "@/store/chatStore";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AgentConfigPanel } from "@/components/chat/AgentConfigPanel";
 import { WhatsAppChatInterface } from "@/components/chat/WhatsAppChatInterface";
+import { ByokModal } from "@/components/chat/ByokModal";
 import { Button } from "@/components/ui/button";
-import { Settings2, Bot, PlusCircle, MessageSquare, Trash2, Menu } from "lucide-react";
+import { Settings2, Bot, PlusCircle, MessageSquare, Trash2, Menu, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -22,9 +23,20 @@ import { useToast } from "@/components/ui/toast-provider";
 export default function ChatPage() {
   const { data: session } = useSession();
   const [chatTab, setChatTab] = useState<"direct" | "agent">("direct");
-  const { setModels, activeAgent, setAgent, clearChat, chatList, fetchChats, loadChatHistory, activeChatId } = useChatStore();
+  const {
+    setModels,
+    activeAgent,
+    setAgent,
+    clearChat,
+    chatList,
+    fetchChats,
+    loadChatHistory,
+    activeChatId,
+    userKeys,
+    setByokModalOpen,
+  } = useChatStore();
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [agents, setAgents] = useState<any[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const { toast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -46,7 +58,7 @@ export default function ChatPage() {
         }
 
         if (agentsRes.ok) {
-          const fetchedAgents = await agentsRes.json();
+          const fetchedAgents: Agent[] = await agentsRes.json();
           setAgents(fetchedAgents);
         }
       } catch (error) {
@@ -58,7 +70,7 @@ export default function ChatPage() {
     if (session?.user) {
       fetchInitialData();
     }
-  }, [session, setModels]);
+  }, [session, setModels, toast]);
 
   const handleAgentSelect = (agentId: string | null) => {
     if (!agentId) return;
@@ -243,7 +255,21 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setByokModalOpen(true)}
+            className="h-9 border-border bg-transparent text-foreground hover:bg-accent flex items-center gap-1.5"
+            title="Configure BYOK API Keys (Session Only)"
+          >
+            <Key className="w-4 h-4 text-primary" />
+            <span className="hidden sm:inline">BYOK Keys</span>
+            {(userKeys.geminiApiKey || userKeys.claudeApiKey || userKeys.openaiApiKey) && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
+            )}
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -277,10 +303,13 @@ export default function ChatPage() {
           // Refetch agents after panel closes in case one was created
           fetch("/api/agents")
             .then((res) => res.json())
-            .then(setAgents)
+            .then((data: Agent[]) => setAgents(data))
             .catch(console.error);
         }}
       />
+
+      {/* Bring Your Own Key (BYOK) Modal */}
+      <ByokModal />
           </div>
         </div>
       )}
